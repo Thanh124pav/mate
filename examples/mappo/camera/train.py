@@ -65,6 +65,7 @@ def train(
     seed=None,
     timesteps_total=None,
 ):
+    print(f"Number of GPUs: {num_gpus}")
     tune_callbacks = [SymlinkCheckpointCallback()]
     if WandbLoggerCallback.is_available():
         project = project or ('mate' if not DEBUG else 'mate-debug')
@@ -82,7 +83,7 @@ def train(
     experiment.spec['config'].update(
         num_cpus_for_driver=NUM_CPUS_FOR_TRAINER,
         num_gpus=num_gpus,
-        num_gpus_per_worker=0,
+        num_gpus_per_worker=0, 
         num_workers=num_workers,
         num_envs_per_worker=num_envs_per_worker,
     )

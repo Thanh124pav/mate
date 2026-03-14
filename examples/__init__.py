@@ -9,5 +9,6 @@
 from examples import random, naive, greedy, heuristic
 
 # Learning-based agents
-from examples import iql, ippo, maddpg, mappo, qmix, hrl
+from examples import iql, ippo, maddpg, mappo, qmix, hrl, qplex, qplex_v2, a3c
 from examples import i2c, tarmac
+from examples import hitmac
