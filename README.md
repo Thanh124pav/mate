@@ -7,21 +7,69 @@ This repo contains the source code of `MATE`, the _**M**ulti-**A**gent **T**rack
 This is an **asymmetric two-team zero-sum stochastic game** with _partial observations_, and each team has multiple agents (multiplayer). Intra-team communications are allowed, but inter-team communications are prohibited. It is **cooperative** among teammates, but it is **competitive** among teams (opponents).
 
 ## Installation
+It is highly recommended to create a new isolated virtual environment for `MATE` using [`conda`](https://docs.conda.io/en/latest/miniconda.html)
+### Download Conda
 
 ```bash
-git config --global core.symlinks true  # required on Windows
-pip3 install git+https://github.com/XuehaiPan/mate.git#egg=mate
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
 ```
 
-**NOTE:** Python 3.7+ is required, and Python versions lower than 3.7 is not supported.
-
-It is highly recommended to create a new isolated virtual environment for `MATE` using [`conda`](https://docs.conda.io/en/latest/miniconda.html):
-
+### Create environment
+Easy:
 ```bash
-git clone https://github.com/XuehaiPan/mate.git && cd mate
-conda env create --no-default-packages --file conda-recipes/basic.yaml  # or full-cpu.yaml to install RLlib
+conda env create -n mate --no-default-packages --file conda-recipes/full-gpu-torch.yaml  # or full-cpu.yaml to install RLlib
 conda activate mate
 ```
+
+Harder but faster:
+```bash
+pip install -r requirements.txt 
+conda install conda-forge::gym=0.21.0
+```
+
+### Change the ray libraries
+To use modified method, like `qplex` or `qplex_v2`, you must change the ray libraries. You can changed this by directly mofify ray in site-packages or change the PYTHONPATH
+1. Modify ray in site-packages
+find the site-packages folder:
+```bash
+python -c "import sys; print('\n'.join(sys.path))"
+```
+modified the ray libaries by the ray in mate folder:
+```bash
+cp -r ray/rllib/agents/ <site-packages folder>/ray/rllib/
+```
+2. Change PYTHONPATH 
+This will use the ray folder in this directory and ignore ray in site-packages
+```bash
+export PYTHONPATH="<Path to this folder>"
+```
+
+**NOTE:** 
+Python 3.7+ is required, and Python versions lower than 3.7 is not supported. \
+To hide some logging, you can try 
+```bash
+export RAY_BACKEND_LOG_LEVEL=error
+export RAY_LOG_TO_STDERR=0
+``` 
+Docker version is in experiment-time \
+There are some checkpoints in folder, you can test the model now:
+```bash
+python -m mate.evaluate --episodes 1 --render-communication \
+    --camera-agent examples.hrl.qplex_v2:HRLQPLEXV2CameraAgent \
+    --camera-kwargs '{ "checkpoint_path": "examples/hrl/qplex_v2/camera/ray_results/HRL-QPLEXV2/QPLEX_V2_mate-hrl.qplex_v2.camera_f1636_00000_0_2026-01-19_15-50-45/latest-checkpoint" }' \
+    --config "MATE-4v5-0.yaml"
+```
+Results: \
+|                           Metric |         Mean |
+| -------------------------------: | -----------: |
+|                     Step / Cargo |         34.0 |
+|            Target Episode Reward |     +2258.00 |
+|              Mean Transport Rate |      28.225% |
+|               Mean Coverage Rate |      74.065% |
+| Normalized Target Episode Reward |     +0.28225 |
+
+
 
 ## Getting Started
 

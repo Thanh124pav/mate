@@ -116,7 +116,7 @@ class RLlibPolicyMixIn(AgentBase):
         self.policy = self.get_policy()
 
         multiagent = self.config.get('multiagent', {})
-        self.policy_mapping_fn = multiagent.get('policy_mapping_fn', default_policy_mapping_fn)
+        self.policy_mapping_fn = multiagent.get('policy_mapping_fn') or default_policy_mapping_fn
         self.policy_id = None
 
         self.unsquash_action = self.config.get('normalize_actions', True)

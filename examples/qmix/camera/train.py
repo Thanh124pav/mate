@@ -29,7 +29,7 @@ if DEBUG:
 # Node resources
 SLURM_CPUS_ON_NODE = int(os.getenv('SLURM_CPUS_ON_NODE', str(os.cpu_count())))
 NUM_NODE_CPUS = max(1, min(os.cpu_count(), SLURM_CPUS_ON_NODE))
-assert NUM_NODE_CPUS >= 2
+assert NUM_NODE_CPUS >= 1
 NUM_NODE_GPUS = torch.cuda.device_count()
 
 # Training resources
@@ -74,7 +74,8 @@ def train(
         tune_callbacks.append(WandbLoggerCallback(project=project, group=group))
 
     if not ray.is_initialized():
-        ray.init(num_cpus=NUM_NODE_CPUS, local_mode=DEBUG)
+        ray.init(num_cpus=NUM_NODE_CPUS, 
+                 num_gpus=NUM_NODE_GPUS, local_mode=DEBUG)
 
     num_ray_cpus = round(ray.cluster_resources()['CPU'])
     num_ray_gpus = ray.cluster_resources().get('GPU', 0.0)
@@ -153,7 +154,7 @@ def main():
         '--buffer-capacity',
         type=float,
         metavar='EPISODE',
-        default=2000,
+        default=100,
         help='capacity for the replay buffer (default: %(default).1e episodes)',
     )
 

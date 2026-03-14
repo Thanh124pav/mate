@@ -37,7 +37,7 @@ fi
 
 # === Setup environment ============================================================================
 
-export CONDA_HOME="${HOME}/Miniconda3" # change to your conda prefix
+export CONDA_HOME="${HOME}/miniconda3" # change to your conda prefix
 export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${CONDA_HOME}/lib"
 
 source "${CONDA_HOME}/etc/profile.d/conda.sh"
@@ -51,5 +51,5 @@ fi
 
 python3 -m examples.mappo.camera.train \
 	--project mate-camera \
-	--num-workers 16 --num-envs-per-worker 8 --num-gpus 0.3 \
-	--timesteps-total 10E6 --seed 0 1 2
+	--num-workers 1 --num-envs-per-worker 32 --num-gpus 1.0 \
+	--timesteps-total 10E6 --seed 0
