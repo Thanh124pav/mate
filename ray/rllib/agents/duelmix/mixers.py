@@ -171,8 +171,8 @@ class DuelMixMixer(nn.Module):
             agent_vs_flat = agent_vs.view(-1, self.n_agents)
             transformed_v = w_t * agent_vs_flat + b_t
 
-            # Mix V (UNRESTRICTED weights)
-            v_weights = self.v_mix_w(states_flat).view(-1, self.n_agents)
+            # Mix V (positive weights, consistent with paper)
+            v_weights = torch.abs(self.v_mix_w(states_flat)).view(-1, self.n_agents)
             v_bias = self.v_mix_bias(states_flat).view(-1, 1)
             v_tot = torch.sum(v_weights * transformed_v, dim=-1, keepdim=True) + v_bias
             return v_tot.view(bs, -1, 1)

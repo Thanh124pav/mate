@@ -1,16 +1,16 @@
-"""QPLEX + RSSM World Model (WM2) Policy.
+"""QPLEX + Dreamer-style World Model (WM4) Policy.
 
-World model provides latent features for obs/state augmentation and
-auxiliary losses (reconstruction + KL + reward prediction).
-
-When use_imagination_targets=True, an H-step imagination rollout using
-the replay-buffer actions is used to compute multi-step TD targets.
+WM4 extends WM2 with full Dreamer imagination:
+  - ObsDecoder: global latent → per-agent obs (policy-in-loop during imagination)
+  - Obs reconstruction loss in world model training
+  - Dreamer rollout: Q-network selects actions at each imagined step
+  - Imagination reconstruction loss: 1-step imagined state vs real next_state
 
 Training flow:
-  1. RSSM observe() — encode sequence with posterior
-  2. World model loss — reconstruction + reward prediction + KL divergence
-  3. QPLEX loss — obs/state augmented with latent features
-  4. (Optional) Imagination rollout for multi-step TD targets
+  1. RSSM observe() — encode sequence with posterior (conditioned on real obs)
+  2. World model loss — reconstruction + reward prediction + KL + obs reconstruction
+  3. Dreamer imagination — H steps: ObsDecoder → Q-network → Prior transition
+  4. QPLEX loss — obs/state augmented with latent features
 """
 
 from gym.spaces import Tuple, Discrete, Dict, Box
@@ -26,7 +26,7 @@ from ray.rllib.agents.qplex_v2.model import RNNModel, _get_size
 from ray.rllib.agents.qplex_v2.qplex_policy import (
     _validate, _mac, _unroll_mac, _drop_agent_dim, _add_agent_dim, adjust_args,
 )
-from .world_model_v2 import LatentWorldModel, PRESERVED_DIM, CAMERA_STATE_DIM_PRIVATE
+from .world_model_v4 import LatentWorldModel, PRESERVED_DIM, CAMERA_STATE_DIM_PRIVATE
 
 from ray.rllib.env.multi_agent_env import ENV_STATE
 from ray.rllib.env.wrappers.group_agents_wrapper import GROUP_REWARDS
@@ -52,13 +52,14 @@ def _ema_update(ema_model, model, decay=0.995):
             ema_p.data.mul_(decay).add_(p.data, alpha=1.0 - decay)
 
 
-class QPLEXWM2Loss(nn.Module):
-    """QPLEX loss with RSSM world model (WM2).
+class QPLEXWM4Loss(nn.Module):
+    """QPLEX loss with Dreamer-style RSSM world model (WM4).
 
     World model provides:
-      - Latent features for obs/state augmentation (via EMA world model)
-      - Reconstruction + KL + reward prediction auxiliary losses
-      - (Optional) Simple H-step imagination rollout for multi-step TD targets
+      - Latent features for obs/state augmentation (via EMA world model for stability)
+      - Reconstruction + KL + reward prediction + obs reconstruction auxiliary losses
+      - Dreamer imagination rollout with policy-in-loop (ObsDecoder → Q-network)
+      - 1-step imagination reconstruction loss vs real next_state
     """
 
     def __init__(
@@ -66,7 +67,7 @@ class QPLEXWM2Loss(nn.Module):
         model, target_model,
         mixer, target_mixer,
         world_model, ema_world_model,
-        n_agents, n_actions,
+        n_agents, n_actions, h_size,
         double_q=True, gamma=0.99,
         wm_loss_weight=0.5,
         reward_bonus_coeff=0.1,
@@ -85,6 +86,7 @@ class QPLEXWM2Loss(nn.Module):
         self.ema_world_model = ema_world_model
         self.n_agents = n_agents
         self.n_actions = n_actions
+        self.h_size = h_size          # GRU hidden size — used for zero hidden state in imagination
         self.double_q = double_q
         self.gamma = gamma
         self.wm_loss_weight = wm_loss_weight
@@ -96,6 +98,7 @@ class QPLEXWM2Loss(nn.Module):
         self.ema_decay = ema_decay
 
     def _compute_reward_bonus(self, state_decoded, state_real):
+        """Reward bonus based on how well the world model reconstructs the state."""
         recon_error = ((state_decoded - state_real) ** 2).mean(dim=-1, keepdim=True)
         bonus = torch.exp(-recon_error / self.reward_bonus_scale)
         return bonus  # [B, T, 1]
@@ -203,28 +206,54 @@ class QPLEXWM2Loss(nn.Module):
             target_max_qvals = target_chosen + target_adv
 
         # =================================================================
-        # 7. TD targets + simple imagination (if enabled)
+        # 7. TD targets + Dreamer imagination (if enabled)
         # =================================================================
         targets = shaped_rewards + self.gamma * (1 - terminated) * target_max_qvals
+        imag_recon_loss = torch.tensor(0.0, device=obs.device)
 
         if self.use_imagination_targets:
             H = self.imagination_horizon
             BT = B * T
 
-            # Start imagination from posterior at each (b, t)
+            # Flatten posteriors: [B, T, dim] → [B*T, dim]
             imag_state = [p.reshape(BT, -1).detach() for p in posteriors]
             act_flat = actions.reshape(BT, self.n_agents)
 
             imag_rewards_list = []
-            for _ in range(H):
-                # Use the real replay-buffer action for all imagination steps
-                action_embed = self.world_model.action_embed(act_flat)
-                imag_state = self.world_model.transition.img_step(imag_state, action_embed)
-                imag_feature = self.world_model.transition.get_feature(imag_state)
-                imag_reward = self.world_model.reward_predictor(imag_feature)  # [BT]
-                imag_rewards_list.append(imag_reward)
+            imag_decoded_states = []
 
-            # Discounted H-step imagined return
+            for h in range(H):
+                # ── Get current latent feature ───────────────────────────
+                imag_feature = self.world_model.transition.get_feature(imag_state)
+
+                # ── Decode obs from latent (ObsDecoder) ──────────────────
+                with torch.no_grad():
+                    imag_obs = self.world_model.obs_decoder(imag_feature)  # [BT, n_agents, obs_size]
+
+                # ── Select action via Q-network (greedy, zero hidden) ────
+                if h == 0:
+                    step_actions = act_flat  # use real action at first step
+                else:
+                    feat_exp = imag_feature.detach().unsqueeze(1).expand(-1, self.n_agents, -1)
+                    obs_aug_imag = torch.cat([imag_obs, feat_exp], dim=-1)
+                    h_zero = [torch.zeros(BT, self.n_agents, self.h_size, device=obs.device)]
+                    with torch.no_grad():
+                        q_imag, _ = _mac(self.model, obs_aug_imag, h_zero)
+                    step_actions = q_imag.argmax(dim=-1)  # [BT, n_agents]
+
+                # ── Prior step: (z_t, a_t) → z_{t+1}^imag ───────────────
+                action_embed = self.world_model.action_embed(step_actions)
+                imag_state = self.world_model.transition.img_step(imag_state, action_embed)
+
+                # ── Predict reward + decode state ─────────────────────────
+                imag_feature_next = self.world_model.transition.get_feature(imag_state)
+                imag_reward = self.world_model.reward_predictor(imag_feature_next)
+                imag_state_decoded = self.world_model.state_decoder(imag_feature_next)
+
+                imag_rewards_list.append(imag_reward)
+                imag_decoded_states.append(imag_state_decoded)
+
+            # ── Discounted H-step imagined return ─────────────────────────
             imag_rewards_tensor = torch.stack(imag_rewards_list, dim=1)  # [BT, H]
             gammas = torch.pow(
                 torch.tensor(self.gamma, dtype=torch.float, device=obs.device),
@@ -238,37 +267,52 @@ class QPLEXWM2Loss(nn.Module):
                 + (self.gamma ** H) * (1 - term_mean) * target_max_qvals.detach()
             )
 
-            # Blend 1-step real targets with H-step imagined targets
             targets = (
                 (1.0 - self.imagination_loss_weight) * targets
                 + self.imagination_loss_weight * imag_td_targets
             )
+
+            # ── Reconstruction loss: z_{t+1}^imag vs state_{t+1}^real ────
+            # Only use first imagination step — h>1 has no real ground truth
+            real_next_state = next_state.reshape(BT, -1).detach()
+            first_imag_state = imag_decoded_states[0]                          # [BT, state_dim]
+            imag_recon = ((first_imag_state - real_next_state) ** 2).mean(dim=-1)
+            imag_recon_loss = imag_recon.reshape(B, T)
+            wm_mask_2d = mask[:, :, 0]
+            imag_recon_loss = (imag_recon_loss * wm_mask_2d).sum() / wm_mask_2d.sum().clamp(min=1)
 
         td_error = chosen_action_qvals - targets.detach()
         mask = mask.expand_as(td_error)
         masked_td_error = td_error * mask
 
         td_loss = (masked_td_error ** 2).sum() / mask.sum()
-        total_loss = td_loss + self.wm_loss_weight * wm_loss
+        total_loss = (
+            td_loss
+            + self.wm_loss_weight * wm_loss
+            + self.imagination_loss_weight * imag_recon_loss
+        )
 
         stats = {
             "td_loss": td_loss.item(),
             "reward_bonus_mean": reward_bonus.mean().item(),
+            "imag_recon_loss": imag_recon_loss.item(),
             **wm_stats,
         }
 
         return total_loss, stats, mask, masked_td_error, chosen_action_qvals, targets
 
 
-class QPLEXWM2TorchPolicy(Policy):
-    """QPLEX + RSSM World Model policy (WM2).
+class QPLEXWM4TorchPolicy(Policy):
+    """QPLEX + RSSM World Model (WM4) policy with Dreamer imagination.
 
-    The RNN model receives obs augmented with RSSM latent features (feature_dim).
+    The RNN model receives obs augmented with RSSM latent features.
+    When use_imagination_targets=True, a Dreamer-style rollout uses the
+    ObsDecoder + Q-network to select actions at each imagined step.
     """
 
     def __init__(self, obs_space, action_space, config):
         _validate(obs_space, action_space)
-        config = dict(ray.rllib.agents.qplex_wm2.qplex.DEFAULT_CONFIG, **config)
+        config = dict(ray.rllib.agents.qplex_wm4.qplex.DEFAULT_CONFIG, **config)
 
         self.args = Namespace(**config)
         self.args = adjust_args(self.args)
@@ -277,6 +321,7 @@ class QPLEXWM2TorchPolicy(Policy):
         self.n_agents = len(obs_space.original_space.spaces)
         config["model"]["n_agents"] = self.n_agents
         self.n_actions = action_space.spaces[0].n
+        self.h_size = config["model"]["lstm_cell_size"]
         self.has_env_global_state = False
         self.has_action_mask = False
         self.device = (
@@ -307,9 +352,9 @@ class QPLEXWM2TorchPolicy(Policy):
             self.env_global_state_shape = (self.obs_size, self.n_agents)
 
         # =====================================================================
-        # World Model (RSSM)
+        # World Model (RSSM + ObsDecoder)
         # =====================================================================
-        wm_config = config.get("world_model_v2", {})
+        wm_config = config.get("world_model_v4", {})
         state_dim = int(np.prod(self.env_global_state_shape))
         self.stoch_dim = wm_config.get("stoch_dim", 32)
         self.deter_dim = wm_config.get("deter_dim", 128)
@@ -373,7 +418,7 @@ class QPLEXWM2TorchPolicy(Policy):
             self.args, self.n_agents, self.n_actions, augmented_state_shape,
             config['mixing_embed_dim'], self.args.ffn_hidden_dim, self.args.num_kernel,
         ).to(self.device)
-        assert config['mixer'] == 'qplex_wm2'
+        assert config['mixer'] == 'qplex_wm4'
 
         self.cur_epsilon = 1.0
         self.update_target()
@@ -385,11 +430,11 @@ class QPLEXWM2TorchPolicy(Policy):
         self.params += list(self.mixer.parameters())
         self.params += list(self.world_model.parameters())
 
-        self.loss = QPLEXWM2Loss(
+        self.loss = QPLEXWM4Loss(
             self.model, self.target_model,
             self.mixer, self.target_mixer,
             self.world_model, self.ema_world_model,
-            self.n_agents, self.n_actions,
+            self.n_agents, self.n_actions, self.h_size,
             self.config["double_q"], self.config["gamma"],
             wm_loss_weight=wm_config.get("wm_loss_weight", 0.5),
             reward_bonus_coeff=wm_config.get("reward_bonus_coeff", 0.1),
