@@ -330,7 +330,7 @@ class LatentWorldModel(nn.Module):
     # Training: compute all world model losses
     # -----------------------------------------------------------------
 
-    def compute_loss(self, obs, actions, state, rewards, mask):
+    def compute_loss(self, obs, actions, state, rewards, mask, return_posteriors=False):
         """Compute world model losses: reconstruction + reward + KL.
 
         Args:
@@ -339,11 +339,13 @@ class LatentWorldModel(nn.Module):
             state: [B, T, state_dim] — global state (reconstruction target)
             rewards: [B, T, n_agents] — actual rewards (mean across agents for reward target)
             mask: [B, T] — valid timestep mask
+            return_posteriors: if True, also return posteriors list for imagination rollout
 
         Returns:
             wm_loss: scalar — total world model loss
             features: [B, T, feature_dim] — posterior features (for obs/state augmentation)
             stats: dict — individual loss components for logging
+            posteriors: (only if return_posteriors=True) list of 4 tensors [B, T, dim]
         """
         B, T = obs.shape[0], obs.shape[1]
 
@@ -390,6 +392,8 @@ class LatentWorldModel(nn.Module):
             "wm_total_loss": wm_loss.item(),
         }
 
+        if return_posteriors:
+            return wm_loss, features, stats, posteriors
         return wm_loss, features, stats
 
     # -----------------------------------------------------------------

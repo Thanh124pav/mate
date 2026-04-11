@@ -131,10 +131,11 @@ class QPLEXWM2Loss(nn.Module):
         # =================================================================
         # 1. World Model: RSSM observe + losses (train the main world model)
         # =================================================================
-        wm_loss, features, wm_stats = self.world_model.compute_loss(
-            obs, actions, state, rewards, wm_mask
+        wm_loss, features, wm_stats, posteriors = self.world_model.compute_loss(
+            obs, actions, state, rewards, wm_mask, return_posteriors=True
         )
         # features: [B, T, feature_dim] — posterior latent features (from main WM)
+        # posteriors: list of 4 tensors [B, T, dim] — full latent state for imagination
 
         # =================================================================
         # 2. EMA World Model: stable latent features for augmentation
@@ -220,9 +221,45 @@ class QPLEXWM2Loss(nn.Module):
             target_max_qvals = target_chosen + target_adv
 
         # =================================================================
-        # 7. TD loss
+        # 7. TD loss (with optional imagination multi-step targets)
         # =================================================================
         targets = shaped_rewards + self.gamma * (1 - terminated) * target_max_qvals
+
+        if self.use_imagination_targets:
+            H = self.imagination_horizon
+            # Flatten posteriors: [B, T, dim] → [B*T, dim] for each of the 4 components
+            post_flat = [p.reshape(B * T, -1) for p in posteriors]
+            # Action sequence: repeat current actions for H imagination steps
+            act_flat = actions.reshape(B * T, self.n_agents)
+            imag_act_seq = act_flat.unsqueeze(1).expand(-1, H, -1)  # [B*T, H, n_agents]
+
+            with torch.no_grad():
+                imag_features, imag_rewards = self.world_model.imagine_rollout(
+                    post_flat, imag_act_seq
+                )
+                # imag_rewards: [B*T, H] — predicted rewards for H future steps
+
+            # Discounted H-step return: G = Σ_{h=0}^{H-1} γ^h * r_{t+h+1}
+            gammas = torch.pow(
+                torch.tensor(self.gamma, dtype=torch.float, device=obs.device),
+                torch.arange(H, device=obs.device, dtype=torch.float),
+            )  # [H]
+            imag_return = (imag_rewards * gammas.unsqueeze(0)).sum(dim=1)  # [B*T]
+            imag_return = imag_return.reshape(B, T)
+
+            # Bootstrap with target Q at horizon: G + γ^H * Q_target(s_{t+H})
+            term_mean = terminated.mean(dim=-1)  # [B, T]
+            imag_targets = (
+                imag_return
+                + (self.gamma ** H) * (1 - term_mean) * target_max_qvals.detach()
+            )
+
+            # Blend 1-step and H-step targets
+            targets = (
+                (1.0 - self.imagination_loss_weight) * targets
+                + self.imagination_loss_weight * imag_targets
+            )
+
         td_error = chosen_action_qvals - targets.detach()
         mask = mask.expand_as(td_error)
         masked_td_error = td_error * mask
