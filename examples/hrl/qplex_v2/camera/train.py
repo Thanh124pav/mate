@@ -51,7 +51,7 @@ experiment = tune.Experiment(
     checkpoint_score_attr='episode_reward_mean',
     checkpoint_freq=20,
     checkpoint_at_end=True,
-    max_failures=-1,
+    max_failures=3,
 )
 
 

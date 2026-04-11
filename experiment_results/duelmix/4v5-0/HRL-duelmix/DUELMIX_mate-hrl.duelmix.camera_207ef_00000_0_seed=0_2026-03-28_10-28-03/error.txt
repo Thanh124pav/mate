@@ -1,0 +1,47 @@
+Failure # 1 (occurred at 2026-03-28_10-29-19)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1809, in get
+    raise value.as_instanceof_cause()
+ray.exceptions.RayTaskError(ValueError): [36mray::DuelMixTrainer.train()[39m (pid=6567, ip=172.27.211.168, repr=DuelMixTrainer)
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/ray/tune/trainable.py", line 349, in train
+    result = self.step()
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/ray/rllib/agents/trainer.py", line 1093, in step
+    raise e
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/ray/rllib/agents/trainer.py", line 1074, in step
+    step_attempt_results = self.step_attempt()
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/ray/rllib/agents/trainer.py", line 1155, in step_attempt
+    step_results = self._exec_plan_or_training_iteration_fn()
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/ray/rllib/agents/trainer.py", line 2174, in _exec_plan_or_training_iteration_fn
+    results = next(self.train_exec_impl)
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/ray/util/iter.py", line 1108, in build_union
+    item = next(it)
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/ray/util/iter.py", line 815, in apply_foreach
+    result = fn(item)
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/ray/rllib/execution/replay_ops.py", line 57, in __call__
+    self.local_actor.add_batch(batch)
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/ray/rllib/execution/replay_ops.py", line 135, in add_batch
+    warn_replay_capacity(item=sample_batch, num_items=self.num_slots)
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/ray/rllib/execution/buffers/replay_buffer.py", line 43, in warn_replay_capacity
+    raise ValueError(msg)
+ValueError: Estimated max memory usage for replay buffer is 6.361647232 GB (334 batches of size 1328, 19046848 bytes each), available system memory is 6.214086656 GB
+

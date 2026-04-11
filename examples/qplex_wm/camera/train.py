@@ -1,0 +1,154 @@
+#!/usr/bin/env python3
+
+# Run: python -m examples.qplex_wm.camera.train
+#      python -m examples.qplex_wm.camera.train --env MATE-4v5-0.yaml
+
+import argparse
+import copy
+import os
+import sys
+from math import ceil
+from pathlib import Path
+
+import ray
+import torch
+from ray import tune
+
+import mate
+from examples.qplex_wm.camera.config import config
+from examples.utils import SymlinkCheckpointCallback, WandbLoggerCallback
+
+
+DEBUG = getattr(sys, 'gettrace', lambda: None)() is not None
+
+HERE = Path(__file__).absolute().parent
+LOCAL_DIR = HERE / 'ray_results'
+if DEBUG:
+    print(f'DEBUG MODE: {DEBUG}')
+    LOCAL_DIR = LOCAL_DIR / 'debug'
+
+
+# Node resources
+SLURM_CPUS_ON_NODE = int(os.getenv('SLURM_CPUS_ON_NODE', str(os.cpu_count())))
+NUM_NODE_CPUS = max(1, min(os.cpu_count(), SLURM_CPUS_ON_NODE))
+assert NUM_NODE_CPUS >= 1
+NUM_NODE_GPUS = torch.cuda.device_count()
+
+# Training resources
+PRESERVED_NUM_CPUS = 1
+NUM_CPUS_FOR_TRAINER = 1
+NUM_GPUS_FOR_TRAINER = min(NUM_NODE_GPUS, 0.25)
+
+MAX_NUM_CPUS_FOR_WORKER = max(0, NUM_NODE_CPUS - PRESERVED_NUM_CPUS - NUM_CPUS_FOR_TRAINER)
+MAX_NUM_WORKERS = min(32, MAX_NUM_CPUS_FOR_WORKER)
+NUM_WORKERS = MAX_NUM_WORKERS if not DEBUG else 0
+
+
+def _detect_n_targets(env_yaml):
+    """Auto-detect n_targets from environment config."""
+    env = mate.make('MultiAgentTracking-v0', config=env_yaml)
+    n_targets = env.num_targets
+    env.close()
+    return n_targets
+
+
+experiment = tune.Experiment(
+    name='QPLEX-WM',
+    run='QPLEX_WM',
+    config=copy.deepcopy(config),
+    local_dir=LOCAL_DIR,
+    stop={'timesteps_total': 10e6},
+    checkpoint_score_attr='episode_reward_mean',
+    checkpoint_freq=20,
+    checkpoint_at_end=True,
+    max_failures=3,
+)
+
+
+def train(
+    experiment,
+    project=None,
+    group=None,
+    local_dir=None,
+    num_gpus=NUM_GPUS_FOR_TRAINER,
+    num_workers=NUM_WORKERS,
+    num_envs_per_worker=8,
+    seed=None,
+    timesteps_total=None,
+    buffer_capacity=2000,
+    restore=None,
+    resume=False,
+    env=None,
+):
+    # Auto-detect n_targets when switching environment
+    if env is not None:
+        experiment.spec['config']['env_config']['config'] = env
+        n_targets = _detect_n_targets(env)
+        experiment.spec['config']['world_model']['n_targets'] = n_targets
+        print(f'Auto-detected n_targets={n_targets} from {env}')
+
+    tune_callbacks = [SymlinkCheckpointCallback()]
+    if WandbLoggerCallback.is_available():
+        project = project or ('mate' if not DEBUG else 'mate-debug')
+        group = group or f'qplex_wm.camera.{experiment.name}'
+        tune_callbacks.append(WandbLoggerCallback(project=project, group=group))
+
+    if not ray.is_initialized():
+        ray.init(num_cpus=NUM_NODE_CPUS, num_gpus=NUM_NODE_GPUS, local_mode=DEBUG)
+
+    num_ray_cpus = round(ray.cluster_resources()['CPU'])
+    num_ray_gpus = ray.cluster_resources().get('GPU', 0.0)
+    num_gpus = min(num_gpus, num_ray_gpus)
+    num_workers = max(0, min(num_workers, num_ray_cpus - NUM_CPUS_FOR_TRAINER))
+
+    experiment.spec['config'].update(
+        num_cpus_for_driver=NUM_CPUS_FOR_TRAINER,
+        num_gpus=num_gpus,
+        num_gpus_per_worker=0,
+        num_workers=num_workers,
+        num_envs_per_worker=num_envs_per_worker,
+    )
+    if seed is not None:
+        seed = tune.grid_search(seed) if isinstance(seed, (list, tuple)) else seed
+        experiment.spec['config'].update(seed=seed)
+    if timesteps_total is not None:
+        experiment.spec['stop'].update(timesteps_total=timesteps_total)
+    if local_dir is not None:
+        experiment.spec['local_dir'] = local_dir
+
+    experiment.spec['config'].update(buffer_size=ceil(buffer_capacity / max(num_workers, 1)))
+
+    analysis = tune.run(
+        experiment,
+        metric='episode_reward_mean',
+        mode='max',
+        callbacks=tune_callbacks,
+        verbose=3,
+        restore=restore,
+        resume=resume,
+    )
+    return analysis
+
+
+def main():
+    parser = argparse.ArgumentParser(prog=f'python -m {__package__}')
+    parser.add_argument('--project', type=str, default=None, help='W&B project name')
+    parser.add_argument('--group', type=str, default=None, help='W&B group name')
+    parser.add_argument('--local-dir', type=str, default=LOCAL_DIR, help='experiment directory')
+    parser.add_argument('--num-gpus', type=float, default=NUM_GPUS_FOR_TRAINER)
+    parser.add_argument('--num-workers', type=int, default=NUM_WORKERS)
+    parser.add_argument('--num-envs-per-worker', type=int, default=8)
+    parser.add_argument('--timesteps-total', type=float, default=10e6)
+    parser.add_argument('--seed', type=int, nargs='*', default=None)
+    parser.add_argument('--buffer-capacity', type=float, default=100)
+    parser.add_argument('--restore', type=str, default=None)
+    parser.add_argument('--resume', action='store_true')
+    parser.add_argument('--env', default=None, help='.yaml environment config')
+
+    args = parser.parse_args()
+    analysis = train(experiment, **vars(args))
+    return analysis
+
+
+if __name__ == '__main__':
+    main()
