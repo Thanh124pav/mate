@@ -276,6 +276,53 @@ class RewardPredictor(nn.Module):
         return self.net(feature).squeeze(-1)  # [B]
 
 
+class ObsDecoder(nn.Module):
+    """Decode global latent feature → per-agent observations.
+
+    Agent-conditioned: each agent gets a different decoded obs
+    via an agent embedding concatenated with the global latent.
+
+    Args:
+        feature_dim: latent feature dimension (stoch + deter)
+        obs_size: per-agent observation size
+        n_agents: number of agents
+        hidden_dim: MLP hidden dimension
+    """
+
+    def __init__(self, feature_dim, obs_size, n_agents, hidden_dim=128):
+        super().__init__()
+        self.n_agents = n_agents
+        self.obs_size = obs_size
+        agent_embed_dim = max(hidden_dim // 4, 8)
+        self.agent_embed = nn.Embedding(n_agents, agent_embed_dim)
+        self.net = nn.Sequential(
+            nn.Linear(feature_dim + agent_embed_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, obs_size),
+        )
+
+    def forward(self, feature):
+        """
+        Args:
+            feature: [B, feature_dim]
+
+        Returns:
+            obs: [B, n_agents, obs_size]
+        """
+        B = feature.shape[0]
+        agent_idx = torch.arange(self.n_agents, device=feature.device)
+        agent_emb = self.agent_embed(agent_idx)                           # [n_agents, embed_dim]
+
+        feat_exp = feature.unsqueeze(1).expand(-1, self.n_agents, -1)    # [B, n_agents, feature_dim]
+        emb_exp = agent_emb.unsqueeze(0).expand(B, -1, -1)               # [B, n_agents, embed_dim]
+
+        inp = torch.cat([feat_exp, emb_exp], dim=-1)                     # [B, n_agents, feature_dim+embed_dim]
+        obs = self.net(inp.reshape(B * self.n_agents, -1))                # [B*n_agents, obs_size]
+        return obs.reshape(B, self.n_agents, self.obs_size)
+
+
 class LatentWorldModel(nn.Module):
     """Complete RSSM-based world model for multi-agent QPLEX.
 
@@ -322,6 +369,8 @@ class LatentWorldModel(nn.Module):
         )
         self.state_decoder = StateDecoder(self.feature_dim, state_dim, hidden_dim)
         self.reward_predictor = RewardPredictor(self.feature_dim, hidden_dim)
+        # ObsDecoder: decode global latent → per-agent obs (used during Dreamer imagination)
+        self.obs_decoder = ObsDecoder(self.feature_dim, obs_size, n_agents, hidden_dim)
 
     def get_initial_state(self, batch_size, device):
         return self.transition.get_initial_state(batch_size, device)
@@ -382,13 +431,21 @@ class LatentWorldModel(nn.Module):
         kl = torch.clamp(kl, min=self.free_nats)  # free nats trick
         kl_loss = (kl * mask).sum() / mask.sum().clamp(min=1)
 
+        # --- Obs reconstruction loss: decode latent → per-agent obs ---
+        obs_pred = self.obs_decoder(features_flat)                         # [B*T, n_agents, obs_size]
+        obs_target = obs.reshape(B * T, self.n_agents, self.obs_size)
+        obs_recon_loss = ((obs_pred - obs_target.detach()) ** 2).mean(dim=(1, 2))  # [B*T]
+        obs_recon_loss = obs_recon_loss.reshape(B, T)
+        obs_recon_loss = (obs_recon_loss * mask).sum() / mask.sum().clamp(min=1)
+
         # --- Total world model loss ---
-        wm_loss = recon_loss + reward_loss + self.kl_coeff * kl_loss
+        wm_loss = recon_loss + reward_loss + self.kl_coeff * kl_loss + obs_recon_loss
 
         stats = {
             "wm_recon_loss": recon_loss.item(),
             "wm_reward_loss": reward_loss.item(),
             "wm_kl_loss": kl_loss.item(),
+            "wm_obs_recon_loss": obs_recon_loss.item(),
             "wm_total_loss": wm_loss.item(),
         }
 
