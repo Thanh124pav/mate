@@ -72,8 +72,8 @@ class LamdaWeight(nn.Module):
         head_attend_weights = []
         for curr_head_key, curr_head_agents, curr_head_action in zip(all_head_key, all_head_agents, all_head_action):
             x_key = torch.abs(curr_head_key).repeat(1, self.n_agents) + 1e-10 # (B*T, n_agents)
-            scale_factor = math.sqrt(self.n_agents) 
-            x_agents = F.softmax(curr_head_agents, dim=-1) # (B*T, n_agents)
+            scale_factor = math.log(self.n_agents) 
+            x_agents = F.softmax(curr_head_agents/scale_factor, dim=-1) # (B*T, n_agents)
             x_action = F.tanh(curr_head_action) + 1 #B*T, n_agents)
             agent_action_weights = (x_agents * x_action)
             weights = x_key * agent_action_weights # (B*T, n_agents)

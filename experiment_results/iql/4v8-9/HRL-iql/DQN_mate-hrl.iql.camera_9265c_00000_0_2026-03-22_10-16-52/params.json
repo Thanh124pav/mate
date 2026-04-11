@@ -1,0 +1,131 @@
+{
+  "batch_mode": "truncate_episodes",
+  "buffer_size": 34,
+  "callbacks": "<class 'examples.utils.callbacks.CustomMetricCallback'>",
+  "double_q": true,
+  "dueling": true,
+  "env": "mate-hrl.iql.camera",
+  "env_config": {
+    "config": "MATE-4v8-9.yaml",
+    "config_overrides": {
+      "reward_type": "dense"
+    },
+    "enhanced_observation": "none",
+    "env_id": "MultiAgentTracking-v0",
+    "frame_skip": 5,
+    "multi_selection": true,
+    "opponent_agent_factory": "<function target_agent_factory at 0x7d23e3fe5820>",
+    "reward_coefficients": {
+      "coverage_rate": 1.0
+    },
+    "reward_reduction": "mean"
+  },
+  "exploration_config": {
+    "epsilon_timesteps": 50000,
+    "final_epsilon": 0.02,
+    "initial_epsilon": 1.0,
+    "type": "EpsilonGreedy"
+  },
+  "explore": true,
+  "framework": "torch",
+  "gamma": 0.99,
+  "grad_clip": null,
+  "horizon": 500,
+  "learning_starts": 5000,
+  "lr": 0.0005,
+  "lr_schedule": [
+    [
+      0,
+      0.0005
+    ],
+    [
+      4000000.0,
+      0.0005
+    ],
+    [
+      4000000.0,
+      0.0001
+    ],
+    [
+      8000000.0,
+      0.0001
+    ],
+    [
+      8000000.0,
+      5e-05
+    ]
+  ],
+  "metrics_num_episodes_for_smoothing": 25,
+  "model": {
+    "_disable_action_flattening": false,
+    "_disable_preprocessor_api": false,
+    "_time_major": false,
+    "_use_default_native_models": false,
+    "attention_dim": 64,
+    "attention_head_dim": 32,
+    "attention_init_gru_gate_bias": 2.0,
+    "attention_memory_inference": 50,
+    "attention_memory_training": 50,
+    "attention_num_heads": 1,
+    "attention_num_transformer_units": 1,
+    "attention_position_wise_mlp_dim": 32,
+    "attention_use_n_prev_actions": 0,
+    "attention_use_n_prev_rewards": 0,
+    "conv_activation": "relu",
+    "conv_filters": null,
+    "custom_action_dist": null,
+    "custom_model": null,
+    "custom_model_config": {},
+    "custom_preprocessor": null,
+    "dim": 84,
+    "fcnet_activation": "tanh",
+    "fcnet_hiddens": [
+      512,
+      512,
+      256
+    ],
+    "framestack": true,
+    "free_log_std": false,
+    "grayscale": false,
+    "lstm_cell_size": 256,
+    "lstm_use_prev_action": false,
+    "lstm_use_prev_action_reward": -1,
+    "lstm_use_prev_reward": false,
+    "max_seq_len": 25,
+    "no_final_linear": false,
+    "post_fcnet_activation": "relu",
+    "post_fcnet_hiddens": [],
+    "use_attention": false,
+    "use_lstm": false,
+    "vf_share_layers": true,
+    "zero_mean": true
+  },
+  "multiagent": {
+    "policies": {
+      "shared_policy": [
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    "policy_mapping_fn": "<function shared_policy_mapping_fn at 0x7d23ed34e700>"
+  },
+  "n_step": 1,
+  "normalize_actions": true,
+  "num_cpus_for_driver": 1,
+  "num_envs_per_worker": 4,
+  "num_gpus": 0.25,
+  "num_gpus_per_worker": 0,
+  "num_workers": 3,
+  "prioritized_replay": true,
+  "replay_buffer_config": {
+    "capacity": 500000,
+    "type": "MultiAgentReplayBuffer"
+  },
+  "rollout_fragment_length": 1,
+  "seed": 0,
+  "target_network_update_freq": 500,
+  "timesteps_per_iteration": 5120,
+  "train_batch_size": 1024
+}

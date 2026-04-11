@@ -145,13 +145,25 @@ def _import_qmix():
 
 def _import_qplex():
     from ray.rllib.agents import qplex
-    
+
     return qplex.QPlexTrainer, qplex.DEFAULT_CONFIG
 
 def _import_qplex_v2():
     from ray.rllib.agents import qplex_v2
-    
+
     return qplex_v2.QPlexTrainer, qplex_v2.DEFAULT_CONFIG
+
+
+def _import_duelmix():
+    from ray.rllib.agents import duelmix
+
+    return duelmix.DuelMixTrainer, duelmix.DEFAULT_CONFIG
+
+
+def _import_spectra():
+    from ray.rllib.agents import spectra
+
+    return spectra.SPECTraTrainer, spectra.DEFAULT_CONFIG
 
 
 def _import_r2d2():
@@ -215,6 +227,8 @@ ALGORITHMS = {
     "QMIX": _import_qmix,
     "QPLEX": _import_qplex,
     "QPLEX_V2": _import_qplex_v2,
+    "DUELMIX": _import_duelmix,
+    "SPECTRA": _import_spectra,
     "R2D2": _import_r2d2,
     "RNNSAC": _import_rnnsac,
     "SAC": _import_sac,
