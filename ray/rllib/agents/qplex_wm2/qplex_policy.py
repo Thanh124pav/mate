@@ -274,7 +274,8 @@ class QPLEXWM2Loss(nn.Module):
 
             # ── Discounted H-step imagined return ────────────────────────
             imag_rewards_tensor = torch.stack(imag_rewards_list, dim=1)   # [BT, H]
-            imag_states_tensor = torch.stack(imag_decoded_states, dim=1)  # [BT, H, state_dim]
+            # imag_decoded_states: list of H tensors [BT, state_dim]
+            # Chỉ dùng bước đầu (index 0) cho reconstruction loss — không cần stack tất cả
 
             gammas = torch.pow(
                 torch.tensor(self.gamma, dtype=torch.float, device=obs.device),
@@ -294,18 +295,13 @@ class QPLEXWM2Loss(nn.Module):
                 + self.imagination_loss_weight * imag_td_targets
             )
 
-            # ── Reconstruction loss: imagined next-states vs real next_state ──
-            # Compare each imagined step's decoded state with real state_{t+1}
-            real_next_state = next_state.reshape(BT, -1).detach()         # [BT, state_dim]
-            step_weights = torch.pow(
-                torch.tensor(self.gamma, device=obs.device),
-                torch.arange(H, device=obs.device, dtype=torch.float),
-            )  # [H] — closer steps weighted more
-            imag_recon = (
-                (imag_states_tensor - real_next_state.unsqueeze(1)) ** 2
-            ).mean(dim=-1)                                                 # [BT, H]
-            imag_recon_weighted = (imag_recon * step_weights.unsqueeze(0)).mean(dim=1)  # [BT]
-            imag_recon_loss = imag_recon_weighted.reshape(B, T)
+            # ── Reconstruction loss: imagined next-state vs real next_state ──
+            # Chỉ dùng bước đầu tiên (h=0 → z_{t+1}^imag) so với state_{t+1}^real
+            # Các bước h>1 không có real ground truth tương ứng trong replay buffer
+            real_next_state = next_state.reshape(BT, -1).detach()          # [BT, state_dim]
+            first_imag_state = imag_decoded_states[0]                       # [BT, state_dim]
+            imag_recon = ((first_imag_state - real_next_state) ** 2).mean(dim=-1)  # [BT]
+            imag_recon_loss = imag_recon.reshape(B, T)
             wm_mask_2d = mask[:, :, 0]
             imag_recon_loss = (imag_recon_loss * wm_mask_2d).sum() / wm_mask_2d.sum().clamp(min=1)
 
