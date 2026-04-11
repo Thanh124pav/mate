@@ -68,7 +68,7 @@ class QPLEXWM2Loss(nn.Module):
         model, target_model,
         mixer, target_mixer,
         world_model, ema_world_model,
-        n_agents, n_actions,
+        n_agents, n_actions, h_size,
         double_q=True, gamma=0.99,
         wm_loss_weight=0.5,
         reward_bonus_coeff=0.1,
@@ -87,6 +87,7 @@ class QPLEXWM2Loss(nn.Module):
         self.ema_world_model = ema_world_model
         self.n_agents = n_agents
         self.n_actions = n_actions
+        self.h_size = h_size          # GRU hidden size — used for zero hidden state in imagination
         self.double_q = double_q
         self.gamma = gamma
         self.wm_loss_weight = wm_loss_weight
@@ -221,56 +222,109 @@ class QPLEXWM2Loss(nn.Module):
             target_max_qvals = target_chosen + target_adv
 
         # =================================================================
-        # 7. TD loss (with optional imagination multi-step targets)
+        # 7. TD loss + Dreamer imagination (if enabled)
         # =================================================================
         targets = shaped_rewards + self.gamma * (1 - terminated) * target_max_qvals
+        imag_recon_loss = torch.tensor(0.0, device=obs.device)
 
         if self.use_imagination_targets:
             H = self.imagination_horizon
-            # Flatten posteriors: [B, T, dim] → [B*T, dim] for each of the 4 components
-            post_flat = [p.reshape(B * T, -1) for p in posteriors]
-            # Action sequence: repeat current actions for H imagination steps
-            act_flat = actions.reshape(B * T, self.n_agents)
-            imag_act_seq = act_flat.unsqueeze(1).expand(-1, H, -1)  # [B*T, H, n_agents]
+            BT = B * T
 
-            with torch.no_grad():
-                imag_features, imag_rewards = self.world_model.imagine_rollout(
-                    post_flat, imag_act_seq
-                )
-                # imag_rewards: [B*T, H] — predicted rewards for H future steps
+            # Flatten posteriors: [B, T, dim] → [B*T, dim]
+            imag_state = [p.reshape(BT, -1).detach() for p in posteriors]
+            act_flat = actions.reshape(BT, self.n_agents)
 
-            # Discounted H-step return: G = Σ_{h=0}^{H-1} γ^h * r_{t+h+1}
+            imag_rewards_list = []
+            imag_decoded_states = []
+
+            for h in range(H):
+                # ── Get current latent feature ──────────────────────────
+                imag_feature = self.world_model.transition.get_feature(imag_state)  # [BT, feature_dim]
+
+                # ── Decode obs from latent (ObsDecoder) ─────────────────
+                with torch.no_grad():
+                    imag_obs = self.world_model.obs_decoder(imag_feature)  # [BT, n_agents, obs_size]
+
+                # ── Select action via Q-network (greedy, zero hidden) ────
+                if h == 0:
+                    # Step 0: use real action from replay buffer
+                    step_actions = act_flat  # [BT, n_agents]
+                else:
+                    feat_exp = imag_feature.detach().unsqueeze(1).expand(-1, self.n_agents, -1)
+                    obs_aug_imag = torch.cat([imag_obs, feat_exp], dim=-1)  # [BT, n_agents, obs_aug]
+                    h_zero = [
+                        torch.zeros(BT, self.n_agents, self.h_size, device=obs.device)
+                    ]
+                    with torch.no_grad():
+                        q_imag, _ = _mac(self.model, obs_aug_imag, h_zero)  # [BT, n_agents, n_actions]
+                    step_actions = q_imag.argmax(dim=-1)  # [BT, n_agents]
+
+                # ── Step Prior: (z_t, a_t) → z_{t+1}^imag ───────────────
+                action_embed = self.world_model.action_embed(step_actions)  # [BT, action_dim]
+                imag_state = self.world_model.transition.img_step(imag_state, action_embed)
+
+                # ── Predict reward + decode state ────────────────────────
+                imag_feature_next = self.world_model.transition.get_feature(imag_state)  # [BT, feat]
+                imag_reward = self.world_model.reward_predictor(imag_feature_next)        # [BT]
+                imag_state_decoded = self.world_model.state_decoder(imag_feature_next)    # [BT, state_dim]
+
+                imag_rewards_list.append(imag_reward)
+                imag_decoded_states.append(imag_state_decoded)
+
+            # ── Discounted H-step imagined return ────────────────────────
+            imag_rewards_tensor = torch.stack(imag_rewards_list, dim=1)   # [BT, H]
+            imag_states_tensor = torch.stack(imag_decoded_states, dim=1)  # [BT, H, state_dim]
+
             gammas = torch.pow(
                 torch.tensor(self.gamma, dtype=torch.float, device=obs.device),
                 torch.arange(H, device=obs.device, dtype=torch.float),
             )  # [H]
-            imag_return = (imag_rewards * gammas.unsqueeze(0)).sum(dim=1)  # [B*T]
-            imag_return = imag_return.reshape(B, T)
+            imag_return = (imag_rewards_tensor * gammas.unsqueeze(0)).sum(dim=1).reshape(B, T)
 
-            # Bootstrap with target Q at horizon: G + γ^H * Q_target(s_{t+H})
             term_mean = terminated.mean(dim=-1)  # [B, T]
-            imag_targets = (
+            imag_td_targets = (
                 imag_return
                 + (self.gamma ** H) * (1 - term_mean) * target_max_qvals.detach()
             )
 
-            # Blend 1-step and H-step targets
+            # Blend 1-step real targets with H-step imagined targets
             targets = (
                 (1.0 - self.imagination_loss_weight) * targets
-                + self.imagination_loss_weight * imag_targets
+                + self.imagination_loss_weight * imag_td_targets
             )
+
+            # ── Reconstruction loss: imagined next-states vs real next_state ──
+            # Compare each imagined step's decoded state with real state_{t+1}
+            real_next_state = next_state.reshape(BT, -1).detach()         # [BT, state_dim]
+            step_weights = torch.pow(
+                torch.tensor(self.gamma, device=obs.device),
+                torch.arange(H, device=obs.device, dtype=torch.float),
+            )  # [H] — closer steps weighted more
+            imag_recon = (
+                (imag_states_tensor - real_next_state.unsqueeze(1)) ** 2
+            ).mean(dim=-1)                                                 # [BT, H]
+            imag_recon_weighted = (imag_recon * step_weights.unsqueeze(0)).mean(dim=1)  # [BT]
+            imag_recon_loss = imag_recon_weighted.reshape(B, T)
+            wm_mask_2d = mask[:, :, 0]
+            imag_recon_loss = (imag_recon_loss * wm_mask_2d).sum() / wm_mask_2d.sum().clamp(min=1)
 
         td_error = chosen_action_qvals - targets.detach()
         mask = mask.expand_as(td_error)
         masked_td_error = td_error * mask
 
         td_loss = (masked_td_error ** 2).sum() / mask.sum()
-        total_loss = td_loss + self.wm_loss_weight * wm_loss
+        total_loss = (
+            td_loss
+            + self.wm_loss_weight * wm_loss
+            + self.imagination_loss_weight * imag_recon_loss
+        )
 
         # Collect all stats
         stats = {
             "td_loss": td_loss.item(),
             "reward_bonus_mean": reward_bonus.mean().item(),
+            "imag_recon_loss": imag_recon_loss.item(),
             **wm_stats,
         }
 
@@ -409,7 +463,7 @@ class QPLEXWM2TorchPolicy(Policy):
             self.model, self.target_model,
             self.mixer, self.target_mixer,
             self.world_model, self.ema_world_model,
-            self.n_agents, self.n_actions,
+            self.n_agents, self.n_actions, self.h_size,
             self.config["double_q"], self.config["gamma"],
             wm_loss_weight=wm_config.get("wm_loss_weight", 0.5),
             reward_bonus_coeff=wm_config.get("reward_bonus_coeff", 0.1),
