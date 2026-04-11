@@ -7,6 +7,12 @@
 # RLlib results
 /results
 ray_results/
+experiment_results/
+
+# Checkpoint & large binary files
+*.pkl
+*.pb
+events.out.tfevents.*
 
 # W&B results
 /wandb
