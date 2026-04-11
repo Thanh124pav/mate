@@ -1,1 +1,0 @@
-/home/pavt1024/vsn/mate/experiment_results/hitmac_v2/4v8-9/claude-4v8-9-hitmac_v2/PPO_mate-hitmac-v2.ppo.camera_51d4c_00000_0_2026-03-16_00-49-31/checkpoint_000076/checkpoint-76
