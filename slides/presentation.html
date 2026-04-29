@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QPLEX Family: World Models & Auxiliary Learning for Multi-Agent Tracking</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.0/theme/night.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.0/reveal.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --accent: #4fc3f7;
+    --green: #81c784;
+    --orange: #ffb74d;
+    --red: #e57373;
+    --purple: #ba68c8;
+    --teal: #4db6ac;
+    --yellow: #fff176;
+  }
+
+  .reveal .slides section { text-align: left; font-size: 0.50em; }
+  .reveal h1 { font-size: 1.2em; color: var(--accent); margin-bottom: 0.15em; }
+  .reveal h2 { font-size: 0.85em; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 3px; margin-bottom: 0.3em; }
+  .reveal h3 { font-size: 0.75em; color: var(--orange); margin: 0.2em 0 0.1em; }
+  .reveal p, .reveal li { line-height: 1.2; }
+  .reveal ul { margin-left: 0.8em; }
+  .reveal .center { text-align: center; }
+  .reveal .title-slide { text-align: center; padding-top: 60px; }
+
+  .badge {
+    display: inline-block;
+    padding: 1px 4px;
+    border-radius: 2px;
+    font-size: 0.55em;
+    font-weight: bold;
+    margin: 0.5px;
+  }
+  .badge-blue { background: #1565c0; color: #fff; }
+  .badge-green { background: #2e7d32; color: #fff; }
+  .badge-orange { background: #e65100; color: #fff; }
+  .badge-purple { background: #6a1b9a; color: #fff; }
+  .badge-teal { background: #00695c; color: #fff; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; align-items: start; }
+
+  .card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 5px;
+    padding: 6px 10px;
+    margin: 2px 0;
+    font-size: 0.85em;
+  }
+  .card-accent { border-color: var(--accent); }
+  .card-green  { border-color: var(--green); }
+  .card-orange { border-color: var(--orange); }
+  .card-purple { border-color: var(--purple); }
+  .card-teal   { border-color: var(--teal); }
+
+  .highlight { color: var(--yellow); font-weight: bold; }
+  .muted { color: #aaa; font-size: 0.85em; }
+  .result-big { font-size: 2em; font-weight: bold; color: var(--green); }
+
+  /* SVG diagrams */
+  svg text { font-family: monospace; }
+
+  /* table */
+  .exp-table { width: 100%; border-collapse: collapse; font-size: 0.65em; }
+  .exp-table th { background: rgba(79,195,247,0.2); color: var(--accent); padding: 3px 6px; text-align: center; border: 1px solid rgba(255,255,255,0.15); }
+  .exp-table td { padding: 2px 4px; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
+  .exp-table tr:hover td { background: rgba(255,255,255,0.05); }
+  .exp-table .best { color: var(--green); font-weight: bold; }
+  .exp-table .new-row { background: rgba(186,104,200,0.12); }
+
+  .arrow { font-size: 1.4em; color: var(--accent); }
+
+  /* formula box */
+  .formula {
+    background: rgba(0,0,0,0.35);
+    border-left: 2px solid var(--accent);
+    padding: 4px 8px;
+    margin: 3px 0;
+    font-family: monospace;
+    font-size: 0.7em;
+    border-radius: 0 3px 3px 0;
+  }
+
+  /* chart container */
+  .chart-wrap { position: relative; height: 260px; width: 100%; }
+
+  /* abstract box */
+  .abstract-box {
+    background: rgba(79,195,247,0.08);
+    border: 1px solid rgba(79,195,247,0.3);
+    border-radius: 6px;
+    padding: 10px 12px;
+    line-height: 1.4;
+    font-size: 0.8em;
+    margin: 4px 0;
+  }
+
+  .step-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+  .step-num { width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #000; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; font-size: 0.8em; }
+</style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- ─── TITLE ─────────────────────────────────────────────────────────── -->
+<section class="title-slide" data-background-gradient="linear-gradient(135deg,#0d1b2a 0%,#1a2744 50%,#0d1b2a 100%)">
+  <br><br>
+  <h1 style="font-size:2em; line-height:1.2;">
+    World Models &amp; Auxiliary Learning<br>
+    <span style="color:#fff; font-size:0.85em;">for Multi-Agent Tracking</span>
+  </h1>
+  <p style="font-size:1.1em; color:var(--orange); margin-top:0.5em;">QPLEX · QPLEX-SE · QPLEX-WM2 · QPLEX-WM4 · <span style="color:var(--purple);">QPLEX-WM2-SE ★</span></p>
+  <hr style="border-color:rgba(255,255,255,0.2); margin: 30px auto; width:60%;">
+  <p class="muted" style="font-size:0.9em;">Conference Presentation &nbsp;|&nbsp; Multi-Agent Reinforcement Learning</p>
+  <p class="muted" style="font-size:0.85em;">MATE Environment &nbsp;·&nbsp; April 2026</p>
+</section>
+
+<!-- ─── ABSTRACT ──────────────────────────────────────────────────────── -->
+<section>
+  <h2>Abstract</h2>
+  <div class="abstract-box">
+    We study a family of cooperative multi-agent tracking algorithms built on top of
+    <span class="highlight">QPLEX</span>, a duplex action-value decomposition framework.
+    Starting from flat and hierarchical QPLEX baselines, we incrementally enrich the policy
+    with two orthogonal ideas:
+    <br><br>
+    <strong style="color:var(--green);">(1) Shared-Encoder auxiliary loss (SE)</strong> — a lightweight prediction
+    head trained to reconstruct target positions from RNN hidden states, shaping internal representations;
+    <br><br>
+    <strong style="color:var(--orange);">(2) Latent World Models (WM)</strong> — an RSSM-based world model whose
+    EMA-stable latent features augment the observation space before the recurrent policy, enabling
+    look-ahead imagination for bootstrapping TD targets.
+    <br><br>
+    We further propose <span class="highlight" style="color:var(--purple);">QPLEX-WM2-SE</span>, which
+    combines both ideas at complementary stages of the network, and demonstrate its potential on the
+    <strong>MATE 4v8</strong> benchmark, achieving a peak real coverage rate of
+    <span class="result-big" style="font-size:1.3em; color:var(--purple);">69.6%</span> with HRL-QPLEX-SE.
+  </div>
+  <div class="three-col" style="margin-top:14px;">
+    <div class="card card-accent"><strong>Benchmark</strong><br>MATE 4 cameras vs 8 targets</div>
+    <div class="card card-orange"><strong>Metric</strong><br>Real Coverage Rate (%)</div>
+    <div class="card card-purple"><strong>Proposal</strong><br>QPLEX-WM2-SE (new)</div>
+  </div>
+</section>
+
+<!-- ─── INTRODUCTION: MATE ────────────────────────────────────────────── -->
+<section>
+  <h2>Introduction: The MATE Environment</h2>
+  <div class="two-col">
+    <div>
+      <h3>Multi-Agent Tracking Environment</h3>
+      <ul>
+        <li>N <span class="highlight">camera agents</span> vs M evasive targets in a 2-D arena</li>
+        <li>Each camera controls its <strong>pan/tilt/zoom</strong> independently</li>
+        <li>Targets can be <strong>greedy</strong> or <strong>evasive</strong> (avoid detection)</li>
+        <li>Reward: fraction of targets simultaneously in camera view fields</li>
+        <li>Partial observability — cameras share limited messages</li>
+      </ul>
+      <div class="card card-accent" style="margin-top:12px;">
+        <strong>4v8 scenario:</strong> 4 cameras, 8 targets, complex coordination required
+      </div>
+      <div class="formula">Coverage Rate = |tracked targets| / |total targets|</div>
+      <p class="muted">Metric: <code>real_coverage_rate_mean</code> — averaged across eval episodes using actual (non-fake) targets</p>
+    </div>
+    <div>
+      <!-- MATE environment SVG diagram -->
+      <svg viewBox="0 0 320 280" width="100%" style="background:#111827; border-radius:8px; border:1px solid rgba(255,255,255,0.1);">
+        <!-- arena -->
+        <rect x="20" y="20" width="280" height="240" rx="6" fill="none" stroke="#4fc3f7" stroke-width="1.5" stroke-dasharray="6,3"/>
+        <!-- camera FOV sectors -->
+        <g opacity="0.25">
+          <path d="M 60 60 L 130 30 L 150 110 Z" fill="#4fc3f7"/>
+          <path d="M 260 60 L 200 30 L 180 110 Z" fill="#4fc3f7"/>
+          <path d="M 60 220 L 130 250 L 150 170 Z" fill="#4fc3f7"/>
+          <path d="M 260 220 L 200 250 L 180 170 Z" fill="#4fc3f7"/>
+        </g>
+        <!-- cameras -->
+        <g>
+          <rect x="45" y="45" width="28" height="20" rx="4" fill="#1565c0" stroke="#4fc3f7" stroke-width="1.5"/>
+          <text x="59" y="59" fill="#4fc3f7" font-size="9" text-anchor="middle">C1</text>
+          <rect x="247" y="45" width="28" height="20" rx="4" fill="#1565c0" stroke="#4fc3f7" stroke-width="1.5"/>
+          <text x="261" y="59" fill="#4fc3f7" font-size="9" text-anchor="middle">C2</text>
+          <rect x="45" y="215" width="28" height="20" rx="4" fill="#1565c0" stroke="#4fc3f7" stroke-width="1.5"/>
+          <text x="59" y="229" fill="#4fc3f7" font-size="9" text-anchor="middle">C3</text>
+          <rect x="247" y="215" width="28" height="20" rx="4" fill="#1565c0" stroke="#4fc3f7" stroke-width="1.5"/>
+          <text x="261" y="229" fill="#4fc3f7" font-size="9" text-anchor="middle">C4</text>
+        </g>
+        <!-- targets (some tracked, some not) -->
+        <circle cx="120" cy="85" r="8" fill="#e57373" stroke="#fff" stroke-width="1"/>
+        <circle cx="180" cy="90" r="8" fill="#e57373" stroke="#fff" stroke-width="1"/>
+        <circle cx="155" cy="140" r="8" fill="#81c784" stroke="#fff" stroke-width="1"/> <!-- tracked -->
+        <circle cx="200" cy="155" r="8" fill="#81c784" stroke="#fff" stroke-width="1"/> <!-- tracked -->
+        <circle cx="100" cy="165" r="8" fill="#e57373" stroke="#fff" stroke-width="1"/>
+        <circle cx="240" cy="130" r="8" fill="#81c784" stroke="#fff" stroke-width="1"/> <!-- tracked -->
+        <circle cx="135" cy="195" r="8" fill="#e57373" stroke="#fff" stroke-width="1"/>
+        <circle cx="210" cy="200" r="8" fill="#e57373" stroke="#fff" stroke-width="1"/>
+        <!-- legend -->
+        <circle cx="35" cy="265" r="6" fill="#4fc3f7"/>
+        <text x="45" y="269" fill="#ccc" font-size="9">Camera</text>
+        <circle cx="100" cy="265" r="6" fill="#81c784"/>
+        <text x="110" y="269" fill="#ccc" font-size="9">Tracked</text>
+        <circle cx="175" cy="265" r="6" fill="#e57373"/>
+        <text x="185" y="269" fill="#ccc" font-size="9">Untracked</text>
+        <!-- message arrows -->
+        <line x1="73" y1="55" x2="247" y2="55" stroke="#ffb74d" stroke-width="1" stroke-dasharray="4,3"/>
+        <line x1="59" y1="65" x2="59" y2="215" stroke="#ffb74d" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="145" y="52" fill="#ffb74d" font-size="8" text-anchor="middle">communication</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ─── INTRODUCTION: CHALLENGES ──────────────────────────────────────── -->
+<section>
+  <h2>Introduction: Challenges &amp; Motivation</h2>
+  <div class="three-col">
+    <div class="card card-accent">
+      <h3>Partial Observability</h3>
+      <p>Each camera sees only its local FOV. Cameras must <em>communicate</em> and <em>remember</em> to coordinate coverage.</p>
+    </div>
+    <div class="card card-orange">
+      <h3>Non-Stationarity</h3>
+      <p>Evasive targets actively avoid detection, creating a dynamic adversarial environment that shifts the value landscape.</p>
+    </div>
+    <div class="card card-green">
+      <h3>Credit Assignment</h3>
+      <p>A target covered by <em>two</em> cameras yields no extra reward — joint coordination is crucial, individual Q-decomposition must remain faithful.</p>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px; border-color:var(--purple);">
+    <h3 style="color:var(--purple);">Our Approach: Augmenting QPLEX Incrementally</h3>
+    <div style="display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:8px;">
+      <span class="badge badge-blue">QMIX</span>
+      <span class="arrow">→</span>
+      <span class="badge badge-blue">QPLEX</span>
+      <span class="arrow">→</span>
+      <span class="badge badge-green">HRL-QPLEX</span>
+      <span class="arrow">→</span>
+      <span class="badge badge-orange">+SE auxiliary</span>
+      <span class="arrow">→</span>
+      <span class="badge badge-orange">+World Model</span>
+      <span class="arrow">→</span>
+      <span class="badge badge-purple">WM2-SE ★</span>
+    </div>
+  </div>
+  <ul style="margin-top:12px;">
+    <li>Better <strong>representation</strong> learning via auxiliary losses (SE)</li>
+    <li>Richer <strong>observation</strong> via latent world model features (WM2/WM4)</li>
+    <li>Hierarchical action decomposition via <strong>HRL</strong> framework</li>
+  </ul>
+</section>
+
+<!-- ─── METHOD: QPLEX ARCHITECTURE ───────────────────────────────────── -->
+<section>
+  <h2>Method: QPLEX — Duplex Action-Value Decomposition</h2>
+  <div class="two-col">
+    <div>
+      <h3>Key Ideas</h3>
+      <ul>
+        <li><strong>DRQN</strong> backbone: GRU encodes partial obs over time</li>
+        <li><strong>Individual Q-values</strong> via dueling network (V+A)</li>
+        <li><strong>Duplex mixer</strong>: transforms individual Qs into joint Q satisfying IGM monotonicity</li>
+        <li>Weights λ computed from global state (not just obs)</li>
+      </ul>
+      <div class="formula">Q_jt(τ,a) = λ₀(s) · V(τ) + Σᵢ λᵢ(s,aᵢ) · Aᵢ(τᵢ,aᵢ)</div>
+      <div class="formula">Qᵢ = Vᵢ(hᵢ) + Aᵢ(hᵢ, aᵢ)  [dueling head]</div>
+      <p class="muted">IGM: Individual-Global-Max — greedy joint action equals argmax of joint Q</p>
+    </div>
+    <div>
+      <!-- QPLEX architecture SVG -->
+      <svg viewBox="0 0 300 260" width="100%" style="background:#111827; border-radius:8px; border:1px solid rgba(255,255,255,0.1);">
+        <!-- Agents row -->
+        <g>
+          <rect x="10" y="10" width="60" height="30" rx="4" fill="#1565c0"/>
+          <text x="40" y="30" fill="#fff" font-size="9" text-anchor="middle">obs₁</text>
+          <rect x="80" y="10" width="60" height="30" rx="4" fill="#1565c0"/>
+          <text x="110" y="30" fill="#fff" font-size="9" text-anchor="middle">obs₂</text>
+          <rect x="150" y="10" width="60" height="30" rx="4" fill="#1565c0"/>
+          <text x="180" y="30" fill="#fff" font-size="9" text-anchor="middle">obsᵢ</text>
+          <text x="235" y="30" fill="#aaa" font-size="10">...</text>
+        </g>
+        <!-- GRU row -->
+        <g>
+          <rect x="10" y="60" width="60" height="30" rx="4" fill="#0d47a1" stroke="#4fc3f7" stroke-width="1"/>
+          <text x="40" y="79" fill="#4fc3f7" font-size="8" text-anchor="middle">GRU₁</text>
+          <rect x="80" y="60" width="60" height="30" rx="4" fill="#0d47a1" stroke="#4fc3f7" stroke-width="1"/>
+          <text x="110" y="79" fill="#4fc3f7" font-size="8" text-anchor="middle">GRU₂</text>
+          <rect x="150" y="60" width="60" height="30" rx="4" fill="#0d47a1" stroke="#4fc3f7" stroke-width="1"/>
+          <text x="180" y="79" fill="#4fc3f7" font-size="8" text-anchor="middle">GRUᵢ</text>
+        </g>
+        <!-- arrows obs→gru -->
+        <line x1="40" y1="40" x2="40" y2="60" stroke="#555" stroke-width="1.2"/>
+        <line x1="110" y1="40" x2="110" y2="60" stroke="#555" stroke-width="1.2"/>
+        <line x1="180" y1="40" x2="180" y2="60" stroke="#555" stroke-width="1.2"/>
+        <!-- Dueling heads -->
+        <rect x="10" y="110" width="60" height="30" rx="4" fill="#311b92" stroke="#7c4dff" stroke-width="1"/>
+        <text x="40" y="129" fill="#b39ddb" font-size="7.5" text-anchor="middle">V₁+A₁ → Q₁</text>
+        <rect x="80" y="110" width="60" height="30" rx="4" fill="#311b92" stroke="#7c4dff" stroke-width="1"/>
+        <text x="110" y="129" fill="#b39ddb" font-size="7.5" text-anchor="middle">V₂+A₂ → Q₂</text>
+        <rect x="150" y="110" width="60" height="30" rx="4" fill="#311b92" stroke="#7c4dff" stroke-width="1"/>
+        <text x="180" y="129" fill="#b39ddb" font-size="7.5" text-anchor="middle">Vᵢ+Aᵢ → Qᵢ</text>
+        <!-- arrows gru→dueling -->
+        <line x1="40" y1="90" x2="40" y2="110" stroke="#555" stroke-width="1.2"/>
+        <line x1="110" y1="90" x2="110" y2="110" stroke="#555" stroke-width="1.2"/>
+        <line x1="180" y1="90" x2="180" y2="110" stroke="#555" stroke-width="1.2"/>
+        <!-- Global state -->
+        <rect x="220" y="10" width="70" height="50" rx="4" fill="#1a2744" stroke="#ffb74d" stroke-width="1.2"/>
+        <text x="255" y="32" fill="#ffb74d" font-size="8" text-anchor="middle">Global</text>
+        <text x="255" y="46" fill="#ffb74d" font-size="8" text-anchor="middle">State s</text>
+        <!-- Duplex Mixer -->
+        <rect x="60" y="165" width="180" height="35" rx="6" fill="#004d40" stroke="#4db6ac" stroke-width="1.5"/>
+        <text x="150" y="183" fill="#4db6ac" font-size="9" text-anchor="middle">Duplex Mixer (λ-weighted)</text>
+        <text x="150" y="195" fill="#4db6ac" font-size="7.5" text-anchor="middle">Q_jt = λ₀V + Σ λᵢAᵢ</text>
+        <!-- arrows to mixer -->
+        <line x1="40" y1="140" x2="100" y2="165" stroke="#7c4dff" stroke-width="1.2"/>
+        <line x1="110" y1="140" x2="140" y2="165" stroke="#7c4dff" stroke-width="1.2"/>
+        <line x1="180" y1="140" x2="185" y2="165" stroke="#7c4dff" stroke-width="1.2"/>
+        <line x1="255" y1="60" x2="220" y2="165" stroke="#ffb74d" stroke-width="1" stroke-dasharray="4,3"/>
+        <!-- output -->
+        <rect x="110" y="220" width="80" height="30" rx="4" fill="#b71c1c" stroke="#ef5350" stroke-width="1.2"/>
+        <text x="150" y="239" fill="#ef9a9a" font-size="9" text-anchor="middle">Q_jt(τ,a) → TD</text>
+        <line x1="150" y1="200" x2="150" y2="220" stroke="#4db6ac" stroke-width="1.5"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ─── METHOD: HRL WRAPPER ───────────────────────────────────────────── -->
+<section>
+  <h2>Method: HRL-QPLEX — Hierarchical Action Decomposition</h2>
+  <div class="two-col">
+    <div>
+      <h3>HierarchicalCamera Wrapper</h3>
+      <ul>
+        <li>High-level policy: <strong>selects which target</strong> to track (discrete)</li>
+        <li>Low-level executor: <strong>moves camera toward</strong> selected target (continuous primitive)</li>
+        <li>Frame-skip: high-level re-plans every K steps</li>
+        <li>Greatly reduces action-space complexity for the learned policy</li>
+      </ul>
+      <div class="card card-green" style="margin-top:12px;">
+        Achieves <span class="highlight">+16%</span> coverage over flat QPLEX by decomposing coordination into target selection
+      </div>
+    </div>
+    <div>
+      <!-- HRL diagram SVG -->
+      <svg viewBox="0 0 300 250" width="100%" style="background:#111827; border-radius:8px; border:1px solid rgba(255,255,255,0.1);">
+        <!-- QPLEX policy box -->
+        <rect x="80" y="20" width="140" height="50" rx="6" fill="#0d47a1" stroke="#4fc3f7" stroke-width="1.5"/>
+        <text x="150" y="43" fill="#4fc3f7" font-size="9" text-anchor="middle">QPLEX Policy</text>
+        <text x="150" y="57" fill="#4fc3f7" font-size="8" text-anchor="middle">(high-level selector)</text>
+        <!-- obs input -->
+        <rect x="80" y="90" width="140" height="30" rx="4" fill="#1a2744" stroke="#ffb74d" stroke-width="1"/>
+        <text x="150" y="110" fill="#ffb74d" font-size="8" text-anchor="middle">observation + state</text>
+        <line x1="150" y1="90" x2="150" y2="70" stroke="#ffb74d" stroke-width="1.2"/>
+        <!-- output: target selection -->
+        <rect x="80" y="145" width="140" height="30" rx="4" fill="#2e7d32" stroke="#81c784" stroke-width="1.2"/>
+        <text x="150" y="165" fill="#81c784" font-size="8" text-anchor="middle">target_selection bits [0,1,0,1...]</text>
+        <line x1="150" y1="70" x2="150" y2="145" stroke="#4fc3f7" stroke-width="1.5"/>
+        <!-- executor box -->
+        <rect x="60" y="195" width="180" height="40" rx="6" fill="#004d40" stroke="#4db6ac" stroke-width="1.5"/>
+        <text x="150" y="212" fill="#4db6ac" font-size="8.5" text-anchor="middle">HierarchicalCamera.executor()</text>
+        <text x="150" y="226" fill="#4db6ac" font-size="7.5" text-anchor="middle">aim toward selected target</text>
+        <line x1="150" y1="175" x2="150" y2="195" stroke="#81c784" stroke-width="1.2"/>
+        <!-- frame skip annotation -->
+        <text x="240" y="35" fill="#aaa" font-size="7.5">re-plan</text>
+        <text x="240" y="47" fill="#aaa" font-size="7.5">every K</text>
+        <text x="240" y="59" fill="#aaa" font-size="7.5">steps</text>
+        <path d="M 220 45 L 237 45" stroke="#aaa" stroke-width="1" stroke-dasharray="3,2"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ─── METHOD: QPLEX-SE ──────────────────────────────────────────────── -->
+<section>
+  <h2>Method: QPLEX-SE — Shared Encoder Auxiliary Loss</h2>
+  <div class="two-col">
+    <div>
+      <h3>Intuition</h3>
+      <ul>
+        <li>GRU hidden states <em>implicitly</em> encode target positions — we make this <strong>explicit</strong></li>
+        <li>A lightweight <strong>PredictionHead</strong> MLP maps hᵢ → predicted target positions</li>
+        <li>MSE auxiliary loss shapes representation without extra parameters at inference</li>
+        <li>Shared across all agents — maximizes data efficiency</li>
+      </ul>
+      <div class="formula">L_SE = MSE(PredHead(h₁:ₙ), true_positions)</div>
+      <div class="formula">L_total = L_TD + α·L_SE</div>
+      <div class="card card-green" style="margin-top:12px;">
+        <strong>Key insight:</strong> operates <em>post-RNN</em> on hidden states — zero overhead at inference (PredHead is discarded)
+      </div>
+    </div>
+    <div>
+      <!-- SE architecture SVG -->
+      <svg viewBox="0 0 300 260" width="100%" style="background:#111827; border-radius:8px; border:1px solid rgba(255,255,255,0.1);">
+        <!-- obs -->
+        <rect x="100" y="10" width="100" height="25" rx="4" fill="#1565c0"/>
+        <text x="150" y="27" fill="#fff" font-size="8.5" text-anchor="middle">observation t</text>
+        <!-- GRU -->
+        <rect x="90" y="55" width="120" height="30" rx="5" fill="#0d47a1" stroke="#4fc3f7" stroke-width="1.5"/>
+        <text x="150" y="74" fill="#4fc3f7" font-size="9" text-anchor="middle">GRU  →  hₜ</text>
+        <line x1="150" y1="35" x2="150" y2="55" stroke="#555" stroke-width="1.2"/>
+        <!-- hidden state -->
+        <circle cx="150" cy="110" r="16" fill="#1a237e" stroke="#7c4dff" stroke-width="1.5"/>
+        <text x="150" y="114" fill="#b39ddb" font-size="8" text-anchor="middle">hₜ</text>
+        <line x1="150" y1="85" x2="150" y2="94" stroke="#4fc3f7" stroke-width="1.5"/>
+        <!-- Two branches -->
+        <!-- left: Q network -->
+        <line x1="135" y1="126" x2="80" y2="155" stroke="#7c4dff" stroke-width="1.2"/>
+        <rect x="30" y="155" width="100" height="30" rx="4" fill="#311b92" stroke="#7c4dff" stroke-width="1.2"/>
+        <text x="80" y="174" fill="#b39ddb" font-size="8" text-anchor="middle">Q-network (Dueling)</text>
+        <!-- right: SE head -->
+        <line x1="165" y1="126" x2="220" y2="155" stroke="#e57373" stroke-width="1.2" stroke-dasharray="5,3"/>
+        <rect x="170" y="155" width="120" height="30" rx="4" fill="#4e1010" stroke="#e57373" stroke-width="1.2" stroke-dasharray="4,2"/>
+        <text x="230" y="170" fill="#ef9a9a" font-size="7.5" text-anchor="middle">PredictionHead MLP</text>
+        <text x="230" y="181" fill="#ef9a9a" font-size="7" text-anchor="middle">(train only)</text>
+        <!-- pred positions -->
+        <rect x="175" y="205" width="110" height="25" rx="4" fill="#2e1010" stroke="#ef5350" stroke-width="1"/>
+        <text x="230" y="222" fill="#ef9a9a" font-size="8" text-anchor="middle">pred_positions</text>
+        <line x1="230" y1="185" x2="230" y2="205" stroke="#e57373" stroke-width="1"/>
+        <!-- MSE loss -->
+        <rect x="175" y="240" width="110" height="20" rx="4" fill="#ef5350"/>
+        <text x="230" y="253" fill="#fff" font-size="8" text-anchor="middle">MSE Loss → L_SE</text>
+        <line x1="230" y1="230" x2="230" y2="240" stroke="#ef5350" stroke-width="1"/>
+        <!-- true positions arrow -->
+        <text x="290" y="220" fill="#aaa" font-size="7">true pos</text>
+        <line x1="285" y1="222" x2="285" y2="250" stroke="#aaa" stroke-width="0.8" stroke-dasharray="3,2"/>
+        <line x1="285" y1="250" x2="285" y2="250" stroke="#aaa" stroke-width="0.8"/>
+        <!-- Mixer box -->
+        <rect x="20" y="200" width="120" height="25" rx="4" fill="#004d40" stroke="#4db6ac" stroke-width="1"/>
+        <text x="80" y="217" fill="#4db6ac" font-size="8" text-anchor="middle">Duplex Mixer → Q_jt</text>
+        <line x1="80" y1="185" x2="80" y2="200" stroke="#4db6ac" stroke-width="1.2"/>
+        <!-- training only annotation -->
+        <text x="155" y="155" fill="#ef9a9a" font-size="7">train</text>
+        <text x="155" y="164" fill="#ef9a9a" font-size="7">only</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ─── METHOD: QPLEX-WM2 ─────────────────────────────────────────────── -->
+<section>
+  <h2>Method: QPLEX-WM2 — RSSM World Model Augmentation</h2>
+  <div class="two-col">
+    <div>
+      <h3>Latent World Model (RSSM)</h3>
+      <ul>
+        <li><strong>Representation model</strong>: encodes obs + action → posterior (z_t, h_t)</li>
+        <li><strong>Transition model</strong>: predicts next latent state z_{t+1} without obs (prior)</li>
+        <li><strong>EMA copy</strong> of world model → stable feature extraction at train time</li>
+        <li>Latent features concatenated to obs before the policy GRU</li>
+        <li>WM trained jointly with auxiliary reconstruction loss</li>
+      </ul>
+      <div class="formula">z_t = Encoder(obs_t, a_{t-1}, h_{t-1})   [RSSM posterior]</div>
+      <div class="formula">obs_aug = concat(obs, EMA_WM(z_t))</div>
+      <div class="formula">L = L_TD + β·L_WM_recon</div>
+    </div>
+    <div>
+      <!-- WM2 pipeline SVG -->
+      <svg viewBox="0 0 300 270" width="100%" style="background:#111827; border-radius:8px; border:1px solid rgba(255,255,255,0.1);">
+        <!-- obs_t -->
+        <rect x="90" y="10" width="120" height="25" rx="4" fill="#1565c0"/>
+        <text x="150" y="27" fill="#fff" font-size="8.5" text-anchor="middle">observation t</text>
+        <!-- RSSM box -->
+        <rect x="30" y="55" width="240" height="55" rx="6" fill="#1a0a00" stroke="#ffb74d" stroke-width="1.5"/>
+        <text x="150" y="73" fill="#ffb74d" font-size="9" text-anchor="middle">RSSM World Model</text>
+        <text x="150" y="87" fill="#ffb74d" font-size="7.5" text-anchor="middle">Repr. + Transition + Reward heads</text>
+        <text x="150" y="100" fill="#ffb74d" font-size="7.5" text-anchor="middle">EMA copy → stable features</text>
+        <line x1="150" y1="35" x2="150" y2="55" stroke="#555" stroke-width="1.2"/>
+        <!-- latent z_t -->
+        <circle cx="80" cy="140" r="16" fill="#3e2723" stroke="#ffb74d" stroke-width="1.5"/>
+        <text x="80" y="143" fill="#ffb74d" font-size="7.5" text-anchor="middle">z_t</text>
+        <line x1="90" y1="110" x2="80" y2="124" stroke="#ffb74d" stroke-width="1.2"/>
+        <!-- concat -->
+        <rect x="50" y="170" width="200" height="28" rx="4" fill="#0a0a2a" stroke="#4fc3f7" stroke-width="1.2"/>
+        <text x="150" y="188" fill="#4fc3f7" font-size="8.5" text-anchor="middle">concat(obs, EMA_features) → obs_aug</text>
+        <line x1="80" y1="156" x2="90" y2="170" stroke="#ffb74d" stroke-width="1"/>
+        <line x1="150" y1="35" x2="170" y2="170" stroke="#4fc3f7" stroke-width="1" stroke-dasharray="4,3"/>
+        <!-- policy GRU -->
+        <rect x="80" y="218" width="140" height="30" rx="5" fill="#0d47a1" stroke="#4fc3f7" stroke-width="1.5"/>
+        <text x="150" y="237" fill="#4fc3f7" font-size="9" text-anchor="middle">QPLEX GRU Policy</text>
+        <line x1="150" y1="198" x2="150" y2="218" stroke="#4fc3f7" stroke-width="1.5"/>
+        <!-- WM loss annotation -->
+        <text x="270" y="73" fill="#aaa" font-size="7">L_WM</text>
+        <text x="270" y="83" fill="#aaa" font-size="7">recon</text>
+        <text x="270" y="93" fill="#aaa" font-size="7">loss</text>
+        <path d="M 268 83 L 268 83" stroke="none"/>
+        <rect x="258" y="62" width="40" height="38" rx="3" fill="none" stroke="#ffb74d" stroke-width="0.7" stroke-dasharray="3,2"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ─── METHOD: QPLEX-WM4 ─────────────────────────────────────────────── -->
+<section>
+  <h2>Method: QPLEX-WM4 — Dreamer Imagination Rollouts</h2>
+  <div class="two-col">
+    <div>
+      <h3>Beyond WM2: Policy-in-Loop Imagination</h3>
+      <ul>
+        <li>WM4 extends WM2 with an <strong>ObsDecoder</strong> head</li>
+        <li><strong>Imagination rollouts</strong>: unroll H steps in latent space without env interaction</li>
+        <li>Bootstrapped TD targets from imagined returns (Dreamer-V2 style)</li>
+        <li>Evasive targets (EvasiveTargetAgent) make training harder and more realistic</li>
+      </ul>
+      <div class="formula">z_{t+h} = TransitionModel(z_{t+h-1}, π(z_{t+h-1}))  [no env]</div>
+      <div class="formula">Q_imag = R_imag + γ^H · Q_target(z_{t+H})</div>
+      <div class="formula">L = L_TD + β·L_WM + γ·L_imag_TD</div>
+      <div class="card card-orange" style="margin-top:10px;">
+        <strong>EvasiveTargetAgent:</strong> targets move toward warehouse &amp; avoid camera FOV — creates adversarial training signal
+      </div>
+    </div>
+    <div>
+      <!-- WM4 imagination SVG -->
+      <svg viewBox="0 0 300 270" width="100%" style="background:#111827; border-radius:8px; border:1px solid rgba(255,255,255,0.1);">
+        <!-- real env trajectory -->
+        <text x="10" y="18" fill="#aaa" font-size="8">Real trajectory:</text>
+        <rect x="10" y="25" width="40" height="25" rx="3" fill="#1565c0" stroke="#4fc3f7" stroke-width="1"/>
+        <text x="30" y="41" fill="#4fc3f7" font-size="7.5" text-anchor="middle">z_t</text>
+        <line x1="50" y1="37" x2="70" y2="37" stroke="#4fc3f7" stroke-width="1"/>
+        <rect x="70" y="25" width="40" height="25" rx="3" fill="#1565c0" stroke="#4fc3f7" stroke-width="1"/>
+        <text x="90" y="41" fill="#4fc3f7" font-size="7.5" text-anchor="middle">z_{t+1}</text>
+        <line x1="110" y1="37" x2="130" y2="37" stroke="#4fc3f7" stroke-width="1"/>
+        <text x="140" y="41" fill="#4fc3f7" font-size="10">→ env</text>
+
+        <!-- RSSM / WM box -->
+        <rect x="10" y="75" width="280" height="45" rx="6" fill="#1a0a00" stroke="#ffb74d" stroke-width="1.5"/>
+        <text x="150" y="97" fill="#ffb74d" font-size="9" text-anchor="middle">RSSM + ObsDecoder</text>
+        <text x="150" y="111" fill="#ffb74d" font-size="7.5" text-anchor="middle">Imagination: TransitionModel rolls out H steps in latent space</text>
+        <line x1="30" y1="50" x2="30" y2="75" stroke="#4fc3f7" stroke-width="1" stroke-dasharray="4,3"/>
+
+        <!-- imagination rollout -->
+        <text x="10" y="138" fill="#aaa" font-size="8">Imagined rollout (no env):</text>
+        <rect x="10" y="145" width="40" height="25" rx="3" fill="#4e1010" stroke="#ef5350" stroke-width="1"/>
+        <text x="30" y="161" fill="#ef9a9a" font-size="7" text-anchor="middle">ẑ_{t+1}</text>
+        <line x1="50" y1="157" x2="70" y2="157" stroke="#ef5350" stroke-width="1" stroke-dasharray="3,2"/>
+        <rect x="70" y="145" width="40" height="25" rx="3" fill="#4e1010" stroke="#ef5350" stroke-width="1"/>
+        <text x="90" y="161" fill="#ef9a9a" font-size="7" text-anchor="middle">ẑ_{t+2}</text>
+        <line x1="110" y1="157" x2="130" y2="157" stroke="#ef5350" stroke-width="1" stroke-dasharray="3,2"/>
+        <rect x="130" y="145" width="40" height="25" rx="3" fill="#4e1010" stroke="#ef5350" stroke-width="1"/>
+        <text x="150" y="161" fill="#ef9a9a" font-size="7" text-anchor="middle">ẑ_{t+H}</text>
+        <line x1="170" y1="157" x2="200" y2="157" stroke="#ef5350" stroke-width="1" stroke-dasharray="3,2"/>
+        <rect x="200" y="145" width="90" height="25" rx="3" fill="#1a0a2a" stroke="#ba68c8" stroke-width="1.2"/>
+        <text x="245" y="161" fill="#ba68c8" font-size="7" text-anchor="middle">Q_target(ẑ_{t+H})</text>
+
+        <!-- imagined reward -->
+        <text x="10" y="200" fill="#aaa" font-size="8">Imagined returns + bootstrap:</text>
+        <rect x="10" y="210" width="280" height="30" rx="4" fill="#1a2a1a" stroke="#81c784" stroke-width="1.2"/>
+        <text x="150" y="229" fill="#81c784" font-size="8.5" text-anchor="middle">Q_imag = Σ γᵏ·r̂_{t+k} + γᴴ·Q_target → L_imag_TD</text>
+
+        <!-- arrows -->
+        <line x1="150" y1="120" x2="90" y2="145" stroke="#ffb74d" stroke-width="1" stroke-dasharray="3,2"/>
+        <line x1="150" y1="170" x2="150" y2="210" stroke="#81c784" stroke-width="1.2"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ─── METHOD: QPLEX-WM2-SE (NEW) ───────────────────────────────────── -->
+<section data-background-gradient="linear-gradient(135deg,#1a0a2a 0%,#0d1b2a 100%)">
+  <h2 style="color:var(--purple);">★ Proposed: QPLEX-WM2-SE — Combining Both Ideas</h2>
+  <div class="two-col">
+    <div>
+      <h3>Key Insight: Orthogonal Augmentation</h3>
+      <ul>
+        <li><strong>WM2</strong> operates <em>pre-RNN</em>: enriches the input to the recurrent encoder</li>
+        <li><strong>SE</strong> operates <em>post-RNN</em>: shapes the hidden state representations</li>
+        <li>No conflict — can be composed cleanly</li>
+      </ul>
+      <div class="card card-purple" style="margin-top:12px;">
+        <strong>Pipeline:</strong>
+        <div class="step-row"><div class="step-num">1</div>RSSM encodes obs → latent z_t via EMA world model</div>
+        <div class="step-row"><div class="step-num">2</div>obs_aug = concat(obs_t, EMA_features(z_t))</div>
+        <div class="step-row"><div class="step-num">3</div>GRU(obs_aug) → hidden hₜ</div>
+        <div class="step-row"><div class="step-num">4</div>PredHead(hₜ) → position pred → L_SE auxiliary</div>
+        <div class="step-row"><div class="step-num">5</div>Duplex Mixer → Q_jt → L_TD</div>
+      </div>
+      <div class="formula">L = L_TD + β·L_WM + α·L_SE</div>
+    </div>
+    <div>
+      <!-- WM2-SE combined architecture -->
+      <svg viewBox="0 0 300 310" width="100%" style="background:#0d0820; border-radius:8px; border:1px solid rgba(186,104,200,0.4);">
+        <!-- obs -->
+        <rect x="100" y="10" width="100" height="22" rx="4" fill="#1565c0"/>
+        <text x="150" y="25" fill="#fff" font-size="8" text-anchor="middle">obs_t</text>
+        <!-- RSSM WM (left) -->
+        <rect x="10" y="45" width="120" height="38" rx="5" fill="#1a0a00" stroke="#ffb74d" stroke-width="1.5"/>
+        <text x="70" y="61" fill="#ffb74d" font-size="8" text-anchor="middle">RSSM World Model</text>
+        <text x="70" y="76" fill="#ffb74d" font-size="7" text-anchor="middle">EMA → z_t features</text>
+        <line x1="130" y1="22" x2="70" y2="45" stroke="#ffb74d" stroke-width="1.2" stroke-dasharray="4,2"/>
+        <!-- concat -->
+        <rect x="60" y="100" width="180" height="25" rx="4" fill="#0a0a2a" stroke="#4fc3f7" stroke-width="1.2"/>
+        <text x="150" y="117" fill="#4fc3f7" font-size="8" text-anchor="middle">concat(obs, z_features) = obs_aug</text>
+        <line x1="70" y1="83" x2="100" y2="100" stroke="#ffb74d" stroke-width="1"/>
+        <line x1="150" y1="32" x2="190" y2="100" stroke="#4fc3f7" stroke-width="1" stroke-dasharray="4,3"/>
+        <!-- GRU -->
+        <rect x="90" y="140" width="120" height="28" rx="5" fill="#0d47a1" stroke="#4fc3f7" stroke-width="1.5"/>
+        <text x="150" y="158" fill="#4fc3f7" font-size="9" text-anchor="middle">GRU → hₜ</text>
+        <line x1="150" y1="125" x2="150" y2="140" stroke="#4fc3f7" stroke-width="1.5"/>
+        <!-- hidden state circle -->
+        <circle cx="150" cy="196" r="14" fill="#1a0035" stroke="#ba68c8" stroke-width="1.8"/>
+        <text x="150" y="200" fill="#ba68c8" font-size="8" text-anchor="middle">hₜ</text>
+        <line x1="150" y1="168" x2="150" y2="182" stroke="#4fc3f7" stroke-width="1.5"/>
+        <!-- branch left: Q -->
+        <line x1="138" y1="210" x2="80" y2="236" stroke="#7c4dff" stroke-width="1.2"/>
+        <rect x="30" y="236" width="100" height="25" rx="4" fill="#311b92" stroke="#7c4dff" stroke-width="1.2"/>
+        <text x="80" y="253" fill="#b39ddb" font-size="7.5" text-anchor="middle">Duplex Mixer → Q_jt</text>
+        <!-- branch right: SE -->
+        <line x1="162" y1="210" x2="220" y2="236" stroke="#e57373" stroke-width="1.2" stroke-dasharray="5,3"/>
+        <rect x="172" y="236" width="118" height="25" rx="4" fill="#4e1010" stroke="#e57373" stroke-width="1.2" stroke-dasharray="4,2"/>
+        <text x="231" y="252" fill="#ef9a9a" font-size="7.5" text-anchor="middle">PredHead → L_SE</text>
+        <!-- loss annotations -->
+        <rect x="30" y="272" width="100" height="20" rx="3" fill="#004d40" stroke="#4db6ac" stroke-width="1"/>
+        <text x="80" y="286" fill="#4db6ac" font-size="7.5" text-anchor="middle">L_TD (QPLEX)</text>
+        <line x1="80" y1="261" x2="80" y2="272" stroke="#4db6ac" stroke-width="1"/>
+        <rect x="172" y="272" width="118" height="20" rx="3" fill="#2e1010" stroke="#ef5350" stroke-width="1"/>
+        <text x="231" y="286" fill="#ef9a9a" font-size="7.5" text-anchor="middle">L_SE (position MSE)</text>
+        <line x1="231" y1="261" x2="231" y2="272" stroke="#e57373" stroke-width="1"/>
+        <!-- WM loss -->
+        <rect x="10" y="95" width="45" height="18" rx="3" fill="#3e1a00" stroke="#ffb74d" stroke-width="0.8"/>
+        <text x="32" y="108" fill="#ffb74d" font-size="6.5" text-anchor="middle">L_WM recon</text>
+        <line x1="32" y1="95" x2="32" y2="83" stroke="#ffb74d" stroke-width="0.8"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ─── EXPERIMENTS: SETUP ─────────────────────────────────────────────── -->
+<section>
+  <h2>Experiments: Setup</h2>
+  <div class="two-col">
+    <div>
+      <h3>Environment</h3>
+      <ul>
+        <li><strong>MATE 4v8</strong>: 4 cameras, 8 targets</li>
+        <li>Observation: camera FOV state, target positions (if visible)</li>
+        <li>Reward: real coverage rate (fraction of non-fake targets tracked)</li>
+        <li>Episode length: 500 steps</li>
+        <li>Evaluation: 20 episodes, greedy policy</li>
+      </ul>
+      <h3 style="margin-top:12px;">Training</h3>
+      <ul>
+        <li>Ray RLlib / Ray Tune framework</li>
+        <li>Buffer: replay memory, batch size 32</li>
+        <li>Up to 10M environment steps</li>
+        <li>Evaluation every 10k steps</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Algorithms Compared</h3>
+      <table class="exp-table">
+        <tr><th>Algorithm</th><th>HRL</th><th>WM</th><th>SE</th></tr>
+        <tr><td>QMIX</td><td>✗</td><td>✗</td><td>✗</td></tr>
+        <tr><td>QPLEX</td><td>✗</td><td>✗</td><td>✗</td></tr>
+        <tr><td>HRL-QPLEX</td><td>✓</td><td>✗</td><td>✗</td></tr>
+        <tr><td>HRL-QPLEX-SE</td><td>✓</td><td>✗</td><td>✓</td></tr>
+        <tr><td>HRL-QPLEX-WM</td><td>✓</td><td>WM2</td><td>✗</td></tr>
+        <tr><td>HRL-QPLEX-WM3</td><td>✓</td><td>WM3</td><td>✗</td></tr>
+        <tr><td>HRL-QPLEX-WM4</td><td>✓</td><td>WM4</td><td>✗</td></tr>
+        <tr class="new-row"><td><strong>QPLEX-WM2-SE ★</strong></td><td>✓</td><td>WM2</td><td>✓</td></tr>
+      </table>
+      <p class="muted" style="margin-top:8px;">Metric: <code>real_coverage_rate_mean</code> averaged over evaluation episodes</p>
+    </div>
+  </div>
+</section>
+
+<!-- ─── EXPERIMENTS: LEARNING CURVES ─────────────────────────────────── -->
+<section>
+  <h2>Experiments: Learning Curves</h2>
+  <div class="chart-wrap" style="height:380px;">
+    <canvas id="learningCurveChart"></canvas>
+  </div>
+  <p class="muted center" style="font-size:0.75em; margin-top:4px;">X-axis: environment timesteps (×10⁶) &nbsp;·&nbsp; Y-axis: real coverage rate (%) &nbsp;·&nbsp; Data from actual Ray Tune progress.csv logs</p>
+</section>
+
+<!-- ─── EXPERIMENTS: RESULTS TABLE ────────────────────────────────────── -->
+<section>
+  <h2>Experiments: Summary Results</h2>
+  <table class="exp-table" style="width:100%;">
+    <tr>
+      <th>Algorithm</th>
+      <th>Peak Coverage (%)</th>
+      <th>Improvement over QMIX</th>
+      <th>Improvement over QPLEX</th>
+    </tr>
+    <tr><td>QMIX</td><td>28.5</td><td>—</td><td>—</td></tr>
+    <tr><td>QPLEX</td><td>44.2</td><td>+15.7 pp</td><td>—</td></tr>
+    <tr><td>HRL-QPLEX</td><td>60.6</td><td>+32.1 pp</td><td>+16.4 pp</td></tr>
+    <tr><td>HRL-QPLEX-WM</td><td>58.4</td><td>+29.9 pp</td><td>+14.2 pp</td></tr>
+    <tr><td>HRL-QPLEX-WM3</td><td>43.7</td><td>+15.2 pp</td><td>−0.5 pp</td></tr>
+    <tr><td>HRL-QPLEX-WM4</td><td>59.6</td><td>+31.1 pp</td><td>+15.4 pp</td></tr>
+    <tr><td class="best">HRL-QPLEX-SE</td><td class="best">69.6</td><td class="best">+41.1 pp</td><td class="best">+25.4 pp</td></tr>
+    <tr class="new-row"><td><strong>QPLEX-WM2-SE ★</strong></td><td><em>expected ≥ 70%</em></td><td colspan="2"><em>hypothesis: combines WM + SE gains</em></td></tr>
+  </table>
+  <div class="three-col" style="margin-top:18px;">
+    <div class="card card-accent">
+      <strong>QPLEX vs QMIX</strong><br>
+      Duplex decomposition provides strong foundation: +15.7 pp
+    </div>
+    <div class="card card-green">
+      <strong>HRL wrapper</strong><br>
+      Hierarchical target selection is the single biggest lever: +16.4 pp
+    </div>
+    <div class="card card-purple">
+      <strong>SE auxiliary loss</strong><br>
+      Best single add-on: shaped representations → +9.0 pp over HRL-QPLEX
+    </div>
+  </div>
+</section>
+
+<!-- ─── EXPERIMENTS: ANALYSIS ─────────────────────────────────────────── -->
+<section>
+  <h2>Experiments: Analysis &amp; Discussion</h2>
+  <div class="two-col">
+    <div>
+      <h3>What Works</h3>
+      <ul>
+        <li><span class="highlight">HRL</span> is the dominant improvement — decouples target selection from low-level control</li>
+        <li><span class="highlight">SE auxiliary loss</span> provides the most sample-efficient boost — reaches peak faster (0.06M vs 0.09M steps)</li>
+        <li><span class="highlight">WM2/WM4</span> provides richer observation space — competitive with HRL-QPLEX but slower to converge</li>
+      </ul>
+      <h3 style="margin-top:12px;">Limitations Observed</h3>
+      <ul>
+        <li><strong>WM3</strong> underperforms: more complex model but noisy gradient signals</li>
+        <li><strong>WM4 imagination</strong> requires careful tensor shape alignment (B×T×A dimensionality)</li>
+        <li>Evasive targets in WM4 make training harder — peak 59.6% vs SE's 69.6%</li>
+      </ul>
+    </div>
+    <div>
+      <h3>WM2-SE Hypothesis</h3>
+      <div class="card card-purple">
+        <p><strong>WM2</strong> enriches what goes <em>into</em> the GRU → better temporal compression</p>
+        <p><strong>SE</strong> refines what comes <em>out</em> of the GRU → better spatial representations</p>
+        <p>Together they address complementary bottlenecks — expected to be strictly additive.</p>
+      </div>
+      <div class="formula" style="margin-top:10px;">
+        Expected: Coverage(WM2-SE) ≈ Coverage(SE) + ΔCoverage(WM2/QPLEX)
+      </div>
+      <div class="card" style="margin-top:10px; border-color:var(--yellow);">
+        <strong>Future work:</strong> run WM2-SE training &amp; compare against both branches;
+        explore WM4+SE for full Dreamer + representation auxiliary combination
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── CONCLUSION ────────────────────────────────────────────────────── -->
+<section>
+  <h2>Conclusion</h2>
+  <div class="two-col">
+    <div>
+      <h3>Summary</h3>
+      <ul>
+        <li>Presented a systematic family of <strong>QPLEX</strong> extensions for multi-agent camera tracking</li>
+        <li><strong>HRL wrapper</strong> is the most impactful single component</li>
+        <li><strong>SE auxiliary loss</strong> shapes representations cheaply — best performing variant at 69.6%</li>
+        <li><strong>World Models (WM2/WM4)</strong> provide richer inputs at cost of increased complexity</li>
+        <li>Proposed novel <strong>QPLEX-WM2-SE</strong> combining orthogonal augmentations</li>
+      </ul>
+      <div class="card card-purple" style="margin-top:14px;">
+        <strong>Key result:</strong> HRL-QPLEX-SE achieves <span class="result-big">69.6%</span> real coverage on MATE 4v8,
+        a <strong>+41 pp</strong> improvement over QMIX baseline
+      </div>
+    </div>
+    <div>
+      <h3>Contributions</h3>
+      <div class="card card-accent">1. Systematic benchmark of QPLEX augmentation strategies in MATE</div>
+      <div class="card card-green" style="margin-top:8px;">2. QPLEX-SE: auxiliary position prediction for representation shaping</div>
+      <div class="card card-orange" style="margin-top:8px;">3. QPLEX-WM2/WM4: RSSM world model integration with Dreamer imagination</div>
+      <div class="card card-purple" style="margin-top:8px;">4. ★ QPLEX-WM2-SE: novel combination with orthogonal augmentation at pre- and post-RNN stages</div>
+      <h3 style="margin-top:14px;">Future Directions</h3>
+      <ul>
+        <li>Full WM2-SE training results on 4v8 &amp; 4v5</li>
+        <li>WM4 + SE combination</li>
+        <li>Transfer learning across environment configs</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ─── APPENDIX: Architecture comparison ─────────────────────────────── -->
+<section>
+  <h2>Appendix: Architecture Comparison</h2>
+  <svg viewBox="0 0 760 280" width="100%" style="background:#111827; border-radius:8px; border:1px solid rgba(255,255,255,0.1);">
+    <!-- QPLEX -->
+    <rect x="10" y="10" width="130" height="260" rx="6" fill="rgba(21,101,192,0.15)" stroke="#4fc3f7" stroke-width="1.2"/>
+    <text x="75" y="30" fill="#4fc3f7" font-size="9" text-anchor="middle" font-weight="bold">QPLEX</text>
+    <rect x="25" y="40" width="100" height="22" rx="3" fill="#1565c0"/>
+    <text x="75" y="55" fill="#fff" font-size="7.5" text-anchor="middle">obs_t</text>
+    <rect x="25" y="75" width="100" height="22" rx="3" fill="#0d47a1" stroke="#4fc3f7" stroke-width="1"/>
+    <text x="75" y="89" fill="#4fc3f7" font-size="7.5" text-anchor="middle">GRU → h_t</text>
+    <rect x="25" y="110" width="100" height="22" rx="3" fill="#311b92" stroke="#7c4dff" stroke-width="1"/>
+    <text x="75" y="124" fill="#b39ddb" font-size="7.5" text-anchor="middle">Dueling Q</text>
+    <rect x="25" y="145" width="100" height="22" rx="3" fill="#004d40" stroke="#4db6ac" stroke-width="1"/>
+    <text x="75" y="159" fill="#4db6ac" font-size="7.5" text-anchor="middle">Duplex Mixer</text>
+    <line x1="75" y1="62" x2="75" y2="75" stroke="#555" stroke-width="1"/>
+    <line x1="75" y1="97" x2="75" y2="110" stroke="#555" stroke-width="1"/>
+    <line x1="75" y1="132" x2="75" y2="145" stroke="#555" stroke-width="1"/>
+
+    <!-- SE -->
+    <rect x="155" y="10" width="130" height="260" rx="6" fill="rgba(46,125,50,0.15)" stroke="#81c784" stroke-width="1.2"/>
+    <text x="220" y="30" fill="#81c784" font-size="9" text-anchor="middle" font-weight="bold">QPLEX-SE</text>
+    <rect x="170" y="40" width="100" height="22" rx="3" fill="#1565c0"/>
+    <text x="220" y="55" fill="#fff" font-size="7.5" text-anchor="middle">obs_t</text>
+    <rect x="170" y="75" width="100" height="22" rx="3" fill="#0d47a1" stroke="#4fc3f7" stroke-width="1"/>
+    <text x="220" y="89" fill="#4fc3f7" font-size="7.5" text-anchor="middle">GRU → h_t</text>
+    <rect x="170" y="110" width="100" height="22" rx="3" fill="#311b92" stroke="#7c4dff" stroke-width="1"/>
+    <text x="220" y="124" fill="#b39ddb" font-size="7.5" text-anchor="middle">Dueling Q</text>
+    <rect x="170" y="145" width="100" height="22" rx="3" fill="#004d40" stroke="#4db6ac" stroke-width="1"/>
+    <text x="220" y="159" fill="#4db6ac" font-size="7.5" text-anchor="middle">Duplex Mixer</text>
+    <!-- SE head -->
+    <rect x="170" y="190" width="100" height="22" rx="3" fill="#4e1010" stroke="#e57373" stroke-width="1" stroke-dasharray="3,2"/>
+    <text x="220" y="204" fill="#ef9a9a" font-size="7.5" text-anchor="middle">PredHead → L_SE</text>
+    <line x1="220" y1="97" x2="220" y2="190" stroke="#e57373" stroke-width="0.8" stroke-dasharray="4,3"/>
+    <line x1="220" y1="62" x2="220" y2="75" stroke="#555" stroke-width="1"/>
+    <line x1="220" y1="97" x2="220" y2="110" stroke="#555" stroke-width="1"/>
+    <line x1="220" y1="132" x2="220" y2="145" stroke="#555" stroke-width="1"/>
+
+    <!-- WM2 -->
+    <rect x="300" y="10" width="130" height="260" rx="6" fill="rgba(230,81,0,0.12)" stroke="#ffb74d" stroke-width="1.2"/>
+    <text x="365" y="30" fill="#ffb74d" font-size="9" text-anchor="middle" font-weight="bold">QPLEX-WM2</text>
+    <rect x="315" y="40" width="100" height="22" rx="3" fill="#1565c0"/>
+    <text x="365" y="55" fill="#fff" font-size="7.5" text-anchor="middle">obs_t</text>
+    <rect x="315" y="75" width="100" height="22" rx="3" fill="#1a0a00" stroke="#ffb74d" stroke-width="1"/>
+    <text x="365" y="89" fill="#ffb74d" font-size="7.5" text-anchor="middle">RSSM → z_t</text>
+    <rect x="315" y="110" width="100" height="22" rx="3" fill="#0a0a2a" stroke="#4fc3f7" stroke-width="1"/>
+    <text x="365" y="124" fill="#4fc3f7" font-size="7.5" text-anchor="middle">concat → obs_aug</text>
+    <rect x="315" y="145" width="100" height="22" rx="3" fill="#0d47a1" stroke="#4fc3f7" stroke-width="1"/>
+    <text x="365" y="159" fill="#4fc3f7" font-size="7.5" text-anchor="middle">GRU → h_t</text>
+    <rect x="315" y="180" width="100" height="22" rx="3" fill="#311b92" stroke="#7c4dff" stroke-width="1"/>
+    <text x="365" y="194" fill="#b39ddb" font-size="7.5" text-anchor="middle">Dueling Q</text>
+    <rect x="315" y="215" width="100" height="22" rx="3" fill="#004d40" stroke="#4db6ac" stroke-width="1"/>
+    <text x="365" y="229" fill="#4db6ac" font-size="7.5" text-anchor="middle">Duplex Mixer</text>
+    <line x1="365" y1="62" x2="365" y2="75" stroke="#555" stroke-width="1"/>
+    <line x1="365" y1="97" x2="365" y2="110" stroke="#555" stroke-width="1"/>
+    <line x1="365" y1="132" x2="365" y2="145" stroke="#555" stroke-width="1"/>
+    <line x1="365" y1="167" x2="365" y2="180" stroke="#555" stroke-width="1"/>
+    <line x1="365" y1="202" x2="365" y2="215" stroke="#555" stroke-width="1"/>
+
+    <!-- WM2-SE (new) -->
+    <rect x="445" y="10" width="140" height="260" rx="6" fill="rgba(186,104,200,0.18)" stroke="#ba68c8" stroke-width="2"/>
+    <text x="515" y="25" fill="#ba68c8" font-size="9" text-anchor="middle" font-weight="bold">★ WM2-SE (new)</text>
+    <rect x="460" y="33" width="110" height="20" rx="3" fill="#1565c0"/>
+    <text x="515" y="47" fill="#fff" font-size="7" text-anchor="middle">obs_t</text>
+    <rect x="460" y="61" width="110" height="20" rx="3" fill="#1a0a00" stroke="#ffb74d" stroke-width="1"/>
+    <text x="515" y="74" fill="#ffb74d" font-size="7" text-anchor="middle">RSSM EMA → z_t</text>
+    <rect x="460" y="89" width="110" height="20" rx="3" fill="#0a0a2a" stroke="#4fc3f7" stroke-width="1"/>
+    <text x="515" y="102" fill="#4fc3f7" font-size="7" text-anchor="middle">concat → obs_aug</text>
+    <rect x="460" y="117" width="110" height="20" rx="3" fill="#0d47a1" stroke="#4fc3f7" stroke-width="1.2"/>
+    <text x="515" y="130" fill="#4fc3f7" font-size="7" text-anchor="middle">GRU → h_t</text>
+    <rect x="460" y="145" width="110" height="20" rx="3" fill="#311b92" stroke="#7c4dff" stroke-width="1"/>
+    <text x="515" y="158" fill="#b39ddb" font-size="7" text-anchor="middle">Dueling Q</text>
+    <rect x="460" y="173" width="110" height="20" rx="3" fill="#004d40" stroke="#4db6ac" stroke-width="1"/>
+    <text x="515" y="186" fill="#4db6ac" font-size="7" text-anchor="middle">Duplex Mixer</text>
+    <!-- SE head on WM2 hidden -->
+    <rect x="460" y="205" width="110" height="20" rx="3" fill="#4e1010" stroke="#e57373" stroke-width="1" stroke-dasharray="3,2"/>
+    <text x="515" y="218" fill="#ef9a9a" font-size="7" text-anchor="middle">PredHead → L_SE</text>
+    <line x1="515" y1="137" x2="515" y2="205" stroke="#e57373" stroke-width="0.8" stroke-dasharray="4,3"/>
+    <line x1="515" y1="53" x2="515" y2="61" stroke="#555" stroke-width="1"/>
+    <line x1="515" y1="81" x2="515" y2="89" stroke="#555" stroke-width="1"/>
+    <line x1="515" y1="109" x2="515" y2="117" stroke="#555" stroke-width="1"/>
+    <line x1="515" y1="137" x2="515" y2="145" stroke="#555" stroke-width="1"/>
+    <line x1="515" y1="165" x2="515" y2="173" stroke="#555" stroke-width="1"/>
+    <text x="515" y="250" fill="#ba68c8" font-size="7" text-anchor="middle">L = L_TD + β·L_WM + α·L_SE</text>
+  </svg>
+</section>
+
+<!-- ─── THANK YOU ─────────────────────────────────────────────────────── -->
+<section class="center" data-background-gradient="linear-gradient(135deg,#0d1b2a 0%,#1a2744 50%,#0d1b2a 100%)">
+  <br><br>
+  <h1 style="font-size:2.2em;">Thank You</h1>
+  <p style="font-size:1.2em; color:var(--orange); margin:20px 0;">Questions &amp; Discussion</p>
+  <hr style="border-color:rgba(255,255,255,0.2); margin:30px auto; width:50%;">
+  <div class="three-col" style="max-width:700px; margin:0 auto; text-align:left;">
+    <div class="card card-accent">
+      <strong>QPLEX-SE</strong><br>
+      Best result: 69.6% coverage
+    </div>
+    <div class="card card-orange">
+      <strong>HRL</strong><br>
+      Key enabler: +16 pp
+    </div>
+    <div class="card card-purple">
+      <strong>WM2-SE ★</strong><br>
+      Proposed combination
+    </div>
+  </div>
+  <p class="muted" style="margin-top:30px;">Code: MATE environment + QPLEX family &nbsp;·&nbsp; Ray RLlib</p>
+</section>
+
+</div><!-- .slides -->
+</div><!-- .reveal -->
+
+<script>
+Reveal.initialize({
+  hash: true,
+  slideNumber: 'c/t',
+  transition: 'slide',
+  controls: true,
+  progress: true,
+  center: false,
+  width: 1000,
+  height: 420,
+  margin: 0,
+  plugins: [],
+});
+
+// ─── Chart: learning curves ───────────────────────────────────────────
+Reveal.on('slidechanged', function(event) {
+  if (!document.getElementById('learningCurveChart')) return;
+  if (event.currentSlide.querySelector('#learningCurveChart') && !window._chartBuilt) {
+    window._chartBuilt = true;
+    buildChart();
+  }
+});
+
+// Also try on ready
+Reveal.on('ready', function() {
+  // small delay to ensure canvas is rendered
+  setTimeout(buildChart, 300);
+});
+
+function buildChart() {
+  const canvas = document.getElementById('learningCurveChart');
+  if (!canvas || canvas._built) return;
+  canvas._built = true;
+
+  const data = {
+    'QMIX':          {color:'#e57373', pts:[[0.01,27.0],[0.01,26.5],[0.02,28.5],[0.02,26.7],[0.03,27.4],[0.04,27.4],[0.04,27.4]]},
+    'QPLEX':         {color:'#4fc3f7', pts:[[0.01,32.0],[0.02,27.2],[0.03,36.2],[0.04,34.2],[0.05,33.2],[0.07,39.2],[0.08,40.8],[0.09,41.4],[0.1,41.5],[0.11,40.3],[0.12,40.8],[0.14,42.8],[0.15,42.8],[0.16,40.9],[0.17,41.5]]},
+    'HRL-QPLEX':     {color:'#4db6ac', pts:[[0.01,43.9],[0.01,41.8],[0.02,46.9],[0.02,48.7],[0.03,51.1],[0.03,51.8],[0.04,56.3],[0.05,55.9],[0.05,59.3],[0.06,59.3],[0.06,60.0],[0.07,58.0],[0.07,59.5],[0.08,57.6],[0.09,58.6]]},
+    'HRL-QPLEX-WM':  {color:'#ffb74d', pts:[[0.01,42.1],[0.02,40.6],[0.04,50.5],[0.06,55.0],[0.08,56.4],[0.1,55.4],[0.11,56.2],[0.13,55.5],[0.15,54.8],[0.17,55.4],[0.19,56.5],[0.2,56.7],[0.22,55.9],[0.24,56.7],[0.26,54.9]]},
+    'HRL-QPLEX-WM3': {color:'#a1887f', pts:[[0.01,35.2],[0.01,38.0],[0.02,36.9],[0.02,36.2],[0.03,38.3],[0.04,37.9],[0.04,38.2],[0.05,37.3],[0.05,39.2],[0.06,42.0],[0.06,40.8],[0.07,39.7],[0.08,40.4],[0.08,40.6],[0.09,40.0]]},
+    'HRL-QPLEX-WM4': {color:'#ff8a65', pts:[[0.01,38.2],[0.07,55.0],[0.14,57.4],[0.2,57.0],[0.27,49.5],[0.34,48.6],[0.4,44.9],[0.47,56.5],[0.53,57.6],[0.6,56.9],[0.66,59.5],[0.73,57.4],[0.8,58.8],[0.86,59.6],[0.93,59.1]]},
+    'HRL-QPLEX-SE':  {color:'#ba68c8', pts:[[0.01,41.8],[0.01,40.6],[0.02,38.3],[0.02,39.1],[0.03,49.5],[0.04,53.7],[0.04,59.1],[0.05,59.2],[0.05,66.6],[0.06,64.7],[0.06,69.6],[0.07,68.0],[0.08,67.7],[0.08,66.2],[0.09,66.4]]},
+  };
+
+  const datasets = Object.entries(data).map(([name, d]) => ({
+    label: name,
+    data: d.pts.map(([x, y]) => ({x, y})),
+    borderColor: d.color,
+    backgroundColor: d.color + '22',
+    pointRadius: 3,
+    pointHoverRadius: 5,
+    borderWidth: name.startsWith('HRL-QPLEX-SE') ? 3 : 1.8,
+    borderDash: name.startsWith('QMIX') ? [5,3] : [],
+    tension: 0.3,
+  }));
+
+  new Chart(canvas, {
+    type: 'line',
+    data: {datasets},
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {mode:'index', intersect:false},
+      plugins: {
+        legend: {
+          labels: {color:'#ccc', font:{size:11}, padding:12},
+          position:'top',
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}%`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          type:'linear',
+          title:{display:true, text:'Timesteps (×10⁶)', color:'#aaa', font:{size:11}},
+          ticks:{color:'#aaa', callback: v => v.toFixed(2)},
+          grid:{color:'rgba(255,255,255,0.07)'},
+        },
+        y: {
+          title:{display:true, text:'Real Coverage Rate (%)', color:'#aaa', font:{size:11}},
+          ticks:{color:'#aaa', callback: v => v+'%'},
+          grid:{color:'rgba(255,255,255,0.07)'},
+          min:20, max:75,
+        },
+      },
+    },
+  });
+}
+</script>
+</body>
+</html>

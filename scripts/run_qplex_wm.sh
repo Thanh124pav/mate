@@ -66,6 +66,12 @@ run "examples.qplex_se.camera.train"        "MATE-4v8-9.yaml"
 run "examples.hrl.qplex_se.camera.train"    "MATE-4v5-0.yaml"
 run "examples.hrl.qplex_se.camera.train"    "MATE-4v8-9.yaml"
 
+# ============ WM4: Dreamer World Model with ObsDecoder ============
+run "examples.qplex_wm4.camera.train"      "MATE-4v5-0.yaml"
+run "examples.qplex_wm4.camera.train"      "MATE-4v8-9.yaml"
+run "examples.hrl.qplex_wm4.camera.train"  "MATE-4v5-0.yaml"
+run "examples.hrl.qplex_wm4.camera.train"  "MATE-4v8-9.yaml"
+
 echo "" | tee -a "$LOG"
 echo "========================================" | tee -a "$LOG"
 echo "All done — $(date)"                      | tee -a "$LOG"

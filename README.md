@@ -60,15 +60,37 @@ python -m mate.evaluate --episodes 1 --render-communication \
     --camera-kwargs '{ "checkpoint_path": "examples/hrl/qplex_v2/camera/ray_results/HRL-QPLEXV2/QPLEX_V2_mate-hrl.qplex_v2.camera_f1636_00000_0_2026-01-19_15-50-45/latest-checkpoint" }' \
     --config "MATE-4v5-0.yaml"
 ```
-Results: \
+## Results
+
+#### 4v5-0
+
+|                           Metric | Greedy (4v5-0) | QPLEX_V2 (4v5-0) | QPLEX_WM2 (4v5-0) | QPLEX_SE (4v5-0) | 
+| -------------------------------: | -------------: | ---------------: | ----------------: | ---------------: |
+|                     Step / Cargo |           29.9 |         34.0     |      30.4         |       31.5       |
+|            Target Episode Reward |       +2317.80 |     +2258.00     |      +2575.80     |       +2522.20   |
+|              Mean Transport Rate |        28.973% |      28.225%     |      32.197%      |       31.527%    |
+|               Mean Coverage Rate |        75.021% |      74.065%     |      67.831%      |       70.347%    |
+| Normalized Target Episode Reward |       +0.28973 |     +0.28225     |      +0.32198     |       +0.31527   |
+
+#### 4v8-9
+
+|                           Metric | Greedy (4v8-9) | QPLEX_V2 (4v8-9) | QPLEX_WM2 (4v8-9) | QPLEX_WM3 (4v8-9) | QPLEX_SE (4v8-9) | QPLEX_WM2_SE |
+| -------------------------------: | -------------: | ----------------:| ----------------: | ----------------: | ---------------: | -----------: |
+|                     Step / Cargo |           18.9 |         18.8     |        19.4       |      19.0         |             18.3 |       18.8   |
+|            Target Episode Reward |       +4499.60 |     +5694.60     |     +5019.00      |   +6592.60        |         +5526.20 |     +5271.50 |
+|              Mean Transport Rate |        35.153% |      44.489%     |     39.211%       |   51.505%         |         43.173%  |     41.184%  |
+|               Mean Coverage Rate |        64.468% |      52.661%     |     59.137%       |   45.708%         |         55.348%  |     55.682%  |
+| Normalized Target Episode Reward |       +0.35153 |     +0.44489     |     +0.39211      |   +0.51505        |         +0.43173 |     +0.41184 |
+
+
+#### 4v8-9 World model 4 with GreedyTarget
 |                           Metric |         Mean |
 | -------------------------------: | -----------: |
-|                     Step / Cargo |         34.0 |
-|            Target Episode Reward |     +2258.00 |
-|              Mean Transport Rate |      28.225% |
-|               Mean Coverage Rate |      74.065% |
-| Normalized Target Episode Reward |     +0.28225 |
-
+|                     Step / Cargo |         18.8 |
+|            Target Episode Reward |     +5402.80 |
+|              Mean Transport Rate |      42.209% |
+|               Mean Coverage Rate |      55.976% |
+| Normalized Target Episode Reward |     +0.42209 |
 
 
 ## Getting Started
