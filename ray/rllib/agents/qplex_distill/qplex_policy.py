@@ -65,20 +65,26 @@ _OPP_MASK_OFFSET = 4       # offset within each target block for visibility mask
 # Greedy action helper
 # ---------------------------------------------------------------------------
 
-def compute_greedy_actions(obs: torch.Tensor, n_actions: int, device: torch.device) -> torch.Tensor:
-    """Compute greedy discrete action for each agent from observations.
+def compute_greedy_actions(obs: torch.Tensor, n_actions: int, device: torch.device,
+                           memory_period: int = 25) -> torch.Tensor:
+    """Compute memory-augmented greedy action for each agent across a sequence.
 
-    Greedy rule: select the nearest *visible* target.
-    If no target is visible, return action 0 (no-op = no targets selected).
+    Mirrors GreedyCameraAgent's time2forget mechanism: a target that was visible
+    within the last `memory_period` steps is still trackable using its last known
+    relative position, even when currently invisible.
 
-    Encoding: with multi_selection and n_targets binary bits, the discrete
-    action for "select only target k" is  sum_t(bit_t * stride_t)  where
-    strides = [2^(n-1), 2^(n-2), ..., 2^0].
+    Greedy rule: select the nearest *trackable* target (visible OR recently seen).
+    If no trackable target exists, return action 0 (no-op).
+
+    NOTE: positions stored in memory are relative to the camera at the time they
+    were observed. They become stale as camera and target move, but still provide
+    a useful directional hint — consistent with how the GRU should learn to behave.
 
     Args:
-        obs:       [B, T, n_agents, obs_size] float tensor
-        n_actions: total discrete actions = 2^n_targets
-        device:    torch device
+        obs:           [B, T, n_agents, obs_size] float tensor
+        n_actions:     total discrete actions = 2^n_targets
+        device:        torch device
+        memory_period: steps to remember a target after it leaves field of view
 
     Returns:
         greedy_actions: [B, T, n_agents] long tensor
@@ -90,37 +96,55 @@ def compute_greedy_actions(obs: torch.Tensor, n_actions: int, device: torch.devi
     )  # [n_targets]
 
     B, T, C, obs_size = obs.shape
-    obs_flat = obs.detach().reshape(B * T * C, obs_size)  # [N, obs_size]
+    obs_d = obs.detach()
 
-    # Extract relative (x, y) and visibility mask for each target
+    # Extract positions [B, T, C, n_targets, 2] and visibility [B, T, C, n_targets]
     pos = torch.stack(
-        [obs_flat[:, _OPP_OBS_START + t * _OPP_STATE_STRIDE:
-                     _OPP_OBS_START + t * _OPP_STATE_STRIDE + 2]
+        [obs_d[:, :, :, _OPP_OBS_START + t * _OPP_STATE_STRIDE:
+                        _OPP_OBS_START + t * _OPP_STATE_STRIDE + 2]
          for t in range(n_targets)],
-        dim=1,
-    )  # [N, n_targets, 2]
+        dim=3,
+    )  # [B, T, C, n_targets, 2]
 
-    vis_mask = torch.stack(
-        [obs_flat[:, _OPP_OBS_START + t * _OPP_STATE_STRIDE + _OPP_MASK_OFFSET]
+    vis = torch.stack(
+        [obs_d[:, :, :, _OPP_OBS_START + t * _OPP_STATE_STRIDE + _OPP_MASK_OFFSET]
          for t in range(n_targets)],
-        dim=1,
-    )  # [N, n_targets]
+        dim=3,
+    ) > 0.5  # [B, T, C, n_targets] bool
 
-    visible = vis_mask > 0.5         # [N, n_targets]
-    dist = pos.norm(dim=-1).clone()  # [N, n_targets]
-    dist[~visible] = float('inf')    # invisible targets get infinite distance
+    # Memory state (mirrors GreedyCameraAgent.time2forget)
+    last_pos = torch.zeros(B, C, n_targets, 2, device=device)
+    time_since_seen = torch.full(
+        (B, C, n_targets), fill_value=memory_period, dtype=torch.long, device=device
+    )
 
-    nearest = dist.argmin(dim=1)     # [N] — index of nearest visible target
-    has_visible = visible.any(dim=1) # [N]
+    greedy_actions = torch.zeros(B, T, C, dtype=torch.long, device=device)
 
-    # Binary selection: 1 for nearest, 0 for all others; zeros if nothing visible
-    bits = torch.zeros(B * T * C, n_targets, dtype=torch.long, device=device)
-    bits.scatter_(1, nearest.unsqueeze(1), 1)
-    bits[~has_visible] = 0
+    for t in range(T):
+        vis_t = vis[:, t]    # [B, C, n_targets]
+        pos_t = pos[:, t]    # [B, C, n_targets, 2]
 
-    # Encode binary vector → single discrete action index
-    discrete = (bits * strides.unsqueeze(0)).sum(dim=1)  # [N]
-    return discrete.reshape(B, T, C)
+        # Update memory: reset counter for newly visible targets
+        time_since_seen = (time_since_seen + 1).clamp(max=memory_period)
+        time_since_seen[vis_t] = 0
+        last_pos[vis_t] = pos_t[vis_t]
+
+        # A target is trackable if seen within memory_period steps
+        trackable = time_since_seen < memory_period   # [B, C, n_targets]
+
+        dist = last_pos.norm(dim=-1).clone()          # [B, C, n_targets]
+        dist[~trackable] = float('inf')
+
+        nearest = dist.argmin(dim=-1)                 # [B, C]
+        has_trackable = trackable.any(dim=-1)         # [B, C]
+
+        bits = torch.zeros(B, C, n_targets, dtype=torch.long, device=device)
+        bits.scatter_(2, nearest.unsqueeze(2), 1)
+        bits[~has_trackable] = 0
+
+        greedy_actions[:, t] = (bits * strides).sum(dim=-1)  # [B, C]
+
+    return greedy_actions
 
 
 # ---------------------------------------------------------------------------
@@ -580,10 +604,13 @@ class QPLEXDistillTorchPolicy(Policy):
             .expand(B, T, self.n_agents)
         )
 
-        # Compute greedy actions from current observations
+        # Compute memory-augmented greedy actions across the sequence
         greedy_actions = None
         if self.greedy_bc_coeff > 0.0:
-            greedy_actions = compute_greedy_actions(obs, self.n_actions, self.device)
+            greedy_actions = compute_greedy_actions(
+                obs, self.n_actions, self.device,
+                memory_period=self.config.get('greedy_memory_period', 25),
+            )
 
         total_loss, loss_stats, mask, masked_td_error, chosen_action_qvals, targets = self.loss(
             rewards, actions, terminated, mask,

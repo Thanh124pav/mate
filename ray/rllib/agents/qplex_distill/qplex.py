@@ -21,6 +21,7 @@ DEFAULT_CONFIG = with_common_config({
     # --- Greedy distillation ---
     "greedy_bc_coeff": 0.1,        # weight of BC loss (0 = disabled)
     "greedy_bc_temperature": 1.0,  # softmax temperature for Q → logits
+    "greedy_memory_period": 25,    # steps to remember a target after losing sight (mirrors GreedyCameraAgent)
 })
 
 
