@@ -27,6 +27,22 @@ torch, nn = try_import_torch(error=True)
 logger = logging.getLogger(__name__)
 
 
+def _to_float32_array(s):
+    """Convert a state batch element to a float32 numpy array.
+
+    In distributed multi-env rollouts, numpy may produce dtype=object arrays
+    when stacking per-episode hidden states. This handles that case safely.
+    """
+    arr = np.array(s)
+    if arr.dtype == object:
+        shapes = [(type(x).__name__, np.shape(x)) for x in arr.flat]
+        raise RuntimeError(
+            f"state_batches element is a numpy object array. "
+            f"arr.shape={arr.shape}, element (type, shape) list: {shapes}"
+        )
+    return arr.astype(np.float32)
+
+
 class DuelMixLoss(nn.Module):
     def __init__(self, model, target_model, mixer, target_mixer,
                  n_agents, n_actions, double_q=True, gamma=0.99):
@@ -40,7 +56,7 @@ class DuelMixLoss(nn.Module):
         self.double_q = double_q
         self.gamma = gamma
 
-    def forward(self, rewards, actions, terminated, mask,
+    def forward(self, rewards, actions, prev_actions, terminated, mask,
                 obs, next_obs, action_mask, next_action_mask,
                 state=None, next_state=None):
         if state is None and next_state is None:
@@ -50,56 +66,95 @@ class DuelMixLoss(nn.Module):
             raise ValueError("Expected both or neither state/next_state.")
 
         # --- Current model outputs ---
-        all_v, all_a = _unroll_mac_duelmix(self.model, obs)
+        all_v, all_a = _unroll_mac_duelmix(
+            self.model, obs, prev_actions=prev_actions, n_actions=self.n_actions
+        )
         # all_v: [B, T, n_agents, 1], all_a: [B, T, n_agents, n_actions]
-
-        # Q = V + A for action selection masking
-        all_q = all_v + all_a  # [B, T, n_agents, n_actions]
 
         # Chosen action values
         chosen_a = torch.gather(all_a, dim=3, index=actions.unsqueeze(3)).squeeze(3)
         chosen_v = all_v.squeeze(3)  # [B, T, n_agents]
 
         # Max advantage values (for centering)
-        ignore_action = (action_mask == 0) & (mask == 1).unsqueeze(-1)
+        active = mask > 0
+        invalid_current = active & (action_mask.sum(dim=-1) <= 0)
+        if invalid_current.any():
+            raise RuntimeError(
+                "DuelMIX received a live transition with no valid current actions. "
+                f"count={int(invalid_current.sum().item())}"
+            )
+        safe_action_mask = action_mask.clone()
+        safe_action_mask[~active] = 1.0
+        ignore_action = (safe_action_mask == 0) & active.unsqueeze(-1)
         x_a = all_a.clone().detach()
         x_a[ignore_action] = -np.inf
         max_a_vals = x_a.max(dim=3)[0]  # [B, T, n_agents]
 
         # --- Target model outputs ---
-        target_v, target_a = _unroll_mac_duelmix(self.target_model, next_obs)
+        target_v, target_a = _unroll_mac_duelmix(
+            self.target_model, next_obs, prev_actions=actions, n_actions=self.n_actions
+        )
         target_q = target_v + target_a
 
-        # Mask unavailable actions for t+1
-        ignore_tp1 = (next_action_mask == 0) & (mask == 1).unsqueeze(-1)
+        # Mask unavailable actions for t+1. Terminal and padded rows do not
+        # bootstrap, so keep them finite to avoid 0 * inf -> nan in targets.
+        bootstrap_active = active & (terminated < 0.5)
+        invalid_next = bootstrap_active & (next_action_mask.sum(dim=-1) <= 0)
+        if invalid_next.any():
+            raise RuntimeError(
+                "DuelMIX received a non-terminal transition with no valid next actions. "
+                f"count={int(invalid_next.sum().item())}"
+            )
+        safe_next_action_mask = next_action_mask.clone()
+        safe_next_action_mask[~bootstrap_active] = 1.0
+        ignore_tp1 = (safe_next_action_mask == 0) & bootstrap_active.unsqueeze(-1)
         target_q[ignore_tp1] = -np.inf
+        x_target_a = target_a.clone().detach()
+        x_target_a[ignore_tp1] = -np.inf
+        target_max_a_vals = x_target_a.max(dim=3)[0]
 
         if self.double_q:
             # Use current model for action selection
-            mac_v_tp1, mac_a_tp1 = _unroll_mac_duelmix(self.model, next_obs)
+            mac_v_tp1, mac_a_tp1 = _unroll_mac_duelmix(
+                self.model, next_obs, prev_actions=actions, n_actions=self.n_actions
+            )
             mac_q_tp1 = mac_v_tp1 + mac_a_tp1
             mac_q_tp1[ignore_tp1] = -np.inf
             cur_max_actions = mac_q_tp1.argmax(dim=3, keepdim=True)
             target_max_v = target_v.squeeze(3)  # [B, T, n_agents]
+            target_max_a = torch.gather(target_a, 3, cur_max_actions).squeeze(3)
         else:
             cur_max_actions = target_q.argmax(dim=3, keepdim=True)
             target_max_v = target_v.squeeze(3)
+            target_max_a = torch.gather(target_a, 3, cur_max_actions).squeeze(3)
 
-        assert target_max_v.min().item() != -np.inf
+        if not torch.isfinite(target_max_a).all():
+            raise RuntimeError("DuelMIX target_max_a contains non-finite values after masking.")
 
         # --- Mix ---
         # Current: Q_tot = V_tot + A_tot
-        v_tot = self.mixer(chosen_v, states=state, is_v=True)
+        v_tot, v_mix_stats = self.mixer(
+            chosen_v, states=state, is_v=True, return_stats=True
+        )
         actions_onehot = F.one_hot(actions, num_classes=self.n_actions)
-        a_tot = self.mixer(
+        a_tot, a_mix_stats = self.mixer(
             chosen_v, agent_as=chosen_a, states=state,
             actions=actions_onehot, max_action_advs=max_a_vals, is_v=False,
+            return_stats=True,
         )
         chosen_q_tot = v_tot + a_tot
 
-        # Target: at argmax action, advantage = 0, so Q_tot = V_tot
         target_v_tot = self.target_mixer(target_max_v, states=next_state, is_v=True)
-        target_q_tot = target_v_tot  # A_tot = 0 at argmax
+        cur_max_actions_onehot = F.one_hot(cur_max_actions.squeeze(3), num_classes=self.n_actions)
+        target_a_tot = self.target_mixer(
+            target_max_v,
+            agent_as=target_max_a,
+            states=next_state,
+            actions=cur_max_actions_onehot,
+            max_action_advs=target_max_a_vals,
+            is_v=False,
+        )
+        target_q_tot = target_v_tot + target_a_tot
 
         # --- TD loss ---
         targets = rewards + self.gamma * (1 - terminated) * target_q_tot
@@ -108,7 +163,50 @@ class DuelMixLoss(nn.Module):
         masked_td_error = td_error * mask
         loss = (masked_td_error ** 2).sum() / mask.sum()
 
-        return loss, mask, masked_td_error, chosen_q_tot, targets
+        q_mask = mask[:, :, :1]
+
+        def masked_mean(x, m):
+            m = m.expand_as(x)
+            return (x.detach() * m).sum() / m.sum().clamp_min(1.0)
+
+        def masked_abs_mean(x, m):
+            m = m.expand_as(x)
+            return (x.detach().abs() * m).sum() / m.sum().clamp_min(1.0)
+
+        def masked_abs_max(x, m):
+            m = m.expand_as(x).bool()
+            vals = x.detach()[m]
+            if vals.numel() == 0:
+                return x.new_tensor(0.0)
+            return vals.abs().max()
+
+        debug_stats = {
+            "v_tot_mean": masked_mean(v_tot, q_mask),
+            "v_tot_abs_mean": masked_abs_mean(v_tot, q_mask),
+            "v_tot_abs_max": masked_abs_max(v_tot, q_mask),
+            "a_tot_mean": masked_mean(a_tot, q_mask),
+            "a_tot_abs_mean": masked_abs_mean(a_tot, q_mask),
+            "a_tot_abs_max": masked_abs_max(a_tot, q_mask),
+            "target_q_tot_abs_mean": masked_abs_mean(target_q_tot, q_mask),
+            "target_q_tot_abs_max": masked_abs_max(target_q_tot, q_mask),
+            "agent_v_abs_mean": masked_abs_mean(chosen_v, mask),
+            "agent_a_abs_mean": masked_abs_mean(chosen_a, mask),
+            "agent_max_a_abs_mean": masked_abs_mean(max_a_vals, mask),
+            "lambda_mean": masked_mean(a_mix_stats["lambda"], mask),
+            "lambda_abs_max": masked_abs_max(a_mix_stats["lambda"], mask),
+            "adv_q_abs_mean": masked_abs_mean(a_mix_stats["adv_q"], mask),
+            "adv_q_abs_max": masked_abs_max(a_mix_stats["adv_q"], mask),
+            "v_mix_weight_abs_mean": masked_abs_mean(v_mix_stats["v_weights"], mask),
+            "v_mix_weight_abs_max": masked_abs_max(v_mix_stats["v_weights"], mask),
+            "transform_w_abs_mean": masked_abs_mean(v_mix_stats["transform_w"], mask),
+            "transform_w_abs_max": masked_abs_max(v_mix_stats["transform_w"], mask),
+            "invalid_current_action_rows": invalid_current.float().sum().detach(),
+            "invalid_next_action_rows": invalid_next.float().sum().detach(),
+            "bootstrap_rows": bootstrap_active.float().sum().detach(),
+            "target_q_tot_finite_frac": torch.isfinite(target_q_tot.detach()).float().mean(),
+        }
+
+        return loss, mask, masked_td_error, chosen_q_tot, targets, debug_stats
 
 
 def _adjust_args(args):
@@ -121,7 +219,6 @@ def _adjust_args(args):
         'adv_hypernet_embed': 64,
         'ffn_hidden_dim': 64,
         'num_kernel': 5,
-        'is_minus_one': True,
     }
     for k, v in defaults.items():
         if not hasattr(args, k):
@@ -225,8 +322,12 @@ class DuelMixTorchPolicy(Policy):
             v_vals, a_vals, hiddens = _mac_duelmix(
                 self.model,
                 torch.as_tensor(obs_batch, dtype=torch.float, device=self.device),
-                [torch.as_tensor(np.array(s), dtype=torch.float, device=self.device)
+                [torch.as_tensor(_to_float32_array(s), dtype=torch.float, device=self.device)
                  for s in state_batches],
+                _prev_actions_to_onehot(
+                    prev_action_batch, len(obs_batch), self.n_agents,
+                    self.n_actions, self.device,
+                ),
             )
             # Q = V + A for action selection
             q_values = v_vals + a_vals  # [B, n_agents, n_actions]
@@ -264,7 +365,9 @@ class DuelMixTorchPolicy(Policy):
 
         input_list = [
             group_rewards, action_mask, next_action_mask,
-            samples[SampleBatch.ACTIONS], samples[SampleBatch.DONES],
+            samples[SampleBatch.ACTIONS],
+            samples.get(SampleBatch.PREV_ACTIONS, np.zeros_like(samples[SampleBatch.ACTIONS])),
+            samples[SampleBatch.DONES],
             obs_batch, next_obs_batch,
         ]
         if self.has_env_global_state:
@@ -281,10 +384,10 @@ class DuelMixTorchPolicy(Policy):
         )
 
         if self.has_env_global_state:
-            rew, action_mask, next_action_mask, act, dones, obs, next_obs, \
+            rew, action_mask, next_action_mask, act, prev_act, dones, obs, next_obs, \
                 env_global_state, next_env_global_state = output_list
         else:
-            rew, action_mask, next_action_mask, act, dones, obs, next_obs = output_list
+            rew, action_mask, next_action_mask, act, prev_act, dones, obs, next_obs = output_list
 
         if len(seq_lens) == 0:
             return {}
@@ -296,6 +399,7 @@ class DuelMixTorchPolicy(Policy):
 
         rewards = to_batches(rew, torch.float)
         actions = to_batches(act, torch.long)
+        prev_actions = to_batches(prev_act, torch.long)
         obs = to_batches(obs, torch.float).reshape([B, T, self.n_agents, self.obs_size])
         action_mask = to_batches(action_mask, torch.float)
         next_obs = to_batches(next_obs, torch.float).reshape([B, T, self.n_agents, self.obs_size])
@@ -309,8 +413,8 @@ class DuelMixTorchPolicy(Policy):
         filled = np.reshape(np.tile(np.arange(T, dtype=np.float32), B), [B, T]) < np.expand_dims(seq_lens, 1)
         mask = torch.as_tensor(filled, dtype=torch.float, device=self.device).unsqueeze(2).expand(B, T, self.n_agents)
 
-        loss_out, mask, masked_td_error, chosen_q, targets = self.loss(
-            rewards, actions, terminated, mask, obs, next_obs,
+        loss_out, mask, masked_td_error, chosen_q, targets, debug_stats = self.loss(
+            rewards, actions, prev_actions, terminated, mask, obs, next_obs,
             action_mask, next_action_mask,
             env_global_state if self.has_env_global_state else None,
             next_env_global_state if self.has_env_global_state else None,
@@ -318,6 +422,8 @@ class DuelMixTorchPolicy(Policy):
 
         self.optimiser.zero_grad()
         loss_out.backward()
+        model_grad_norm = self._grad_norm(self.model.parameters())
+        mixer_grad_norm = self._grad_norm(self.mixer.parameters())
         grad_norm = torch.nn.utils.clip_grad_norm_(self.params, self.config["grad_norm_clipping"])
         self.optimiser.step()
 
@@ -328,7 +434,13 @@ class DuelMixTorchPolicy(Policy):
             "td_error_abs": masked_td_error.abs().sum().item() / mask_elems,
             "q_taken_mean": (chosen_q * mask).sum().item() / mask_elems,
             "target_mean": (targets * mask).sum().item() / mask_elems,
+            "model_grad_norm": model_grad_norm,
+            "mixer_grad_norm": mixer_grad_norm,
         }
+        stats.update({
+            key: (value.item() if hasattr(value, "item") else float(value))
+            for key, value in debug_stats.items()
+        })
         return {LEARNER_STATS_KEY: stats}
 
     @override(Policy)
@@ -384,6 +496,17 @@ class DuelMixTorchPolicy(Policy):
     def _cpu_dict(state_dict):
         return {k: v.cpu().detach().numpy() for k, v in state_dict.items()}
 
+    @staticmethod
+    def _grad_norm(params):
+        norms = [
+            p.grad.detach().norm(2)
+            for p in params
+            if p.grad is not None
+        ]
+        if not norms:
+            return 0.0
+        return torch.norm(torch.stack(norms), 2).item()
+
     def _unpack_observation(self, obs_batch):
         unpacked = _unpack_obs(
             np.array(obs_batch, dtype=np.float32),
@@ -433,7 +556,7 @@ def _validate(obs_space, action_space):
         raise ValueError(f"Grouped agent actions must be homogeneous, got {action_space.spaces}")
 
 
-def _mac_duelmix(model, obs, h):
+def _mac_duelmix(model, obs, h, prev_actions_onehot=None):
     """Forward pass returning separate V and A values.
 
     Returns:
@@ -445,6 +568,8 @@ def _mac_duelmix(model, obs, h):
     if not isinstance(obs, dict):
         obs = {"obs": obs}
     obs_flat = {k: _drop_agent_dim(v) for k, v in obs.items()}
+    if prev_actions_onehot is not None:
+        obs_flat["prev_actions_onehot"] = _drop_agent_dim(prev_actions_onehot)
     h_flat = [s.reshape([B * n_agents, -1]) for s in h]
     out, h_flat = model(obs_flat, h_flat, None)
     v = out["v"].reshape([B, n_agents, 1])
@@ -452,13 +577,18 @@ def _mac_duelmix(model, obs, h):
     return v, a, [s.reshape([B, n_agents, -1]) for s in h_flat]
 
 
-def _unroll_mac_duelmix(model, obs_tensor):
+def _unroll_mac_duelmix(model, obs_tensor, prev_actions=None, n_actions=None):
     """Unroll over time, returning V and A trajectories."""
     B, T, n_agents = obs_tensor.size(0), obs_tensor.size(1), obs_tensor.size(2)
     all_v, all_a = [], []
     h = [s.expand([B, n_agents, -1]) for s in model.get_initial_state()]
     for t in range(T):
-        v, a, h = _mac_duelmix(model, obs_tensor[:, t], h)
+        prev_actions_onehot = None
+        if prev_actions is not None:
+            prev_actions_onehot = F.one_hot(
+                prev_actions[:, t].long(), num_classes=n_actions
+            ).float()
+        v, a, h = _mac_duelmix(model, obs_tensor[:, t], h, prev_actions_onehot)
         all_v.append(v)
         all_a.append(a)
     return torch.stack(all_v, dim=1), torch.stack(all_a, dim=1)
@@ -468,3 +598,19 @@ def _drop_agent_dim(T):
     shape = list(T.shape)
     B, n_agents = shape[0], shape[1]
     return T.reshape([B * n_agents] + shape[2:])
+
+
+def _prev_actions_to_onehot(prev_actions, batch_size, n_agents, n_actions, device):
+    if prev_actions is None:
+        prev = torch.zeros(batch_size, n_agents, dtype=torch.long, device=device)
+        return F.one_hot(prev, num_classes=n_actions).float()
+
+    prev_actions = np.asarray(prev_actions)
+    if prev_actions.ndim >= 2 and prev_actions.shape[0] == n_agents and prev_actions.shape[1] == batch_size:
+        prev_actions = np.swapaxes(prev_actions, 0, 1)
+    prev = torch.as_tensor(prev_actions, device=device)
+
+    if prev.dim() >= 3 and prev.shape[-1] == n_actions:
+        return prev.reshape(batch_size, n_agents, n_actions).float()
+    prev = prev.long().reshape(batch_size, n_agents)
+    return F.one_hot(prev, num_classes=n_actions).float()

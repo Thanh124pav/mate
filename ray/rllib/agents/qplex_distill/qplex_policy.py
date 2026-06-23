@@ -11,7 +11,8 @@ Training loss:
 Greedy action (per agent, from observation):
     - Find the nearest *visible* target in the agent's local observation.
     - Encode as discrete index: select-only-that-target bit-vector.
-    - If no target visible → action 0 (no-op / no selection).
+    - If no target visible → carry forward last known selection (memory),
+      mirroring GreedyCameraAgent's 25-step target memory.
 
 Observation layout assumed (after RelativeCoordinates + RescaledObservation):
     [0:13]   preserved data
@@ -69,7 +70,8 @@ def compute_greedy_actions(obs: torch.Tensor, n_actions: int, device: torch.devi
     """Compute greedy discrete action for each agent from observations.
 
     Greedy rule: select the nearest *visible* target.
-    If no target is visible, return action 0 (no-op = no targets selected).
+    If no target is visible at step t, carry forward the last known selection
+    (mimics GreedyCameraAgent's 25-step memory: keep tracking the last seen target).
 
     Encoding: with multi_selection and n_targets binary bits, the discrete
     action for "select only target k" is  sum_t(bit_t * stride_t)  where
@@ -120,7 +122,17 @@ def compute_greedy_actions(obs: torch.Tensor, n_actions: int, device: torch.devi
 
     # Encode binary vector → single discrete action index
     discrete = (bits * strides.unsqueeze(0)).sum(dim=1)  # [N]
-    return discrete.reshape(B, T, C)
+    discrete = discrete.reshape(B, T, C)
+
+    # Memory carry-forward: when no target visible at step t, reuse the last
+    # non-zero selection from earlier in the episode (mirrors GreedyCameraAgent's
+    # 25-step memory that keeps tracking the last seen target position).
+    result = discrete.clone()
+    for t in range(1, T):
+        no_visible = (result[:, t, :] == 0)  # [B, C]
+        result[:, t, :] = torch.where(no_visible, result[:, t - 1, :], result[:, t, :])
+
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -260,21 +272,32 @@ class QPLEXDistillLoss(nn.Module):
         # 5. Greedy BC loss  (cross-entropy treating Q as logits)
         # -----------------------------------------------------------------
         bc_loss = torch.tensor(0.0, device=obs.device)
+        bc_valid = torch.zeros_like(mask)
         if greedy_actions is not None and self.greedy_bc_coeff > 0.0:
-            # mac_out: [B, T, n_agents, n_actions] — same as computed above
-            scaled_q = mac_out / self.greedy_bc_temperature  # [B, T, C, n_actions]
+            # Center Q-values before scaling so that the softmax distribution is
+            # stable regardless of the absolute Q-value magnitude, then divide by
+            # temperature to control sharpness of the BC target distribution.
+            q_centered = mac_out - mac_out.mean(dim=-1, keepdim=True)  # [B, T, C, n_actions]
+            scaled_q = q_centered / self.greedy_bc_temperature          # [B, T, C, n_actions]
             bc_raw = F.cross_entropy(
                 scaled_q.reshape(-1, self.n_actions),   # [B*T*C, n_actions]
                 greedy_actions.reshape(-1),             # [B*T*C]
                 reduction='none',
             ).reshape(B, T, self.n_agents)              # [B, T, C]
-            bc_loss = (bc_raw * mask).sum() / mask.sum().clamp(min=1)
+            # Only apply BC where we have a valid greedy signal (action > 0).
+            # action=0 means no target was ever visible in the episode up to
+            # this point (carry-forward had nothing to propagate), so there is
+            # no meaningful greedy label — applying BC here would conflict with
+            # TD which correctly assigns low Q to the no-op action.
+            bc_valid = mask * (greedy_actions > 0).float()
+            bc_loss = (bc_raw * bc_valid).sum() / bc_valid.sum().clamp(min=1)
 
         total_loss = td_loss + self.greedy_bc_coeff * bc_loss
 
         stats = {
             "td_loss": td_loss.item(),
             "bc_loss": bc_loss.item(),
+            "bc_valid_ratio": (bc_valid.sum() / mask.sum().clamp(min=1)).item(),
         }
         return total_loss, stats, mask, masked_td_error, chosen_action_qvals, targets
 

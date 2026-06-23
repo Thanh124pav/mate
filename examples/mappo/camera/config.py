@@ -88,6 +88,28 @@ config = {
             'lstm_cell_size': 256,
             'max_seq_len': 25,
             'vf_share_layers': False,
+            'focus': {
+                'enabled': True,
+                'use_env_params': True,
+                'beta_belief': 0.01,
+                'horizon': 3,
+                'horizon_discount': 0.9,
+                'belief_hidden_dim': 256,
+                'belief_max_delta': 400.0,
+                'belief_min_std': 25.0,
+                'integral_mode': 'MC',
+                'mc_num_points': 128,
+                'mc_chunk_size': 32,
+                'mc_seed': 0,
+                'grid_size': 64,
+                'grid_chunk_size': 128,
+                'grid_x_range': (-1000.0, 1000.0),
+                'grid_y_range': (-1000.0, 1000.0),
+                'use_signal_confidence': True,
+                'signal_weight_min': 0.1,
+                'signal_weight_max': 3.0,
+                'eps': 1e-8,
+            },
         },
     },
     # === Policy ===================================================================================
@@ -129,3 +151,5 @@ config = {
     ],
     'vf_clip_param': 10000.0,
 }
+
+config['model']['custom_model_config']['env_config'] = config['env_config']

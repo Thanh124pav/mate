@@ -82,6 +82,215 @@ def load_entry(entry_point):
     return entry
 
 
+class FocusBeliefRenderer:
+    """Render FOCUS target occupancy beliefs as transient environment overlays."""
+
+    COLORS = (
+        (0.08, 0.34, 0.92),
+        (0.88, 0.20, 0.16),
+        (0.00, 0.55, 0.34),
+        (0.86, 0.49, 0.02),
+        (0.48, 0.22, 0.78),
+        (0.00, 0.57, 0.65),
+        (0.86, 0.14, 0.48),
+        (0.43, 0.43, 0.10),
+    )
+
+    def __init__(self, env, sigma_scale=2.0, qmc_topk=24):
+        self.env = env
+        self.sigma_scale = float(sigma_scale)
+        self.qmc_topk = int(qmc_topk)
+        self.policy = None
+        self.occupancy_model = None
+        self.warned_no_model = False
+        self.warned_error = False
+        self.disabled = False
+
+    def register(self):
+        self.env.unwrapped.add_render_callback('focus_belief', self.callback)
+
+    def _camera_agents(self):
+        for name in ('opponent_agents_ordered', 'opponent_agents'):
+            agents = getattr(self.env, name, None)
+            if agents is not None:
+                yield from agents
+
+        agent = getattr(self.env, 'opponent_agent', None)
+        if agent is not None:
+            yield agent
+
+    def _resolve_model(self):
+        if self.occupancy_model is not None:
+            return True
+
+        for agent in self._camera_agents():
+            policy = getattr(agent, 'policy', None)
+            occupancy_model = getattr(policy, 'occupancy_model', None)
+            if occupancy_model is not None:
+                self.policy = policy
+                self.occupancy_model = occupancy_model
+                self.occupancy_model.eval()
+                return True
+
+        if not self.warned_no_model:
+            gym.logger.warn(
+                'Option --render-focus-belief was set, but no camera policy with '
+                '`occupancy_model` was found. Rendering the environment without FOCUS belief.'
+            )
+            self.warned_no_model = True
+        return False
+
+    def _focus_config(self):
+        config = getattr(self.policy, 'config', {}) or {}
+        return config.get('focus', {}) or {}
+
+    def _state_tensor(self, unwrapped):
+        # FOCUS belief models are trained against the centralized normalized
+        # environment state used by RLlibMultiAgentCentralizedTraining.
+        state = unwrapped.state()
+        state = mate.normalize_observation(state, unwrapped.state_space)
+        state_dim = getattr(self.occupancy_model, 'state_dim', state.size)
+        if int(state_dim) != int(state.size):
+            raise ValueError(
+                f'FOCUS belief model expects state_dim={state_dim}, '
+                f'but environment state has size {state.size}.'
+            )
+
+        device = getattr(self.policy, 'device', None)
+        if device is None:
+            try:
+                device = next(self.occupancy_model.parameters()).device
+            except StopIteration:
+                device = next(self.occupancy_model.buffers()).device
+
+        # pylint: disable-next=import-outside-toplevel
+        import torch
+
+        return torch.as_tensor(
+            state.reshape(1, 1, -1), dtype=torch.float, device=device
+        )
+
+    def _horizon_weights(self, horizon, dtype=float):
+        discount = float(self._focus_config().get('horizon_discount', 0.9))
+        weights = np.asarray([discount ** h for h in range(horizon)], dtype=dtype)
+        return weights / max(float(weights.sum()), 1e-12)
+
+    @staticmethod
+    def _ellipse(center, radius, res=48):
+        theta = np.linspace(0.0, 2.0 * np.pi, res, endpoint=False)
+        return np.column_stack(
+            [
+                center[0] + radius[0] * np.cos(theta),
+                center[1] + radius[1] * np.sin(theta),
+            ]
+        )
+
+    def _gaussian_geoms(self, state_tensor, rendering):
+        # pylint: disable-next=import-outside-toplevel
+        import torch
+
+        with torch.no_grad():
+            mean, std = self.occupancy_model(state_tensor)
+
+        mean = mean[0, 0].detach().cpu().numpy()
+        std = std[0, 0].detach().cpu().numpy()
+        horizon = mean.shape[0]
+        weights = self._horizon_weights(horizon)
+        geoms = []
+
+        for h in range(horizon):
+            horizon_alpha = max(0.025, 0.20 * float(weights[h]))
+            for target, (center, sigma) in enumerate(zip(mean[h], std[h])):
+                color = self.COLORS[target % len(self.COLORS)]
+                ellipse = rendering.make_polygon(
+                    self._ellipse(center, self.sigma_scale * sigma), filled=True
+                )
+                ellipse.set_color(*color, horizon_alpha)
+                geoms.append(ellipse)
+
+                marker = rendering.make_circle(radius=10.0, res=16, filled=True)
+                marker.add_attr(rendering.Transform(translation=center))
+                marker.set_color(*color, min(0.35, 0.10 + 0.50 * float(weights[h])))
+                geoms.append(marker)
+
+        return geoms
+
+    def _qmc_probs(self, state_tensor):
+        # pylint: disable-next=import-outside-toplevel
+        import torch
+
+        model = self.occupancy_model
+        with torch.no_grad():
+            if hasattr(model, '_params'):
+                mix_logits, mean, std = model._params(state_tensor)  # pylint: disable=protected-access
+                qmc = model.qmc_points.to(device=state_tensor.device, dtype=state_tensor.dtype)
+                eps = float(self._focus_config().get('eps', 1e-8))
+                log_mix = torch.log_softmax(mix_logits, dim=-1)
+                diff = qmc.view(1, 1, 1, 1, 1, -1, 2) - mean.unsqueeze(-2)
+                z = diff / (std.unsqueeze(-2) + eps)
+                log_comp = (
+                    -0.5 * (z ** 2).sum(dim=-1)
+                    - torch.log(std.unsqueeze(-2) + eps).sum(dim=-1)
+                    - np.log(2.0 * np.pi)
+                )
+                logits = torch.logsumexp(log_mix.unsqueeze(-1) + log_comp, dim=-2)
+                probs = torch.softmax(logits, dim=-1)
+            else:
+                logits = model(state_tensor)
+                probs = torch.softmax(logits, dim=-1)
+
+        qmc_points = model.qmc_points.detach().cpu().numpy()
+        probs = probs[0, 0].detach().cpu().numpy()
+        horizon = probs.shape[0]
+        weights = self._horizon_weights(horizon, dtype=probs.dtype)
+        return qmc_points, np.einsum('h,hjm->jm', weights, probs)
+
+    def _qmc_geoms(self, state_tensor, rendering):
+        qmc_points, target_probs = self._qmc_probs(state_tensor)
+        geoms = []
+
+        for target, probs in enumerate(target_probs):
+            color = self.COLORS[target % len(self.COLORS)]
+            if probs.size == 0:
+                continue
+
+            topk = min(self.qmc_topk, probs.size)
+            top_indices = np.argpartition(probs, -topk)[-topk:]
+            peak = max(float(probs[top_indices].max()), 1e-12)
+
+            for index in top_indices:
+                strength = float(probs[index]) / peak
+                radius = 14.0 + 30.0 * strength
+                point = rendering.make_circle(radius=radius, res=18, filled=True)
+                point.add_attr(rendering.Transform(translation=qmc_points[index]))
+                point.set_color(*color, 0.06 + 0.30 * strength)
+                geoms.append(point)
+
+        return geoms
+
+    def callback(self, unwrapped, mode):  # pylint: disable=unused-argument
+        if self.disabled or not self._resolve_model():
+            return
+
+        try:
+            # pylint: disable-next=import-outside-toplevel
+            import mate.assets.pygletrendering as rendering
+
+            state_tensor = self._state_tensor(unwrapped)
+            if hasattr(self.occupancy_model, 'qmc_points'):
+                geoms = self._qmc_geoms(state_tensor, rendering)
+            else:
+                geoms = self._gaussian_geoms(state_tensor, rendering)
+        except Exception as exc:  # pragma: no cover - defensive render hook
+            if not self.warned_error:
+                gym.logger.warn('Disabling FOCUS belief rendering after error: %s', exc)
+                self.warned_error = True
+            self.disabled = True
+            return
+
+        unwrapped.viewer.onetime_geoms[:0] = geoms
+
+
 def evaluate(
     env, target_agents, render=False, video_path=None
 ):  # pylint: disable=missing-function-docstring,too-many-locals,too-many-branches,too-many-statements
@@ -323,6 +532,14 @@ def parse_arguments():  # pylint: disable=missing-function-docstring
         ),
     )
     rendering_parser.add_argument(
+        '--render-focus-belief',
+        action='store_true',
+        help=(
+            'Overlay FOCUS/FOCUS2 future target occupancy beliefs in rendering results.\n'
+            'Requires a camera agent policy with `occupancy_model`.'
+        ),
+    )
+    rendering_parser.add_argument(
         '--save-video',
         type=str,
         metavar='PATH',
@@ -358,6 +575,7 @@ def parse_arguments():  # pylint: disable=missing-function-docstring
 
     if args.no_render:
         args.render_communication = False
+        args.render_focus_belief = False
 
     args.camera_kwargs = OrderedDict(sorted(dict(args.camera_kwargs, seed=args.seed).items()))
     args.target_kwargs = OrderedDict(sorted(dict(args.target_kwargs, seed=args.seed).items()))
@@ -408,6 +626,8 @@ def main():  # pylint: disable=missing-function-docstring,too-many-branches,too-
     print(f'Target agent: {args.target_name}')
 
     target_agents = target_agent.spawn(env.num_targets)
+    if args.render_focus_belief:
+        FocusBeliefRenderer(env).register()
 
     keys = [
         'Step / Cargo',

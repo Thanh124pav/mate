@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FOCUS: Predictive Credit Assignment trong MATE</title>
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #38bdf8;
+      --accent2: #a7f3d0;
+      --warn: #fbbf24;
+      --red: #fb7185;
+      --line: rgba(255,255,255,0.14);
+      --paper: #f8fafc;
+      --ink: #111827;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at 20% 10%, rgba(56,189,248,0.22), transparent 30%),
+                  radial-gradient(circle at 90% 85%, rgba(167,243,208,0.14), transparent 28%),
+                  var(--bg);
+    }
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide {
+      width: 100vw;
+      height: 100vh;
+      padding: 54px 72px;
+      display: none;
+      position: absolute;
+      inset: 0;
+    }
+    .slide.active { display: grid; }
+    .slide.two { grid-template-columns: 1.02fr 0.98fr; gap: 44px; align-items: center; }
+    .slide.one { grid-template-rows: auto 1fr auto; gap: 22px; }
+    .slide.three { grid-template-columns: 1fr 1fr 1fr; gap: 24px; align-items: stretch; }
+    .kicker { color: var(--accent2); letter-spacing: .14em; text-transform: uppercase; font-size: 15px; font-weight: 700; }
+    h1 { font-size: 64px; line-height: 1.02; margin: 0; letter-spacing: -0.045em; }
+    h2 { font-size: 42px; line-height: 1.1; margin: 0; letter-spacing: -0.03em; }
+    h3 { font-size: 25px; margin: 0 0 12px; color: white; }
+    p, li { font-size: 21px; line-height: 1.42; color: #dbeafe; }
+    ul { padding-left: 24px; margin: 0; }
+    li { margin: 8px 0; }
+    .muted { color: var(--muted); }
+    .big { font-size: 25px; line-height: 1.42; }
+    .small { font-size: 16px; line-height: 1.38; color: var(--muted); }
+    .tiny { font-size: 13px; line-height: 1.32; color: rgba(229,231,235,.62); }
+    .formula {
+      font-family: "Times New Roman", serif;
+      font-size: 25px;
+      color: #f8fafc;
+      padding: 14px 18px;
+      border-left: 4px solid var(--accent);
+      background: rgba(255,255,255,.055);
+      border-radius: 16px;
+      margin: 12px 0;
+    }
+    .formula.compact { font-size: 22px; padding: 12px 16px; }
+    .image-frame {
+      border: 1px solid var(--line);
+      background: rgba(15,23,42,.58);
+      border-radius: 28px;
+      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0,0,0,.35);
+    }
+    .image-frame img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .figure-caption { padding: 12px 16px; color: var(--muted); font-size: 14px; }
+    .pillrow { display: flex; gap: 12px; flex-wrap: wrap; margin: 24px 0; }
+    .pill { border: 1px solid var(--line); padding: 8px 14px; border-radius: 999px; color: #e0f2fe; font-size: 16px; background: rgba(255,255,255,.055); }
+    .flow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: stretch; margin-top: 18px; }
+    .flow.two { grid-template-columns: repeat(2, 1fr); }
+    .node { border-radius: 24px; padding: 22px; background: rgba(255,255,255,.055); border: 1px solid var(--line); min-height: 150px; }
+    .node strong { color: white; font-size: 23px; display:block; margin-bottom:10px; }
+    .node span { font-size: 18px; color:#dbeafe; line-height:1.38; }
+    .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 18px; }
+    .table { border: 1px solid var(--line); border-radius: 24px; overflow: hidden; margin-top: 18px; }
+    .row { display:grid; grid-template-columns: 0.92fr 1.35fr; border-top: 1px solid var(--line); }
+    .row:first-child { border-top: none; }
+    .cell { padding: 15px 17px; font-size: 17px; line-height: 1.34; color:#dbeafe; }
+    .cell.key { background: rgba(56,189,248,.08); color:#bae6fd; font-weight:700; }
+    .footer { position: fixed; left: 76px; right: 76px; bottom: 28px; display:flex; align-items:center; justify-content:space-between; color:rgba(229,231,235,.55); font-size:14px; pointer-events:none; }
+    .progress { position:fixed; left:0; bottom:0; height:5px; background:linear-gradient(90deg,var(--accent),var(--accent2)); width:0%; transition:width .22s ease; }
+    .navhint { font-size: 13px; color: rgba(229,231,235,.45); }
+    .titlemark { font-size: 18px; color: var(--accent2); margin-top: 18px; }
+    .cover-grid { display:grid; grid-template-columns: 1.05fr .95fr; gap:42px; align-items:center; height:100%; }
+    .refs li { font-size: 16px; line-height: 1.43; }
+    a { color: #7dd3fc; text-decoration: none; }
+    .concept {
+      position: relative;
+      min-height: 455px;
+      border: 1px solid var(--line);
+      border-radius: 32px;
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.025));
+      overflow: hidden;
+      padding: 28px;
+    }
+    .world {
+      position: absolute;
+      inset: 28px;
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,.13);
+      background: linear-gradient(145deg, rgba(248,250,252,.08), rgba(15,23,42,.08));
+    }
+    .warehouse { position: absolute; width: 44px; height: 44px; border-radius: 10px; background: rgba(251,191,36,.22); border: 2px solid var(--warn); display:flex; align-items:center; justify-content:center; font-size:24px; }
+    .w1{left:22px;top:22px}.w2{right:22px;top:22px}.w3{left:22px;bottom:22px}.w4{right:22px;bottom:22px}
+    .ob { position:absolute; width:54px; height:54px; border-radius:50%; background: rgba(148,163,184,.65); border: 2px solid rgba(226,232,240,.75); }
+    .o1{left:42%;top:24%}.o2{left:22%;top:58%}.o3{right:20%;top:54%}
+    .cam { position:absolute; width:34px; height:34px; border-radius:50%; background:#60a5fa; border: 3px solid #dbeafe; box-shadow: 0 0 0 7px rgba(96,165,250,.12); }
+    .c1{left:13%;top:12%}.c2{right:12%;top:18%}.c3{left:13%;bottom:15%}.c4{right:12%;bottom:16%}
+    .target { position:absolute; width:24px; height:24px; border-radius:50%; background:#f472b6; border:2px solid white; box-shadow:0 0 0 7px rgba(244,114,182,.12); }
+    .t1{left:54%;top:44%}.t2{left:48%;top:58%}.t3{left:61%;top:55%}.t4{left:38%;top:43%}
+    .cone { position:absolute; width:170px; height:170px; background: rgba(74,222,128,.18); clip-path: polygon(0 50%, 100% 0, 100% 100%); transform-origin: left center; filter: blur(.1px); }
+    .k1{left:15%;top:7%;transform:rotate(24deg)}.k2{right:6%;top:17%;transform:rotate(155deg)}.k3{left:15%;bottom:8%;transform:rotate(-26deg)}.k4{right:6%;bottom:10%;transform:rotate(198deg)}
+    .heatmap {
+      position: relative;
+      min-height: 430px;
+      border-radius: 30px;
+      border: 1px solid var(--line);
+      background:
+        radial-gradient(circle at 55% 42%, rgba(244,114,182,.70), transparent 8%),
+        radial-gradient(circle at 64% 54%, rgba(244,114,182,.42), transparent 14%),
+        radial-gradient(circle at 42% 62%, rgba(56,189,248,.38), transparent 16%),
+        radial-gradient(circle at 37% 35%, rgba(167,243,208,.30), transparent 12%),
+        rgba(255,255,255,.04);
+      overflow: hidden;
+    }
+    .heatmap:before {
+      content:""; position:absolute; inset:30px; border:1px dashed rgba(255,255,255,.17); border-radius:22px;
+    }
+    .qpoint { position:absolute; width:7px; height:7px; border-radius:50%; background:rgba(226,232,240,.55); }
+    .arrow { color: var(--accent2); font-size: 44px; display:flex; align-items:center; justify-content:center; }
+    .callout { border-left: 5px solid var(--warn); padding: 18px 22px; border-radius: 18px; background: rgba(251,191,36,.08); color: #fef3c7; font-size: 22px; line-height: 1.42; }
+
+    .sparse-panel { display:grid; grid-template-rows: auto auto auto; gap: 18px; }
+    .legend { display:flex; flex-wrap:wrap; gap:10px; margin-top: 10px; }
+    .legend .pill { font-size: 14px; padding: 6px 12px; }
+    .sv-target { position:absolute; width:24px; height:24px; border-radius:50%; border:2px solid white; box-shadow:0 0 0 7px rgba(244,114,182,.10); }
+    .sv-visible { background:#4ade80; box-shadow:0 0 0 8px rgba(74,222,128,.14); }
+    .sv-hidden { background:#f472b6; }
+    .sv-faded { background:#f472b6; opacity:.46; border-style:dashed; }
+    .svt1{left:70%;top:72%;}
+    .svt2{left:45%;top:26%;}
+    .svt3{left:50%;top:70%;}
+    .svt4{left:67%;top:38%;}
+    .sv-tag {
+      position:absolute; padding:5px 10px; border-radius:999px; font-size:12px; line-height:1;
+      border:1px solid rgba(255,255,255,.16); background:rgba(15,23,42,.85); color:#e5e7eb;
+    }
+    .sv-tag.good{ color:#bbf7d0; border-color:rgba(74,222,128,.4); }
+    .sv-tag.warn{ color:#fecaca; border-color:rgba(244,114,182,.35); }
+    .sv-tag.neutral{ color:#fde68a; border-color:rgba(251,191,36,.4); }
+    .tag1{left:72%;top:80%;}
+    .tag2{left:38%;top:15%;}
+    .tag3{left:42%;top:78%;}
+    .tag4{left:73%;top:29%;}
+    .sv-note {
+      position:absolute; left:50%; top:8%; transform:translateX(-50%); padding:8px 14px; border-radius:14px;
+      background:rgba(15,23,42,.82); border:1px solid rgba(255,255,255,.14); color:#e5e7eb; font-size:13px;
+    }
+    .sv-ray { position:absolute; border-top:2px dashed rgba(248,250,252,.42); transform-origin:left center; }
+    .svr1{ left:20%; top:21%; width:120px; transform:rotate(14deg); }
+    .svr2{ right:18%; top:28%; width:96px; transform:rotate(142deg); }
+    .svr3{ left:20%; bottom:23%; width:122px; transform:rotate(-18deg); }
+    .svr4{ right:18%; bottom:24%; width:88px; transform:rotate(198deg); }
+    .sv-x { position:absolute; color:#fda4af; font-size:26px; font-weight:700; }
+    .x2{left:47%;top:21%;}
+    .x3{left:53%;top:67%;}
+    .x4{left:69%;top:34%;}
+    .mini-cases { display:grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items:stretch; }
+    .case-card { border-radius: 24px; padding: 18px; background: rgba(255,255,255,.055); border:1px solid var(--line); }
+    .case-title { font-size:18px; color:#fff; font-weight:700; margin-bottom:10px; }
+    .mini-world { position:relative; height:170px; border-radius:18px; border:1px solid rgba(255,255,255,.12); background: linear-gradient(145deg, rgba(248,250,252,.05), rgba(15,23,42,.08)); overflow:hidden; margin-bottom:12px; }
+    .mcam { position:absolute; width:22px; height:22px; border-radius:50%; background:#60a5fa; border:2px solid #dbeafe; }
+    .mcam.a{ left:16px; top:68px; }
+    .mcam.b{ right:16px; top:68px; }
+    .mcone { position:absolute; width:90px; height:90px; background: rgba(74,222,128,.18); clip-path: polygon(0 50%, 100% 0, 100% 100%); transform-origin:left center; }
+    .mcone.a{ left:28px; top:35px; transform:rotate(0deg); }
+    .mcone.b{ width:130px; right:28px; top:35px; clip-path: polygon(100% 50%, 0 0, 0 100%); transform:none; transform-origin:right center; }
+    .mini-world:not(.focus) .mcone.a { width:120px; }
+    .mini-world.focus .mcone.a { width:145px; }
+    .mini-world.focus .mcone.b { width:175px; }
+    .mtarget { position:absolute; width:18px; height:18px; border-radius:50%; background:#f472b6; border:2px solid white; }
+    .mtarget.center{ left:calc(50% - 9px); top:76px; }
+    .mtarget.left{ left:74px; top:72px; }
+    .ob.smallob{ width:28px; height:28px; }
+    .smallob.s1{ left:86px; top:62px; }
+    .mlink { position:absolute; border-top:2px dashed rgba(248,250,252,.42); }
+    .mlink.a{ left:38px; top:79px; width:82px; }
+    .mlink.b{ right:38px; top:79px; width:82px; }
+    .mstatus { font-size:15px; color:#dbeafe; line-height:1.4; }
+    .mstatus strong { color:#fff; }
+    .focus-pipeline { display:grid; grid-template-columns: 1fr 60px 1fr 60px 1fr; gap: 12px; align-items:center; margin-top: 10px; }
+    .focus-card { border-radius: 22px; padding: 16px; background: rgba(255,255,255,.055); border:1px solid var(--line); min-height: 255px; }
+    .focus-card h4 { margin:0 0 10px; font-size:18px; color:#fff; }
+    .focus-card p { font-size:15px; line-height:1.35; margin:8px 0 0; color:#dbeafe; }
+    .mini-heat { position:relative; height:120px; border-radius:16px; background: radial-gradient(circle at 58% 38%, rgba(244,114,182,.88), transparent 14%), radial-gradient(circle at 67% 58%, rgba(244,114,182,.50), transparent 18%), radial-gradient(circle at 38% 62%, rgba(56,189,248,.38), transparent 18%), rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.10); overflow:hidden; }
+    .mini-heat .qpoint{ width:6px; height:6px; }
+    .mini-world.focus { height:120px; margin-bottom:0; }
+    .focus-bars { display:grid; gap:10px; margin-top:8px; }
+    .fbar { display:grid; grid-template-columns: 70px 1fr 44px; gap:10px; align-items:center; font-size:14px; color:#dbeafe; }
+    .fbar .track { height:14px; border-radius:999px; background: rgba(255,255,255,.10); overflow:hidden; }
+    .fbar .fill { height:100%; border-radius:999px; }
+    .fill.b1{ width:62%; background:#38bdf8; }
+    .fill.b2{ width:18%; background:#a78bfa; }
+    .fill.b3{ width:10%; background:#fbbf24; }
+    .fill.b4{ width:10%; background:#34d399; }
+    .sv-fov-label { position:absolute; font-size:12px; color:#bbf7d0; background:rgba(15,23,42,.84); border:1px solid rgba(74,222,128,.35); border-radius:999px; padding:4px 8px; }
+    .fl1{ left:20%; top:7%; } .fl2{ right:16%; top:10%; } .fl3{ left:19%; bottom:8%; } .fl4{ right:15%; bottom:8%; }
+    .codeword { color: #a7f3d0; font-weight: 700; }
+    /* experiment-results-css */
+
+    .result-slide code { color: var(--accent2); font-size: .88em; }
+    .result-wide { align-self: start; overflow: hidden; }
+    .result-figures { display: grid; grid-template-rows: 1fr 1fr; gap: 18px; min-height: 0; height: 100%; }
+    .result-figures.one-figure { grid-template-rows: 1fr; }
+    .result-frame { border-radius: 18px; min-height: 0; height: 100%; }
+    .result-frame img { display: block; width: 100%; height: 100%; object-fit: contain; background: var(--paper); padding: 8px; }
+    .result-frame video { display: block; width: 100%; height: 100%; object-fit: contain; background: #020617; }
+    .video-frame { background: #020617; }
+    .merged-env-tables { display: grid; grid-template-columns: 1fr; gap: 14px; }
+    .merged-env h3 { margin: 0 0 4px; font-size: 20px; color: #fff; }
+    .merged-env .result-table { margin-top: 6px; }
+    .result-table { width: 100%; border-collapse: collapse; border: 1px solid var(--line); border-radius: 20px; overflow: hidden; margin-top: 18px; background: rgba(15,23,42,.54); }
+    .result-table th, .result-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; font-size: 15px; color: #dbeafe; vertical-align: top; }
+    .result-table th { color: #bae6fd; background: rgba(56,189,248,.10); text-transform: uppercase; letter-spacing: .04em; font-size: 12px; }
+    .result-table tr:last-child td { border-bottom: 0; }
+    .result-table.eval th, .result-table.eval td { font-size: 13px; padding: 8px 9px; }
+    .result-table .best, .result-table td.best { color: #a7f3d0; font-weight: 850; }
+    .result-table .second, .result-table td.second { color: #fde68a; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+
+    @media print {
+      body { overflow: visible; background: white; }
+      .slide { position: relative; display:grid !important; page-break-after: always; background: var(--bg); }
+      .footer, .progress { display:none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="deck">
+    <section class="slide active" data-title="Title">
+      <div class="cover-grid">
+        <div>
+          <div class="kicker">Multi-Agent Reinforcement Learning</div>
+          <h1>FOCUS: Future Occupancy-guided Credit Under Sparse visibility</h1>
+          <p class="big">Từ sparse visibility tới predictive credit assignment cho multi-camera tracking.</p>
+          <div class="pillrow">
+            <div class="pill">Sparse visibility</div>
+            <div class="pill">Credit assignment</div>
+            <div class="pill">Future occupancy belief</div>
+            <div class="pill">QPLEX / QMIX / MAPPO</div>
+          </div>
+        </div>
+        <div class="image-frame" style="height:520px">
+          <img src="https://user-images.githubusercontent.com/16078332/130273683-cd0b8a30-ef8f-4d56-bb8a-ae508d51e0e7.gif" alt="MATE environment demo" />
+          <div class="figure-caption">MATE: camera với vùng nhìn hình quạt, target di động, obstacles và warehouses.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide two" data-title="MATE overview">
+      <div>
+        <div class="kicker">Task & Environment</div>
+        <h2>MATE là bài toán multi-camera tracking trong môi trường quan sát cục bộ</h2>
+        <p>Camera hợp tác để tăng coverage, còn target di chuyển giữa các warehouse và cố giảm thời gian bị quan sát.</p>
+        <p>Môi trường có obstacles, FoV hình quạt, target di động và observation bị mask khi camera không nhìn thấy target.</p>
+      </div>
+      <div class="concept">
+        <div class="world">
+          <div class="warehouse w1">W</div><div class="warehouse w2">W</div><div class="warehouse w3">W</div><div class="warehouse w4">W</div>
+          <div class="cone k1"></div><div class="cone k2"></div><div class="cone k3"></div><div class="cone k4"></div>
+          <div class="cam c1"></div><div class="cam c2"></div><div class="cam c3"></div><div class="cam c4"></div>
+          <div class="ob o1"></div><div class="ob o2"></div><div class="ob o3"></div>
+          <div class="target t1"></div><div class="target t2"></div><div class="target t3"></div><div class="target t4"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide two" data-title="Why hard">
+      <div class="sparse-panel">
+        <div>
+          <div class="kicker">Why This Task Is Hard</div>
+          <h2>Sparse visibility: camera thường không thấy target trong phần lớn thời gian</h2>
+        </div>
+        <div class="flow">
+          <div class="node"><strong>FoV giới hạn</strong><span>Mỗi camera chỉ nhìn thấy một vùng hình quạt nhỏ. Nhiều target ở gần nhưng vẫn ngoài hướng nhìn.</span></div>
+          <div class="node"><strong>Obstacles</strong><span>Vật cản có thể chặn đường nhìn. Target tồn tại trong môi trường nhưng observation của camera lại bị ngắt quãng.</span></div>
+          <div class="node"><strong>Partial observation</strong><span>Khi target không nằm trong FoV hoặc bị che, trạng thái của target trong observation bị mask hoặc suy giảm mạnh.</span></div>
+        </div>
+        <div>
+          <div class="callout">Trong hình bên phải, chỉ target màu xanh ở góc dưới phải đang thực sự được quan sát. Các target còn lại hoặc bị che bởi obstacle, hoặc đang nằm ngoài FoV.</div>
+          <div class="legend">
+            <div class="pill">Xanh: thấy được</div>
+            <div class="pill">Hồng: không thấy được</div>
+            <div class="pill">✕: bị che / ngoài FoV</div>
+          </div>
+        </div>
+      </div>
+      <div class="concept">
+        <div class="world">
+          <div class="warehouse w1">W</div><div class="warehouse w2">W</div><div class="warehouse w3">W</div><div class="warehouse w4">W</div>
+          <div class="cone k1"></div><div class="cone k2"></div><div class="cone k3"></div><div class="cone k4"></div>
+          <div class="sv-fov-label fl1">FoV 1</div><div class="sv-fov-label fl2">FoV 2</div><div class="sv-fov-label fl3">FoV 3</div><div class="sv-fov-label fl4">FoV 4</div>
+          <div class="cam c1"></div><div class="cam c2"></div><div class="cam c3"></div><div class="cam c4"></div>
+          <div class="ob o1"></div><div class="ob o2"></div><div class="ob o3"></div>
+          <div class="sv-note">Từ tất cả target trong môi trường, chỉ một phần rất nhỏ tạo ra visibility event</div>
+          <div class="sv-target sv-hidden" style="left:44%;top:21%;"></div>
+          <div class="sv-target sv-hidden" style="left:28%;top:68%;"></div>
+          <div class="sv-target sv-faded" style="left:47%;top:69%;"></div>
+          <div class="sv-target sv-visible" style="left:71%;top:73%;"></div>
+          <div class="sv-tag warn" style="left:36%;top:13%;">bị obstacle che</div>
+          <div class="sv-tag warn" style="left:18%;top:76%;">bị obstacle che</div>
+          <div class="sv-tag neutral" style="left:39%;top:79%;">ngoài FoV</div>
+          <div class="sv-tag good" style="left:74%;top:82%;">đang thấy được</div>
+          <div class="sv-x" style="left:46%;top:17%;">✕</div>
+          <div class="sv-x" style="left:30%;top:66%;">✕</div>
+          <div class="sv-x" style="left:49%;top:67%;">✕</div>
+          <div class="sv-ray" style="left:84%;bottom:22%;width:74px;transform:rotate(198deg);"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide two" data-title="Visibility variable">
+      <div>
+        <div class="kicker">Sparse visibility được đo như thế nào?</div>
+        <h2>Biến visibility $Z_{ij,t}$ là nơi sparsity xuất hiện trực tiếp</h2>
+        <p>Ta định nghĩa $Z_{ij,t}=1$ nếu camera $i$ nhìn thấy target $j$ tại thời điểm $t$; ngược lại $Z_{ij,t}=0$.</p>
+        <p>Khi môi trường có nhiều obstacles hoặc FoV hẹp, ma trận $Z_t$ chứa rất nhiều số 0.</p>
+      </div>
+      <div>
+        <div class="formula compact">$$Z_{ij,t}=\mathbf 1[\text{camera } i \text{ observes target } j \text{ at time } t]$$</div>
+        <div class="formula compact">$$p_{\mathrm{vis}}=\frac{1}{TCJ}\sum_{t=1}^{T}\sum_{i=1}^{C}\sum_{j=1}^{J}Z_{ij,t}$$</div>
+        <p class="small">$T$: số timestep; $C$: số camera; $J$: số target. $p_{\mathrm{vis}}$ nhỏ nghĩa là visibility events thưa.</p>
+      </div>
+    </section>
+
+    <section class="slide one" data-title="QPLEX problem">
+      <div>
+        <div class="kicker">Why Existing MARL Methods Struggle</div>
+        <h2>QPLEX có cơ chế credit ngầm, nhưng không có tín hiệu đảm bảo credit đó đúng</h2>
+      </div>
+      <div class="columns">
+        <div>
+          <p>QPLEX biểu diễn global value bằng tổng các local advantages có trọng số:</p>
+          <div class="formula compact">$$Q_{\mathrm{tot}}=V_{\mathrm{tot}}+\sum_i \lambda_i A_i$$</div>
+          <p>Hệ số $\lambda_i$ có thể hiểu là mức ảnh hưởng của agent $i$ lên $Q_{\mathrm{tot}}$.</p>
+        </div>
+        <div>
+          <p>Trong biến thể của ta:</p>
+          <div class="formula compact">$$\lambda_i=p_i m_i$$</div>
+          <div class="formula compact">$$p_i=\operatorname{softmax}(z)_i, \qquad m_i=1+\tanh(r_i)$$</div>
+          <p class="small">$p_i$ là relative responsibility; $m_i$ là magnitude gate. Vấn đề: $p_i$ học từ TD error chung, không có supervision trực tiếp.</p>
+        </div>
+      </div>
+      <div class="callout">Câu hỏi chính: làm sao để hiệu chỉnh $p_i$ sao cho nó phản ánh camera nào thật sự nên nhận credit?</div>
+    </section>
+
+    <section class="slide two" data-title="Ideal credit">
+      <div>
+        <div class="kicker">What should credit mean?</div>
+        <h2>Trong MATE, credit lý tưởng là counterfactual marginal credit</h2>
+        <p>Credit của camera $i$ nên đo: nếu bỏ camera $i$ khỏi team coverage, team mất đi bao nhiêu?</p>
+        <p>Đây là cách định nghĩa “đúng” về mặt ngữ nghĩa, nhưng realized credit này lại rời rạc và rất sparse.</p>
+      </div>
+      <div>
+        <div class="formula compact">$$Y_{i,t}=C_t(\mathbf a_t)-C_t(\mathbf a_{-i,t})$$</div>
+        <p class="small">$C_t(\mathbf a_t)$: coverage score của team dưới joint action hiện tại. $\mathbf a_{-i,t}$: action khi contribution của camera $i$ bị loại bỏ hoặc thay bằng no-op.</p>
+        <div class="formula compact">$$Y_{i,t}=\sum_j w_j Z_{ij,t}\prod_{k\neq i}(1-Z_{kj,t})$$</div>
+        <p class="small">Camera $i$ nhận credit khi nó nhìn thấy target $j$ và target đó chưa được camera khác nhìn thấy.</p>
+      </div>
+    </section>
+
+    <section class="slide two" data-title="Z to Y">
+      <div>
+        <div class="kicker">From visibility to credit</div>
+        <h2>$Z$ chỉ nói camera có thấy target hay không; $Y$ mới nói camera có đóng góp credit hay không</h2>
+        <p>$Z_{ij,t}$ là visibility event. Nhưng visibility chưa chắc đồng nghĩa với credit: nếu nhiều camera cùng nhìn một target, một camera riêng lẻ có thể không mang thêm unique contribution.</p>
+        <div class="formula compact">$$Y_{i,t}=\sum_j w_j Z_{ij,t}\prod_{k\neq i}(1-Z_{kj,t})$$</div>
+        <p class="small">Vì thế, credit chỉ xuất hiện khi camera $i$ nhìn thấy target và target đó chưa bị camera khác bao phủ.</p>
+      </div>
+      <div class="mini-cases">
+        <div class="case-card">
+          <div class="case-title">Trường hợp A: visibility tạo ra credit</div>
+          <div class="mini-world">
+            <div class="mcam a"></div>
+            <div class="mcam b" style="opacity:.35"></div>
+            <div class="mcone a"></div>
+            <div class="mtarget left"></div>
+            <div class="mlink a"></div>
+          </div>
+          <div class="mstatus"><strong>$Z_{i,j,t}=1$</strong> và camera còn lại không thấy target. Do đó camera $i$ tạo ra <strong>unique coverage</strong> nên $Y_{i,t}>0$.</div>
+        </div>
+        <div class="case-card">
+          <div class="case-title">Trường hợp B: visibility nhưng không tạo thêm credit</div>
+          <div class="mini-world">
+            <div class="mcam a"></div><div class="mcam b"></div>
+            <div class="mcone a"></div><div class="mcone b"></div>
+            <div class="mtarget center"></div>
+            <div class="mlink a"></div><div class="mlink b"></div>
+          </div>
+          <div class="mstatus">Cả hai camera đều nhìn thấy cùng một target. Khi bỏ camera $i$, target vẫn được cover bởi camera còn lại, nên marginal credit của camera $i$ có thể bằng <strong>0</strong>.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide two" data-title="RSE">
+      <div>
+        <div class="kicker">SNR and Sparse Visibility Analysis</div>
+        <h2>Sparse visibility làm mean credit giảm và relative error tăng</h2>
+        <p>Gọi $\alpha_i=P(Y_{i,t}>0)$ là xác suất camera $i$ nhận non-zero marginal credit.</p>
+        <p>Khi visibility thưa, $\alpha_i$ giảm. Khi đó tín hiệu credit của camera $i$ có relative standard error cao hơn.</p>
+      </div>
+      <div>
+        <div class="formula compact">$$\widehat\alpha_i=\frac{1}{n_{\mathrm{eff}}}\sum_{\ell=1}^{n_{\mathrm{eff}}}Y_{i,\ell}$$</div>
+        <div class="formula compact">$$\mathrm{RSE}\approx\sqrt{\frac{1-\alpha_i}{n_{\mathrm{eff}}\alpha_i}}$$</div>
+        <p class="small">$n_{\mathrm{eff}}$ là số mẫu hiệu dụng trong các context tương tự, thường nhỏ hơn batch size thô vì trajectory có tương quan.</p>
+      </div>
+    </section>
+
+    <section class="slide two" data-title="Predictive credit">
+      <div>
+        <div class="kicker">Key Idea</div>
+        <h2>Dùng $g_i$ thay cho realized credit $Y_i$ để tạo regularizer ổn định hơn</h2>
+        <p>$Y_i$ là realized credit: đúng về mặt ngữ nghĩa nhưng rời rạc, nhiều số 0 và nhạy với sparse visibility.</p>
+        <p>$g_i$ là expected credit theo context hiện tại: mềm hơn, liên tục hơn và phù hợp hơn để làm regularization target.</p>
+      </div>
+      <div>
+        <div class="formula compact">$$g_{i,t}=\mathbb E[Y_{i,t}\mid \mathcal H_t,\mathbf a_t]$$</div>
+        <p class="small">$\mathcal H_t$: history/context hiện tại; $\mathbf a_t$: joint action của camera team.</p>
+        <div class="formula compact">$$\mathrm{Var}(Y_i)=\mathbb E[\mathrm{Var}(Y_i\mid \mathcal H_t,\mathbf a_t)]+\mathrm{Var}(g_i)$$</div>
+        <p class="small">Nếu $g_i$ xấp xỉ tốt conditional expectation, nó loại bỏ một phần randomness của realized binary credit.</p>
+      </div>
+    </section>
+
+    <section class="slide one" data-title="FOCUS overview">
+      <div>
+        <div class="kicker">Method: FOCUS</div>
+        <h2>FOCUS biến future occupancy belief thành predictive credit supervision</h2>
+      </div>
+      <div class="focus-pipeline">
+        <div class="focus-card">
+          <h4>1. Future occupancy belief</h4>
+          <div class="mini-heat">
+            <div class="qpoint" style="left:14%;top:18%"></div><div class="qpoint" style="left:24%;top:67%"></div><div class="qpoint" style="left:44%;top:26%"></div><div class="qpoint" style="left:58%;top:44%"></div><div class="qpoint" style="left:76%;top:36%"></div><div class="qpoint" style="left:84%;top:72%"></div><div class="qpoint" style="left:34%;top:78%"></div><div class="qpoint" style="left:65%;top:63%"></div>
+          </div>
+          <p>Thay vì xem target là một điểm duy nhất, FOCUS dự đoán vùng xác suất nơi target có thể xuất hiện trong $H$ bước tới.</p>
+        </div>
+        <div class="arrow">→</div>
+        <div class="focus-card">
+          <h4>2. Unique future coverage</h4>
+          <div class="mini-world focus">
+            <div class="mcam a"></div><div class="mcam b"></div>
+            <div class="mcone a"></div><div class="mcone b"></div>
+            <div class="mtarget center"></div>
+            <div class="ob smallob s1"></div>
+          </div>
+          <p>Belief được tích hợp với FoV của các camera để đo phần probability mass mà camera $i$ cover được và camera khác chưa cover.</p>
+        </div>
+        <div class="arrow">→</div>
+        <div class="focus-card">
+          <h4>3. Predictive credit supervision</h4>
+          <div class="focus-bars">
+            <div class="fbar"><span>Camera 1</span><div class="track"><div class="fill b1"></div></div><span>0.62</span></div>
+            <div class="fbar"><span>Camera 2</span><div class="track"><div class="fill b2"></div></div><span>0.18</span></div>
+            <div class="fbar"><span>Camera 3</span><div class="track"><div class="fill b3"></div></div><span>0.10</span></div>
+            <div class="fbar"><span>Camera 4</span><div class="track"><div class="fill b4"></div></div><span>0.10</span></div>
+          </div>
+          <p>Từ $g_i$, ta chuẩn hóa thành $\rho_i$ và dùng nó như một regularizer để hiệu chỉnh responsibility $p_i$ hoặc các đại lượng agent-indexed khác.</p>
+        </div>
+      </div>
+      <div class="formula compact">$$\rho_i=\frac{g_i+\epsilon}{\sum_k(g_k+\epsilon)}$$</div>
+    </section>
+
+    <section class="slide two" data-title="Future occupancy">
+      <div>
+        <div class="kicker">Future Occupancy Belief</div>
+        <h2>Target không còn là một điểm; nó là một vùng xác suất trong tương lai</h2>
+        <p>FOCUS không chỉ nhìn target hiện tại. Nó dự đoán phân phối vị trí tương lai của target rồi tích hợp với vùng nhìn của camera.</p>
+        <div class="formula compact">$$B_{j,t}^{H}(x)=\sum_{h=1}^{H}\omega_h P(X_{j,t+h}=x\mid \mathcal H_t)$$</div>
+      </div>
+      <div class="heatmap">
+        <div class="qpoint" style="left:12%;top:14%"></div><div class="qpoint" style="left:20%;top:66%"></div><div class="qpoint" style="left:42%;top:28%"></div><div class="qpoint" style="left:56%;top:46%"></div><div class="qpoint" style="left:75%;top:37%"></div><div class="qpoint" style="left:84%;top:70%"></div><div class="qpoint" style="left:33%;top:78%"></div><div class="qpoint" style="left:64%;top:62%"></div>
+      </div>
+    </section>
+
+    <section class="slide two" data-title="FOCUS credit">
+      <div>
+        <div class="kicker">Predictive Counterfactual Credit</div>
+        <h2>Credit của camera là expected unique future coverage</h2>
+        <p>Camera $i$ nhận credit cao nếu nó nhìn được vùng target có khả năng xuất hiện và vùng đó không bị camera khác cover.</p>
+      </div>
+      <div>
+        <div class="formula compact">$$g_i=\sum_j w_j\int_{\Omega}B_{j,t}^{H}(x)v_i(x,a_i)\prod_{k\neq i}(1-v_k(x,a_k))dx$$</div>
+        <p class="small">$v_i(x,a_i)$: soft visibility của camera $i$ tại vị trí $x$ dưới action $a_i$. Tích $\prod_{k\neq i}(1-v_k)$ phạt overlap với các camera khác.</p>
+      </div>
+    </section>
+
+    <section class="slide one" data-title="Approximation">
+      <div>
+        <div class="kicker">FOCUS with Quasi-Monte Carlo</div>
+        <h2>Tích phân không tính đóng được, nên cần xấp xỉ bằng QMC hoặc Mixture Gaussian</h2>
+      </div>
+      <div class="columns">
+        <div class="node">
+          <strong>Quasi-Monte Carlo discrete</strong>
+          <span>Dùng các điểm Sobol/Halton phủ đều bản đồ: $x_1,\dots,x_M\in\Omega$.</span>
+          <div class="formula compact">$$g_i\approx\sum_jw_j\sum_{m=1}^{M}\Pi_{j,m}^{H}v_i(x_m,a_i)\prod_{k\neq i}(1-v_k(x_m,a_k))$$</div>
+        </div>
+        <div class="node">
+          <strong>Mixture Gaussian</strong>
+          <span>Biểu diễn occupancy bằng một hỗn hợp Gaussian nhỏ gọn hơn, nhưng có thể bias khi future occupancy đa mode.</span>
+          <div class="formula compact">$$B_j^H(x)=\sum_h\omega_h\sum_{r=1}^{K}\alpha_{j,h,r}\mathcal N(x;\mu_{j,h,r},\Sigma_{j,h,r})$$</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide two" data-title="Belief loss">
+      <div>
+        <div class="kicker">Belief Estimator</div>
+        <h2>$g_i$ chỉ là estimator, nên belief model cũng phải được tối ưu</h2>
+        <p>FOCUS không giả định $g_i$ luôn đúng. Nếu future occupancy belief sai, predictive credit cũng bị bias.</p>
+        <p>Vì vậy ta thêm loss dự đoán vị trí tương lai của target.</p>
+      </div>
+      <div>
+        <div class="formula compact">$$\mathcal L_{\mathrm{belief}}=-\sum_{t,j,h}\log P_{\phi}(X_{j,t+h}^{\mathrm{true}}\mid \mathcal H_t)$$</div>
+        <p class="small">Với QMC-discrete, có thể dùng cross-entropy với soft label Gaussian quanh vị trí target thật. Với Mixture Gaussian, dùng negative log-likelihood.</p>
+      </div>
+    </section>
+
+    <section class="slide two" data-title="FOCUS-QPLEX">
+      <div>
+        <div class="kicker">Instantiation: FOCUS-QPLEX</div>
+        <h2>Regularizer hiệu chỉnh trực tiếp phần responsibility $p_i$</h2>
+        <p>FOCUS tạo target $\rho_i$ từ predictive credit. Sau đó ép responsibility $p_i$ trong mixer đi theo $\rho_i$.</p>
+      </div>
+      <div>
+        <div class="formula compact">$$\mathcal L_{\mathrm{FOCUS}}=D_{\mathrm{KL}}(\operatorname{sg}(\rho)\|p)$$</div>
+        <div class="formula compact">$$\mathcal L=\mathcal L_{\mathrm{TD}}+\alpha\mathcal L_{\mathrm{FOCUS}}+\beta\mathcal L_{\mathrm{belief}}$$</div>
+        <p class="small">Stop-gradient trên $\rho$ giúp belief model không bị kéo méo bởi credit regularizer; belief model được học bởi $\mathcal L_{\mathrm{belief}}$.</p>
+      </div>
+    </section>
+
+    <section class="slide one" data-title="Extensions">
+      <div>
+        <div class="kicker">Extensions beyond QPLEX</div>
+        <h2>FOCUS là một credit module; cách gắn phụ thuộc thuật toán nền</h2>
+      </div>
+      <div class="flow">
+        <div class="node"><strong>QPLEX / DuelMIX</strong><span>Regularize responsibility $p_i$ hoặc normalized credit coefficient.</span></div>
+        <div class="node"><strong>QMIX</strong><span>Dùng $\rho_i$ để gate/weight local value $Q_i$ hoặc sensitivity của mixer.</span></div>
+        <div class="node"><strong>MAPPO</strong><span>Phân phối team advantage thành agent-wise advantage: $A_i^{\mathrm{FOCUS}}=C\rho_i A^{\mathrm{team}}$.</span></div>
+      </div>
+      <p class="big">Thông điệp: FOCUS không thay thế thuật toán MARL; nó cung cấp một predictive credit signal để gắn vào các thành phần agent-indexed.</p>
+    </section>
+    <!-- experiment-results-start -->
+
+    <section class="slide two result-slide" data-title="TN1 training">
+      <div>
+        <div class="kicker">Training results / TN1</div>
+        <h2>4v8-9: best final real coverage theo thuật toán</h2>
+        <p>Chỉ giữ run có hơn 30 dòng log trong <code>progress.csv</code>, sau đó chọn run có giá trị cuối cùng cao nhất theo <code>real_coverage_rate_mean</code>.</p>
+        <table class='result-table'><thead><tr><th>Thuật toán</th><th>Final coverage</th></tr></thead><tbody><tr><td>qplex</td><td class=''>0.5135</td></tr><tr><td>qplex_distill</td><td class=''>0.5018</td></tr><tr><td>qplex_focus</td><td class='best'>0.5368</td></tr><tr><td>qplex_focus2</td><td class=''>0.4771</td></tr><tr><td>qplex_se</td><td class='second'>0.5159</td></tr><tr><td>qplex_v2</td><td class=''>0.5140</td></tr><tr><td>qplex_wm2</td><td class=''>0.4325</td></tr><tr><td>qplex_wm3</td><td class=''>0.4155</td></tr></tbody></table>
+      </div>
+      <div class="result-figures one-figure">
+        <div class="image-frame result-frame"><img src='outputs/manual-20260530-experiment-slides/assets/tn1_4v8-9_lines.png' alt='TN1 run curves first 50 steps' /></div>
+      </div>
+    </section>
+
+    <section class="slide two result-slide" data-title="TN2 training">
+      <div>
+        <div class="kicker">Training results / TN2</div>
+        <h2>4v5-0: best final real coverage theo thuật toán</h2>
+        <p>Cùng quy tắc lọc: hơn 30 dòng log, so sánh theo giá trị cuối cùng của <code>real_coverage_rate_mean</code>.</p>
+        <table class='result-table'><thead><tr><th>Thuật toán</th><th>Final coverage</th></tr></thead><tbody><tr><td>a3c</td><td class=''>0.3012</td></tr><tr><td>duelmix</td><td class=''>0.5666</td></tr><tr><td>duelmix_focus</td><td class='second'>0.6100</td></tr><tr><td>qplex</td><td class=''>0.5604</td></tr><tr><td>qplex_focus</td><td class=''>0.5762</td></tr><tr><td>qplex_v2</td><td class='best'>0.6741</td></tr><tr><td>qplex_wm</td><td class=''>0.5563</td></tr><tr><td>qplex_wm2</td><td class=''>0.5873</td></tr><tr><td>qplex_wm4</td><td class=''>0.5869</td></tr></tbody></table>
+      </div>
+      <div class="result-figures one-figure">
+        <div class="image-frame result-frame"><img src='outputs/manual-20260530-experiment-slides/assets/tn2_4v5-0_lines.png' alt='TN2 run curves first 50 steps' /></div>
+      </div>
+    </section>
+
+    <section class="slide one result-slide" data-title="Evaluation 4v5-0">
+      <div>
+        <div class="kicker">Evaluation results / README.md</div>
+        <h2>4v5-0: kết quả evaluation</h2>
+      </div>
+      <div class="result-wide">
+        <table class='result-table eval'><thead><tr><th>Metric</th><th>Greedy (4v5-0)</th><th>QPLEX_V2 (4v5-0)</th><th>QPLEX_WM2 (4v5-0)</th><th>QPLEX_SE (4v5-0)</th></tr></thead><tbody><tr><td class=''>Step / Cargo</td><td class='best'>29.9</td><td class=''>34.0</td><td class='second'>30.4</td><td class=''>31.5</td></tr><tr><td class=''>Target Episode Reward</td><td class=''>+2317.80</td><td class=''>+2258.00</td><td class='best'>+2575.80</td><td class='second'>+2522.20</td></tr><tr><td class=''>Mean Transport Rate</td><td class=''>28.973%</td><td class=''>28.225%</td><td class='best'>32.197%</td><td class='second'>31.527%</td></tr><tr><td class=''>Mean Coverage Rate</td><td class='best'>75.021%</td><td class='second'>74.065%</td><td class=''>67.831%</td><td class=''>70.347%</td></tr><tr><td class=''>Normalized Target Episode Reward</td><td class=''>+0.28973</td><td class=''>+0.28225</td><td class='best'>+0.32198</td><td class='second'>+0.31527</td></tr></tbody></table>
+      </div>
+      <p class="small">Tô đậm: kết quả tốt nhất theo metric. Gạch chân: kết quả tốt thứ hai.</p>
+    </section>
+    <section class="slide one result-slide" data-title="Evaluation 4v8-9">
+      <div>
+        <div class="kicker">Evaluation results / README.md</div>
+        <h2>4v8-9: kết quả evaluation</h2>
+      </div>
+      <div class="result-wide">
+        <table class='result-table eval'><thead><tr><th>Algorithm</th><th>Step / Cargo</th><th>Target Episode Reward</th><th>Mean Transport Rate</th><th>Mean Coverage Rate</th><th>Normalized Target Episode Reward</th></tr></thead><tbody><tr><td class=''>Greedy (4v8-9)</td><td class=''>18.9</td><td class=''>+4499.60</td><td class=''>35.153%</td><td class='best'>64.468%</td><td class=''>+0.35153</td></tr><tr><td class=''>QPLEX_V2 (4v8-9)</td><td class=''>18.8</td><td class='second'>+5694.60</td><td class='second'>44.489%</td><td class=''>52.661%</td><td class='second'>+0.44489</td></tr><tr><td class=''>QPLEX_WM2 (4v8-9)</td><td class=''>19.4</td><td class=''>+5019.00</td><td class=''>39.211%</td><td class='second'>59.137%</td><td class=''>+0.39211</td></tr><tr><td class=''>QPLEX_WM3 (4v8-9)</td><td class=''>19.0</td><td class='best'>+6592.60</td><td class='best'>51.505%</td><td class=''>45.708%</td><td class='best'>+0.51505</td></tr><tr><td class=''>QPLEX_SE (4v8-9)</td><td class='best'>18.3</td><td class=''>+5526.20</td><td class=''>43.173%</td><td class=''>55.348%</td><td class=''>+0.43173</td></tr><tr><td class=''>QPLEX_WM2_SE</td><td class=''>18.8</td><td class=''>+5271.50</td><td class=''>41.184%</td><td class=''>55.682%</td><td class=''>+0.41184</td></tr><tr><td class=''>QPLEX_FOCUS</td><td class='second'>18.6</td><td class=''>+5059.10</td><td class=''>39.524%</td><td class=''>57.824%</td><td class=''>+0.39524</td></tr></tbody></table>
+      </div>
+      <p class="small">Tô đậm: kết quả tốt nhất theo metric. Gạch chân: kết quả tốt thứ hai.</p>
+    </section>
+
+    <section class="slide one result-slide" data-title="TN3 overview">
+      <div>
+        <div class="kicker">Training results / TN3</div>
+        <h2>qplex, qplex_v2, qplex_focus trên tất cả môi trường</h2>
+        <p>Với từng môi trường và từng thuật toán mục tiêu, chọn best run theo final <code>real_coverage_rate_mean</code> sau khi lọc hơn 30 dòng log.</p>
+      </div>
+      <div class="flow">
+        <div class="node"><strong>6</strong><span>môi trường có ít nhất một run hợp lệ</span></div>
+        <div class="node"><strong>17</strong><span>best run được chọn trong TN3</span></div>
+        <div class="node"><strong>3</strong><span>thuật toán mục tiêu: qplex, qplex_v2, qplex_focus</span></div>
+      </div>
+    </section>
+
+    <section class="slide two result-slide" data-title="TN3 2v2-9 và 2v4-9">
+      <div>
+        <div class="kicker">Training results / TN3</div>
+        <h2>2v2-9 và 2v4-9: qplex family</h2>
+        <div class="merged-env-tables">
+          
+        <div class="merged-env">
+          <h3>2v2-9</h3>
+          <table class='result-table'><thead><tr><th>Thuật toán</th><th>Final coverage</th></tr></thead><tbody><tr><td>qplex</td><td class='second'>0.4877</td></tr><tr><td>qplex_focus</td><td class=''>0.3495</td></tr><tr><td>qplex_v2</td><td class='best'>0.4957</td></tr></tbody></table>
+        </div>
+        <div class="merged-env">
+          <h3>2v4-9</h3>
+          <table class='result-table'><thead><tr><th>Thuật toán</th><th>Final coverage</th></tr></thead><tbody><tr><td>qplex</td><td class=''>0.3858</td></tr><tr><td>qplex_focus</td><td class='best'>0.4390</td></tr><tr><td>qplex_v2</td><td class='second'>0.3956</td></tr></tbody></table>
+        </div>
+        </div>
+      </div>
+      <div class="result-figures ">
+        <div class='image-frame result-frame'><img src='outputs/manual-20260530-experiment-slides/assets/tn3_2v2-9_lines.png' alt='TN3 2v2-9 run curves' /></div><div class='image-frame result-frame'><img src='outputs/manual-20260530-experiment-slides/assets/tn3_2v4-9_lines.png' alt='TN3 2v4-9 run curves' /></div>
+      </div>
+    </section>
+
+    <section class="slide two result-slide" data-title="TN3 4v2-9 và 4v4-9">
+      <div>
+        <div class="kicker">Training results / TN3</div>
+        <h2>4v2-9 và 4v4-9: qplex family</h2>
+        <div class="merged-env-tables">
+          
+        <div class="merged-env">
+          <h3>4v2-9</h3>
+          <table class='result-table'><thead><tr><th>Thuật toán</th><th>Final coverage</th></tr></thead><tbody><tr><td>qplex_focus</td><td class='best'>0.5727</td></tr><tr><td>qplex_v2</td><td class='second'>0.5675</td></tr></tbody></table>
+        </div>
+        <div class="merged-env">
+          <h3>4v4-9</h3>
+          <table class='result-table'><thead><tr><th>Thuật toán</th><th>Final coverage</th></tr></thead><tbody><tr><td>qplex</td><td class='second'>0.5256</td></tr><tr><td>qplex_focus</td><td class='best'>0.5958</td></tr><tr><td>qplex_v2</td><td class=''>0.4308</td></tr></tbody></table>
+        </div>
+        </div>
+      </div>
+      <div class="result-figures ">
+        <div class='image-frame result-frame'><img src='outputs/manual-20260530-experiment-slides/assets/tn3_4v2-9_lines.png' alt='TN3 4v2-9 run curves' /></div><div class='image-frame result-frame'><img src='outputs/manual-20260530-experiment-slides/assets/tn3_4v4-9_lines.png' alt='TN3 4v4-9 run curves' /></div>
+      </div>
+    </section>
+
+    <section class="slide two result-slide" data-title="TN3 4v5-0">
+      <div>
+        <div class="kicker">Training results / TN3</div>
+        <h2>4v5-0: qplex family</h2>
+        <div class="merged-env-tables">
+          
+        <div class="merged-env">
+          <h3>4v5-0</h3>
+          <table class='result-table'><thead><tr><th>Thuật toán</th><th>Final coverage</th></tr></thead><tbody><tr><td>qplex</td><td class=''>0.5604</td></tr><tr><td>qplex_focus</td><td class='second'>0.5762</td></tr><tr><td>qplex_v2</td><td class='best'>0.6741</td></tr></tbody></table>
+        </div>
+        </div>
+      </div>
+      <div class="result-figures one-figure">
+        <div class='image-frame result-frame'><img src='outputs/manual-20260530-experiment-slides/assets/tn3_4v5-0_lines.png' alt='TN3 4v5-0 run curves' /></div>
+      </div>
+    </section>
+
+    <section class="slide two result-slide" data-title="TN3 4v8-9">
+      <div>
+        <div class="kicker">Training results / TN3</div>
+        <h2>4v8-9: qplex family</h2>
+        <div class="merged-env-tables">
+          
+        <div class="merged-env">
+          <h3>4v8-9</h3>
+          <table class='result-table'><thead><tr><th>Thuật toán</th><th>Final coverage</th></tr></thead><tbody><tr><td>qplex</td><td class=''>0.5135</td></tr><tr><td>qplex_focus</td><td class='best'>0.5368</td></tr><tr><td>qplex_v2</td><td class='second'>0.5140</td></tr></tbody></table>
+        </div>
+        </div>
+      </div>
+      <div class="result-figures ">
+        <div class='image-frame result-frame video-frame'><video src='focus_belief.mp4' controls muted loop playsinline preload='metadata'></video></div><div class='image-frame result-frame'><img src='outputs/manual-20260530-experiment-slides/assets/tn3_4v8-9_lines.png' alt='TN3 4v8-9 run curves' /></div>
+      </div>
+    </section>
+    <!-- experiment-results-end -->
+<div class="footer"><span id="slideLabel">1 / 1</span><span class="navhint">← → / Space / Enter để điều hướng</span></div>
+  <div class="progress" id="progress"></div>
+  <script>
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    let index = 0;
+    const label = document.getElementById('slideLabel');
+    const progress = document.getElementById('progress');
+    function show(i) {
+      index = Math.max(0, Math.min(slides.length - 1, i));
+      slides.forEach((s, k) => s.classList.toggle('active', k === index));
+      label.textContent = `${index + 1} / ${slides.length}`;
+      progress.style.width = `${((index + 1) / slides.length) * 100}%`;
+      history.replaceState(null, '', `#${index + 1}`);
+      if (window.MathJax && window.MathJax.typesetPromise) window.MathJax.typesetPromise([slides[index]]);
+    }
+    document.addEventListener('keydown', (e) => {
+      if (['ArrowRight', 'PageDown', ' ', 'Enter'].includes(e.key)) show(index + 1);
+      if (['ArrowLeft', 'PageUp', 'Backspace'].includes(e.key)) show(index - 1);
+      if (e.key === 'Home') show(0);
+      if (e.key === 'End') show(slides.length - 1);
+    });
+    const initial = parseInt(location.hash.replace('#',''), 10);
+    if (!Number.isNaN(initial)) show(initial - 1); else show(0);
+  </script>
+</body>
+</html>

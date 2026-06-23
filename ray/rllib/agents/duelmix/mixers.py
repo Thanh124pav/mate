@@ -86,7 +86,8 @@ class LamdaWeight(nn.Module):
             all_head_key, all_head_agents, all_head_action
         ):
             x_key = torch.abs(curr_key).repeat(1, self.n_agents) + 1e-10
-            x_agents = F.softmax(curr_agents, dim=-1)
+            scale_factor = math.log(self.n_agents)
+            x_agents = F.softmax(curr_agents / scale_factor, dim=-1)
             x_action = torch.tanh(curr_action) + 1
             weights = x_key * x_agents * x_action
             head_attend_weights.append(weights)
@@ -129,12 +130,13 @@ class DuelMixMixer(nn.Module):
         )
 
         # --- Value mixing (UNRESTRICTED weights — key DuelMIX feature) ---
+        value_mix_input_dim = self.state_dim + n_agents
         self.v_mix_w = nn.Sequential(
-            nn.Linear(self.state_dim, mixing_embed_dim), nn.ReLU(),
+            nn.Linear(value_mix_input_dim, mixing_embed_dim), nn.ReLU(),
             nn.Linear(mixing_embed_dim, n_agents),
         )
         self.v_mix_bias = nn.Sequential(
-            nn.Linear(self.state_dim, mixing_embed_dim), nn.ReLU(),
+            nn.Linear(value_mix_input_dim, mixing_embed_dim), nn.ReLU(),
             nn.Linear(mixing_embed_dim, 1),
         )
 
@@ -144,7 +146,8 @@ class DuelMixMixer(nn.Module):
         )
 
     def forward(self, agent_vs, agent_as=None, states=None,
-                actions=None, max_action_advs=None, is_v=False):
+                actions=None, max_action_advs=None, is_v=False,
+                return_lambda=False, return_stats=False):
         """Compute V_tot or A_tot.
 
         Args:
@@ -171,11 +174,24 @@ class DuelMixMixer(nn.Module):
             agent_vs_flat = agent_vs.view(-1, self.n_agents)
             transformed_v = w_t * agent_vs_flat + b_t
 
-            # Mix V (positive weights, consistent with paper)
-            v_weights = torch.abs(self.v_mix_w(states_flat)).view(-1, self.n_agents)
-            v_bias = self.v_mix_bias(states_flat).view(-1, 1)
+            # Mix V with unrestricted weights conditioned on both state and
+            # transformed history utilities, as described by DuelMIX.
+            value_mix_input = torch.cat([states_flat, transformed_v], dim=-1)
+            v_weights = self.v_mix_w(value_mix_input).view(-1, self.n_agents)
+            v_bias = self.v_mix_bias(value_mix_input).view(-1, 1)
             v_tot = torch.sum(v_weights * transformed_v, dim=-1, keepdim=True) + v_bias
-            return v_tot.view(bs, -1, 1)
+            out = v_tot.view(bs, -1, 1)
+            if return_stats:
+                return out, {
+                    "transform_w": w_t.view(bs, -1, self.n_agents),
+                    "transform_b": b_t.view(bs, -1, self.n_agents),
+                    "transformed_v": transformed_v.view(bs, -1, self.n_agents),
+                    "v_weights": v_weights.view(bs, -1, self.n_agents),
+                    "v_bias": v_bias.view(bs, -1, 1),
+                }
+            if return_lambda:
+                return out, None
+            return out
         else:
             # Transform A: A_i(s) = w_i(s)*A_i (no bias)
             agent_as_flat = agent_as.view(-1, self.n_agents)
@@ -192,10 +208,16 @@ class DuelMixMixer(nn.Module):
             lambda_w = self.lambda_weight(states_flat, actions)
             lambda_w = lambda_w.view(-1, self.n_agents)
 
-            is_minus_one = getattr(self.args, "is_minus_one", True)
-            if is_minus_one:
-                a_tot = torch.sum(adv_q * (lambda_w - 1.0), dim=-1, keepdim=True)
-            else:
-                a_tot = torch.sum(adv_q * lambda_w, dim=-1, keepdim=True)
+            a_tot = torch.sum(adv_q * lambda_w, dim=-1, keepdim=True)
 
-            return a_tot.view(bs, -1, 1)
+            out = a_tot.view(bs, -1, 1)
+            if return_stats:
+                return out, {
+                    "transform_w": w_t.view(bs, -1, self.n_agents),
+                    "transformed_a": transformed_a.view(bs, -1, self.n_agents),
+                    "adv_q": adv_q.view(bs, -1, self.n_agents),
+                    "lambda": lambda_w.view(bs, -1, self.n_agents),
+                }
+            if return_lambda:
+                return out, lambda_w.view(bs, -1, self.n_agents)
+            return out

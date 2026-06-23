@@ -74,13 +74,15 @@ python -m mate.evaluate --episodes 1 --render-communication \
 
 #### 4v8-9
 
-|                           Metric | Greedy (4v8-9) | QPLEX_V2 (4v8-9) | QPLEX_WM2 (4v8-9) | QPLEX_WM3 (4v8-9) | QPLEX_SE (4v8-9) | QPLEX_WM2_SE |
-| -------------------------------: | -------------: | ----------------:| ----------------: | ----------------: | ---------------: | -----------: |
-|                     Step / Cargo |           18.9 |         18.8     |        19.4       |      19.0         |             18.3 |       18.8   |
-|            Target Episode Reward |       +4499.60 |     +5694.60     |     +5019.00      |   +6592.60        |         +5526.20 |     +5271.50 |
-|              Mean Transport Rate |        35.153% |      44.489%     |     39.211%       |   51.505%         |         43.173%  |     41.184%  |
-|               Mean Coverage Rate |        64.468% |      52.661%     |     59.137%       |   45.708%         |         55.348%  |     55.682%  |
-| Normalized Target Episode Reward |       +0.35153 |     +0.44489     |     +0.39211      |   +0.51505        |         +0.43173 |     +0.41184 |
+| Algorithm | Step / Cargo | Target Episode Reward | Mean Transport Rate | Mean Coverage Rate | Normalized Target Episode Reward |
+| --- | --- | --- | --- | --- | --- |
+| Greedy (4v8-9) | 18.9 | +4499.60 | 35.153% | 64.468% | +0.35153 |
+| QPLEX_V2 (4v8-9) | 18.8 | +5694.60 | 44.489% | 52.661% | +0.44489 |
+| QPLEX_WM2 (4v8-9) | 19.4 | +5019.00 | 39.211% | 59.137% | +0.39211 |
+| QPLEX_WM3 (4v8-9) | 19.0 | +6592.60 | 51.505% | 45.708% | +0.51505 |
+| QPLEX_SE (4v8-9) | 18.3 | +5526.20 | 43.173% | 55.348% | +0.43173 |
+| QPLEX_WM2_SE | 18.8 | +5271.50 | 41.184% | 55.682% | +0.41184 |
+| QPLEX_FOCUS | 18.6 | +5059.10 | 39.524% | 57.824% | +0.39524 |  
 
 
 #### 4v8-9 World model 4 with GreedyTarget

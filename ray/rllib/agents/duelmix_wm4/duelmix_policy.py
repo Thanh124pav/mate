@@ -144,13 +144,31 @@ class DuelMixWM4Loss(nn.Module):
         chosen_v = all_v.squeeze(3)
         chosen_a = torch.gather(all_a, dim=3, index=actions.unsqueeze(3)).squeeze(3)
 
+        active = mask > 0
+        invalid_current = active & (action_mask.sum(dim=-1) <= 0)
+        if invalid_current.any():
+            raise RuntimeError(
+                "DuelMIX WM4 received a live transition with no valid current actions. "
+                f"count={int(invalid_current.sum().item())}"
+            )
+        safe_action_mask = action_mask.clone()
+        safe_action_mask[~active] = 1.0
         x_a = all_a.clone().detach()
-        x_a[(action_mask == 0) & (mask == 1).unsqueeze(-1)] = -np.inf
+        x_a[(safe_action_mask == 0) & active.unsqueeze(-1)] = -np.inf
         max_a_vals = x_a.max(dim=3)[0]
 
         target_v, target_a = _unroll_mac_duelmix(self.target_model, next_obs_aug)
         target_q = target_v + target_a
-        ignore_tp1 = (next_action_mask == 0) & (mask == 1).unsqueeze(-1)
+        bootstrap_active = active & (terminated < 0.5)
+        invalid_next = bootstrap_active & (next_action_mask.sum(dim=-1) <= 0)
+        if invalid_next.any():
+            raise RuntimeError(
+                "DuelMIX WM4 received a non-terminal transition with no valid next actions. "
+                f"count={int(invalid_next.sum().item())}"
+            )
+        safe_next_action_mask = next_action_mask.clone()
+        safe_next_action_mask[~bootstrap_active] = 1.0
+        ignore_tp1 = (safe_next_action_mask == 0) & bootstrap_active.unsqueeze(-1)
         target_q[ignore_tp1] = -np.inf
 
         if self.double_q:

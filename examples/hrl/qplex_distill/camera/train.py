@@ -29,7 +29,7 @@ NUM_NODE_GPUS = torch.cuda.device_count()
 
 PRESERVED_NUM_CPUS = 1
 NUM_CPUS_FOR_TRAINER = 1
-NUM_GPUS_FOR_TRAINER = min(NUM_NODE_GPUS, 0.25)
+NUM_GPUS_FOR_TRAINER = min(NUM_NODE_GPUS, 1.0)
 MAX_NUM_WORKERS = min(32, max(0, NUM_NODE_CPUS - PRESERVED_NUM_CPUS - NUM_CPUS_FOR_TRAINER))
 NUM_WORKERS = MAX_NUM_WORKERS if not DEBUG else 0
 
@@ -116,7 +116,7 @@ def main():
     parser.add_argument('--num-envs-per-worker', type=int, default=8)
     parser.add_argument('--timesteps-total', type=float, default=10e6)
     parser.add_argument('--seed', type=int, nargs='*', default=None)
-    parser.add_argument('--buffer-capacity', type=float, default=2000)
+    parser.add_argument('--buffer-capacity', type=float, default=200)
     parser.add_argument('--restore', type=str, default=None)
     parser.add_argument('--resume', action='store_true')
     parser.add_argument('--env', default=None)

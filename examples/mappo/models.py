@@ -4,9 +4,11 @@ import numpy as np
 from gym import spaces
 from ray.rllib.models import ModelCatalog
 from ray.rllib.models.torch.recurrent_net import RecurrentNetwork as TorchRNN
+from ray.rllib.policy.sample_batch import SampleBatch
 from ray.rllib.utils.framework import try_import_torch
 
 from examples.utils import SimpleRNN, get_space_flat_size, orthogonal_initializer
+from ray.rllib.agents.qplex_focus.qplex_policy import LearnedOccupancyModel, resolve_focus_config
 
 
 torch, nn = try_import_torch()
@@ -104,6 +106,23 @@ class MAPPOModel(TorchRNN, nn.Module):
             hidden_weight_initializer=orthogonal_initializer(scale=1.0),
             output_weight_initializer=orthogonal_initializer(scale=1.0),
         )
+        custom_model_config = model_config.get("custom_model_config", {})
+        self.focus_config = resolve_focus_config({
+            "focus": custom_model_config.get("focus", {}),
+            "env_config": custom_model_config.get("env_config", {}),
+        })
+        self.focus_model = None
+        if self.focus_config.get("enabled", False):
+            self.focus_model = LearnedOccupancyModel(
+                self.global_state_dim,
+                int(self.focus_config.get("n_agents", 4)),
+                int(self.focus_config.get("n_targets", 8)),
+                horizon=int(self.focus_config.get("horizon", 3)),
+                hidden_dim=int(self.focus_config.get("belief_hidden_dim", 256)),
+                max_delta=float(self.focus_config.get("belief_max_delta", 400.0)),
+                min_std=float(self.focus_config.get("belief_min_std", 25.0)),
+            )
+        self._focus_stats = {}
 
     def get_initial_state(self):
         return [*self.actor.get_initial_state(), *self.critic.get_initial_state()]
@@ -130,6 +149,49 @@ class MAPPOModel(TorchRNN, nn.Module):
         assert self.critic.last_features is not None, 'must call forward() first'
 
         return self.critic.output(self.critic.last_features).reshape(-1)
+
+    def custom_loss(self, policy_loss, loss_inputs):
+        if self.focus_model is None:
+            return policy_loss
+        obs = loss_inputs[SampleBatch.CUR_OBS].float()
+        if obs.size(-1) != self.flat_obs_dim or SampleBatch.SEQ_LENS not in loss_inputs:
+            return policy_loss
+        seq_lens = loss_inputs[SampleBatch.SEQ_LENS].long()
+        B = seq_lens.numel()
+        if B == 0:
+            return policy_loss
+        T = obs.shape[0] // B
+        if T < 2:
+            return policy_loss
+        global_state = obs[:, self.global_state_slice].reshape(B, T, self.global_state_dim)
+        state = global_state[:, :-1, :]
+        future_state = global_state[:, 1:, :]
+        per_horizon_losses, per_horizon_valid, _, _ = self.focus_model.nll(
+            state, future_state
+        )
+        discount = float(self.focus_config.get("horizon_discount", 0.9))
+        weights = torch.tensor(
+            [discount ** h for h in range(len(per_horizon_losses))],
+            dtype=global_state.dtype,
+            device=global_state.device,
+        )
+        weights = weights / (weights.sum() + float(self.focus_config.get("eps", 1e-8)))
+        belief_terms = []
+        for h, (nll_per_step, valid_h) in enumerate(zip(per_horizon_losses, per_horizon_valid)):
+            time_valid = torch.arange(T - 1, device=global_state.device).unsqueeze(0) < (seq_lens - 1).clamp_min(0).unsqueeze(1)
+            valid_h = valid_h & time_valid
+            if valid_h.any():
+                belief_terms.append(weights[h] * nll_per_step[valid_h].mean())
+        belief_loss = torch.stack(belief_terms).sum() if belief_terms else torch.zeros_like(policy_loss)
+        beta = float(self.focus_config.get("beta_belief", 0.01))
+        self._focus_stats = {
+            "focus_belief_loss": belief_loss.detach(),
+            "focus_beta_belief": torch.tensor(beta, device=belief_loss.device),
+        }
+        return policy_loss + beta * belief_loss
+
+    def metrics(self):
+        return self._focus_stats
 
 
 ModelCatalog.register_custom_model('MAPPOModel', MAPPOModel)

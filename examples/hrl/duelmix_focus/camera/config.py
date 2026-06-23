@@ -1,0 +1,135 @@
+"""HRL-DuelMIX config — same HierarchicalCamera wrapper as HRL-QPLEX but with DuelMIX."""
+
+import copy
+
+from gym import spaces
+from ray import tune
+from ray.rllib.agents.duelmix_focus import duelmix
+from ray.rllib.models import MODEL_DEFAULTS
+
+import mate
+from examples.hrl.wrappers import DiscreteMultiSelection, HierarchicalCamera
+from examples.utils import CustomMetricCallback, RLlibMultiAgentAPI, RLlibMultiAgentCentralizedTraining
+
+
+def target_agent_factory():
+    return mate.agents.GreedyTargetAgent(seed=0)
+
+
+def make_env(env_config):
+    env_config = env_config or {}
+    env_id = env_config.get('env_id', 'MultiAgentTracking-v0')
+    base_env = mate.make(
+        env_id, config=env_config.get('config'), **env_config.get('config_overrides', {})
+    )
+    if str(env_config.get('enhanced_observation', None)).lower() != 'none':
+        base_env = mate.EnhancedObservation(base_env, team=env_config['enhanced_observation'])
+
+    target_agent = env_config.get('opponent_agent_factory', target_agent_factory)()
+    env = mate.MultiCamera(base_env, target_agent=target_agent)
+
+    env = mate.RelativeCoordinates(env)
+    env = mate.RescaledObservation(env)
+    env = mate.RepeatedRewardIndividualDone(env)
+
+    if 'reward_coefficients' in env_config:
+        env = mate.AuxiliaryCameraRewards(
+            env, coefficients=env_config['reward_coefficients'],
+            reduction=env_config.get('reward_reduction', 'none'),
+        )
+
+    multi_selection = env_config.get('multi_selection', False)
+    env = HierarchicalCamera(
+        env, multi_selection=multi_selection, frame_skip=env_config.get('frame_skip', 1)
+    )
+    if multi_selection:
+        env = DiscreteMultiSelection(env)
+
+    env = RLlibMultiAgentAPI(env)
+    env = RLlibMultiAgentCentralizedTraining(env)
+    action_space = spaces.Tuple((env.action_space,) * len(env.agent_ids))
+    observation_space = spaces.Tuple((env.observation_space,) * len(env.agent_ids))
+    setattr(observation_space, 'original_space', copy.deepcopy(observation_space))
+
+    env = env.with_agent_groups(
+        groups={'camera': env.agent_ids}, obs_space=observation_space, act_space=action_space
+    )
+    return env
+
+
+tune.register_env('mate-hrl.duelmix_focus.camera', make_env)
+
+config = {
+    **duelmix.DEFAULT_CONFIG,
+    'framework': 'torch',
+    'seed': 0,
+    'env': 'mate-hrl.duelmix_focus.camera',
+    'env_config': {
+        'env_id': 'MultiAgentTracking-v0',
+        'config': 'MATE-4v5-0.yaml',
+        'config_overrides': {'reward_type': 'dense'},
+        'reward_coefficients': {'coverage_rate': 1.0},
+        'reward_reduction': 'mean',
+        'multi_selection': True,
+        'frame_skip': 5,
+        'enhanced_observation': 'none',
+        'opponent_agent_factory': target_agent_factory,
+    },
+    'disable_env_checking': True,
+    'horizon': 500,
+    'callbacks': CustomMetricCallback,
+    'normalize_actions': True,
+    'model': {
+        **MODEL_DEFAULTS,
+        'fcnet_hiddens': [512, 256],
+        'fcnet_activation': 'tanh',
+        'lstm_cell_size': 256,
+        'max_seq_len': 10000,
+    },
+    'mixer': 'duelmix',
+    'mixing_embed_dim': 128,
+    'focus': {
+        'enabled': True,
+        'use_env_params': True,
+        'alpha_credit': 0.05,
+        'beta_belief': 0.01,
+        'belief_mode': 'learned',
+        'horizon': 3,
+        'horizon_discount': 0.9,
+        'belief_hidden_dim': 256,
+        'belief_max_delta': 400.0,
+        'belief_min_std': 25.0,
+        'integral_mode': 'MC',
+        'mc_num_points': 128,
+        'mc_chunk_size': 32,
+        'mc_seed': 0,
+        'grid_size': 64,
+        'grid_chunk_size': 128,
+        'grid_x_range': (-1000.0, 1000.0),
+        'grid_y_range': (-1000.0, 1000.0),
+        'use_action_selection': True,
+        'min_credit_signal': 1e-6,
+        'use_signal_confidence': True,
+        'signal_weight_min': 0.1,
+        'signal_weight_max': 3.0,
+        'eps': 1e-8,
+    },
+    'gamma': 0.99,
+    'explore': True,
+    'exploration_config': {
+        'type': 'EpsilonGreedy',
+        'initial_epsilon': 1.0,
+        'final_epsilon': 0.02,
+        'epsilon_timesteps': 50000,
+    },
+    'batch_mode': 'complete_episodes',
+    'rollout_fragment_length': 0,
+    'buffer_size': 200,
+    'timesteps_per_iteration': 5120,
+    'learning_starts': 5000,
+    'train_batch_size': 1024,
+    'target_network_update_freq': 500,
+    'metrics_num_episodes_for_smoothing': 25,
+    'grad_norm_clipping': 1000.0,
+    'lr': 1e-4,
+}

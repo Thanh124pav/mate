@@ -94,8 +94,8 @@ config = {
     'mixer': 'qplex_distill',
     'mixing_embed_dim': 128,
     # === Greedy Distillation =================================================
-    'greedy_bc_coeff': 0.1,       # BC loss weight; 0 = pure TD (same as QPLEX_V2)
-    'greedy_bc_temperature': 1.0, # temperature for Q → softmax logits
+    'greedy_bc_coeff': 0.15,       # BC loss weight; 0 = pure TD (same as QPLEX_V2)
+    'greedy_bc_temperature': 2.0, # temperature for Q → softmax logits; higher = softer targets
     # === Policy ==============================================================
     'gamma': 0.99,
     # === Exploration =========================================================

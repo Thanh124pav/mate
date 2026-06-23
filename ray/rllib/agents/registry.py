@@ -143,6 +143,11 @@ def _import_qmix():
 
     return qmix.QMixTrainer, qmix.DEFAULT_CONFIG
 
+def _import_qmix_focus():
+    from ray.rllib.agents import qmix_focus
+
+    return qmix_focus.QMixTrainer, qmix_focus.DEFAULT_CONFIG
+
 def _import_qplex():
     from ray.rllib.agents import qplex
 
@@ -152,6 +157,26 @@ def _import_qplex_v2():
     from ray.rllib.agents import qplex_v2
 
     return qplex_v2.QPlexTrainer, qplex_v2.DEFAULT_CONFIG
+
+def _import_qplex_focus():
+    from ray.rllib.agents import qplex_focus
+
+    return qplex_focus.QPlexFocusTrainer, qplex_focus.DEFAULT_CONFIG
+
+def _import_qplex_focus2():
+    from ray.rllib.agents import qplex_focus2
+
+    return qplex_focus2.QPlexFocus2Trainer, qplex_focus2.DEFAULT_CONFIG
+
+def _import_duelmix_focus():
+    from ray.rllib.agents import duelmix_focus
+
+    return duelmix_focus.DuelMixTrainer, duelmix_focus.DEFAULT_CONFIG
+
+def _import_dqn_focus():
+    from ray.rllib.agents import dqn_focus
+
+    return dqn_focus.DQNFocusTrainer, dqn_focus.DEFAULT_CONFIG
 
 
 def _import_duelmix():
@@ -217,6 +242,7 @@ ALGORITHMS = {
     "DDPG": _import_ddpg,
     "DDPPO": _import_ddppo,
     "DQN": _import_dqn,
+    "DQN_FOCUS": _import_dqn_focus,
     "DREAMER": _import_dreamer,
     "IMPALA": _import_impala,
     "MAML": _import_maml,
@@ -225,9 +251,13 @@ ALGORITHMS = {
     "PG": _import_pg,
     "PPO": _import_ppo,
     "QMIX": _import_qmix,
+    "QMIX_FOCUS": _import_qmix_focus,
     "QPLEX": _import_qplex,
     "QPLEX_V2": _import_qplex_v2,
+    "QPLEX_FOCUS": _import_qplex_focus,
+    "QPLEX_FOCUS2": _import_qplex_focus2,
     "DUELMIX": _import_duelmix,
+    "DUELMIX_FOCUS": _import_duelmix_focus,
     "SPECTRA": _import_spectra,
     "R2D2": _import_r2d2,
     "RNNSAC": _import_rnnsac,
