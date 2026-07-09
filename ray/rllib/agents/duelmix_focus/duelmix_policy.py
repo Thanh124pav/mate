@@ -26,6 +26,7 @@ from ray.rllib.models.modelv2 import _unpack_obs
 from ray.rllib.utils.framework import try_import_torch
 from ray.rllib.utils.metrics.learner_info import LEARNER_STATS_KEY
 from ray.rllib.utils.annotations import override
+from ray.rllib.agents.focus_utils import confidence_stats
 
 torch, nn = try_import_torch(error=True)
 
@@ -160,13 +161,18 @@ class DuelMixLoss(nn.Module):
         loss = td_loss
         self.last_focus_stats = {"td_loss": td_loss.detach().item()}
         if self.focus_config.get("enabled", False):
-            rho, valid, total_g, belief_loss = self.focus_helper._focus_credit_target(
+            focus_target = self.focus_helper._focus_credit_target(
                 state, next_state, actions, mask
             )
+            if len(focus_target) == 7:
+                rho, valid, total_g, belief_loss, belief_stats, confidence, confidence_mode = focus_target
+            else:
+                rho, valid, total_g, belief_loss, confidence, confidence_mode = focus_target
+                belief_stats = self.focus_helper.last_belief_stats
             lambda_dist = lambda_weights / (lambda_weights.sum(dim=-1, keepdim=True) + self.focus_config.get("eps", 1e-8))
             per_step_ce = -(rho * torch.log(lambda_dist + self.focus_config.get("eps", 1e-8))).sum(dim=-1)
             focus_loss, signal_weights = self.focus_helper._weighted_focus_loss(
-                per_step_ce, valid, total_g, loss
+                per_step_ce, valid, total_g, loss, confidence=confidence
             )
             alpha = float(self.focus_config.get("alpha_credit", 0.05))
             beta = float(self.focus_config.get("beta_belief", 0.01))
@@ -181,7 +187,8 @@ class DuelMixLoss(nn.Module):
                 "focus_alpha_credit": alpha,
                 "focus_beta_belief": beta,
             })
-            self.last_focus_stats.update(self.focus_helper.last_belief_stats)
+            self.last_focus_stats.update(confidence_stats(confidence, valid, confidence_mode))
+            self.last_focus_stats.update(belief_stats)
 
         return loss, mask, masked_td_error, chosen_q_tot, targets
 

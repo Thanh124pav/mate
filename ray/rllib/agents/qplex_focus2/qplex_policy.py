@@ -22,6 +22,11 @@ from ray.rllib.agents.qplex_focus.qplex_policy import (
 )
 from ray.rllib.agents.qplex_focus2.mixers import Focus2DuelMixer
 from ray.rllib.utils.framework import try_import_torch
+from ray.rllib.agents.focus_utils import (
+    confidence_stats,
+    gated_focus_loss,
+    resolve_confidence,
+)
 
 torch, nn = try_import_torch(error=True)
 
@@ -58,6 +63,7 @@ class QMCDiscreteBeliefModel(nn.Module):
         self.horizon = horizon
         self.num_points = num_points
         self.soft_label_sigma = soft_label_sigma
+        self.confidence_default_mode = "entropy"
         self.net = nn.Sequential(
             nn.Linear(self.state_dim, hidden_dim),
             nn.ReLU(),
@@ -81,6 +87,7 @@ class QMCDiscreteBeliefModel(nn.Module):
         probs = log_probs.exp()
         B, T = state.shape[:2]
         belief_terms = []
+        per_step_belief_loss = torch.zeros((B, T), dtype=state.dtype, device=state.device)
         stats = {}
         valid_belief = mask[:, :, 0] > 0.0
         sigma2 = float(self.soft_label_sigma) ** 2
@@ -99,6 +106,7 @@ class QMCDiscreteBeliefModel(nn.Module):
             soft_logits = -0.5 * (diff ** 2).sum(dim=-1) / max(sigma2, eps)
             soft_target = F.softmax(soft_logits, dim=-1)
             ce = -(soft_target * pred_log_probs).sum(dim=-1).mean(dim=-1)
+            per_step_belief_loss[:, :valid_t] = per_step_belief_loss[:, :valid_t] + horizon_weights[h] * ce
             valid_h = valid_belief[:, :valid_t]
             if valid_h.any():
                 term = horizon_weights[h] * ce[valid_h].mean()
@@ -109,7 +117,7 @@ class QMCDiscreteBeliefModel(nn.Module):
             if belief_terms
             else torch.zeros((), dtype=state.dtype, device=state.device)
         )
-        return probs, belief_loss, stats
+        return probs, belief_loss, stats, per_step_belief_loss
 
 
 class MixtureGaussianBeliefModel(nn.Module):
@@ -128,6 +136,7 @@ class MixtureGaussianBeliefModel(nn.Module):
         self.components = components
         self.min_std = min_std
         self.max_delta = max_delta
+        self.confidence_default_mode = "loss"
         self.net = nn.Sequential(
             nn.Linear(self.state_dim, hidden_dim),
             nn.ReLU(),
@@ -168,6 +177,7 @@ class MixtureGaussianBeliefModel(nn.Module):
         B, T = state.shape[:2]
         valid_belief = mask[:, :, 0] > 0.0
         belief_terms = []
+        per_step_belief_loss = torch.zeros((B, T), dtype=state.dtype, device=state.device)
         stats = {}
         for h in range(self.horizon):
             valid_t = T - h
@@ -187,6 +197,7 @@ class MixtureGaussianBeliefModel(nn.Module):
                 - math.log(2.0 * math.pi)
             )
             nll = -torch.logsumexp(log_mix_h + log_comp_target, dim=-1).mean(dim=-1)
+            per_step_belief_loss[:, :valid_t] = per_step_belief_loss[:, :valid_t] + horizon_weights[h] * nll
             valid_h = valid_belief[:, :valid_t]
             if valid_h.any():
                 belief_terms.append(horizon_weights[h] * nll[valid_h].mean())
@@ -196,7 +207,7 @@ class MixtureGaussianBeliefModel(nn.Module):
             if belief_terms
             else torch.zeros((), dtype=state.dtype, device=state.device)
         )
-        return probs, belief_loss, stats
+        return probs, belief_loss, stats, per_step_belief_loss
 
 
 class QPLEXFocus2Loss(nn.Module):
@@ -288,12 +299,14 @@ class QPLEXFocus2Loss(nn.Module):
                 dtype=torch.float, device=actions.device
             )
             valid = torch.zeros((B, T), dtype=torch.bool, device=actions.device)
-            return rho, valid, torch.zeros((B, T), device=actions.device), torch.zeros((), device=actions.device), {}
+            total_g = torch.zeros((B, T), device=actions.device)
+            confidence = torch.ones((B, T), dtype=torch.float, device=actions.device)
+            return rho, valid, total_g, torch.zeros((), device=actions.device), {}, confidence, "off"
 
         horizon_weights = self._horizon_weights(
             int(self.focus_config.get("horizon", 9)), actions.device, state.dtype
         )
-        probs, belief_loss, belief_stats = self.belief_model.belief_and_loss(
+        probs, belief_loss, belief_stats, per_step_belief_loss = self.belief_model.belief_and_loss(
             state, next_state, mask, horizon_weights, eps
         )
         qmc_points = self.belief_model.qmc_points.to(device=state.device, dtype=state.dtype)
@@ -326,7 +339,49 @@ class QPLEXFocus2Loss(nn.Module):
         g = torch.einsum("btijm,btjm,j->bti", unique_vis, occ, tw)
         rho = (g + eps) / (g + eps).sum(dim=-1, keepdim=True)
         valid = (g.sum(dim=-1) > float(self.focus_config.get("min_credit_signal", 1e-6))) & (mask[:, :, 0] > 0.0)
-        return rho.detach(), valid.detach(), g.sum(dim=-1).detach(), belief_loss, belief_stats
+        confidence, confidence_mode = resolve_confidence(
+            self.focus_config,
+            valid,
+            g.sum(dim=-1),
+            default_mode=getattr(self.belief_model, "confidence_default_mode", "entropy"),
+            probs=probs,
+            per_step_loss=per_step_belief_loss,
+        )
+        return (
+            rho.detach(),
+            valid.detach(),
+            g.sum(dim=-1).detach(),
+            belief_loss,
+            belief_stats,
+            confidence.detach(),
+            confidence_mode,
+        )
+
+    def _signal_confidence_weights(self, total_g, valid):
+        eps = self.focus_config.get("eps", 1e-8)
+        weights = total_g.detach()
+        if not self.focus_config.get("use_signal_confidence", True):
+            return torch.ones_like(weights)
+        if valid.any():
+            weights = weights / (weights[valid].mean() + eps)
+        else:
+            weights = torch.ones_like(weights)
+        min_weight = float(self.focus_config.get("signal_weight_min", 0.1))
+        max_weight = float(self.focus_config.get("signal_weight_max", 3.0))
+        return weights.clamp(min=min_weight, max=max_weight)
+
+    def _weighted_focus_loss(self, per_step_loss, valid, total_g, reference_loss, confidence=None):
+        weights = self._signal_confidence_weights(total_g, valid)
+        if confidence is None:
+            confidence = torch.ones_like(weights)
+        return gated_focus_loss(
+            per_step_loss,
+            valid,
+            confidence,
+            reference_loss,
+            eps=self.focus_config.get("eps", 1e-8),
+            weights=weights,
+        )
 
     def forward(self, rewards, actions, terminated, mask, obs, next_obs,
                 action_mask, next_action_mask, state=None, next_state=None):
@@ -382,15 +437,14 @@ class QPLEXFocus2Loss(nn.Module):
         loss = td_loss
         self.last_focus_stats = {"td_loss": td_loss.detach().item()}
         if self.focus_config.get("enabled", True):
-            rho, valid, total_g, belief_loss, belief_stats = self._focus_credit_target(
+            rho, valid, total_g, belief_loss, belief_stats, confidence, confidence_mode = self._focus_credit_target(
                 state, next_state, actions, mask
             )
             eps = self.focus_config.get("eps", 1e-8)
             per_step_kl = (rho * (torch.log(rho + eps) - torch.log(p_dist + eps))).sum(dim=-1)
-            if valid.any():
-                focus_loss = per_step_kl[valid].mean()
-            else:
-                focus_loss = torch.zeros_like(td_loss)
+            focus_loss = self._weighted_focus_loss(
+                per_step_kl, valid, total_g, td_loss, confidence=confidence
+            )
             alpha = float(self.focus_config.get("alpha_credit", 0.1))
             beta = float(self.focus_config.get("beta_belief", 0.05))
             loss = td_loss + alpha * focus_loss + beta * belief_loss
@@ -405,6 +459,7 @@ class QPLEXFocus2Loss(nn.Module):
                 "focus_alpha_credit": alpha,
                 "focus_beta_belief": beta,
             })
+            self.last_focus_stats.update(confidence_stats(confidence, valid, confidence_mode))
             self.last_focus_stats.update(belief_stats)
         return loss, mask, masked_td_error, chosen_q_tot, targets
 

@@ -110,6 +110,11 @@ config = {
         'use_signal_confidence': True,
         'signal_weight_min': 0.1,
         'signal_weight_max': 3.0,
+        'confidence_gate_enabled': True,
+        'confidence_gate_mode': 'auto',
+        'confidence_entropy_kappa': 2.0,
+        'confidence_loss_threshold': None,
+        'confidence_loss_temperature': 1.0,
         'eps': 1e-8,
     },
     # === Policy ===================================================================================

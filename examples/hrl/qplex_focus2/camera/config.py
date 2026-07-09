@@ -106,6 +106,11 @@ config = {
         'mixture_max_delta': 400.0,
         'use_action_selection': True,
         'min_credit_signal': 1e-6,
+        'confidence_gate_enabled': True,
+        'confidence_gate_mode': 'auto',
+        'confidence_entropy_kappa': 2.0,
+        'confidence_loss_threshold': None,
+        'confidence_loss_temperature': 1.0,
         'eps': 1e-8,
     },
     # === Policy ===================================================================================

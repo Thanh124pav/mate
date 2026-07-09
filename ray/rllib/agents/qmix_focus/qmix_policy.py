@@ -22,6 +22,7 @@ from ray.rllib.models.modelv2 import _unpack_obs
 from ray.rllib.utils.framework import try_import_torch
 from ray.rllib.utils.metrics.learner_info import LEARNER_STATS_KEY
 from ray.rllib.utils.annotations import override
+from ray.rllib.agents.focus_utils import confidence_stats
 
 # Torch must be installed.
 torch, nn = try_import_torch(error=True)
@@ -166,9 +167,14 @@ class QMixLoss(nn.Module):
         loss = td_loss.sum() / mask.sum()
         self.last_focus_stats = {"td_loss": loss.detach().item()}
         if self.focus_config.get("enabled", False):
-            rho, valid, total_g, belief_loss = self.focus_helper._focus_credit_target(
+            focus_target = self.focus_helper._focus_credit_target(
                 state, next_state, actions, mask
             )
+            if len(focus_target) == 7:
+                rho, valid, total_g, belief_loss, belief_stats, confidence, confidence_mode = focus_target
+            else:
+                rho, valid, total_g, belief_loss, confidence, confidence_mode = focus_target
+                belief_stats = self.focus_helper.last_belief_stats
             alpha = float(self.focus_config.get("alpha_credit", 0.05))
             beta = float(self.focus_config.get("beta_belief", 0.01))
             if self.mixer is not None and hasattr(self.mixer, "credit_weights"):
@@ -176,16 +182,19 @@ class QMixLoss(nn.Module):
                 credit_dist = credit_w / (credit_w.sum(dim=-1, keepdim=True) + self.focus_config.get("eps", 1e-8))
                 per_step_ce = -(rho * torch.log(credit_dist + self.focus_config.get("eps", 1e-8))).sum(dim=-1)
                 focus_loss, signal_weights = self.focus_helper._weighted_focus_loss(
-                    per_step_ce, valid, total_g, loss
+                    per_step_ce, valid, total_g, loss, confidence=confidence
                 )
                 loss = loss + alpha * focus_loss
             else:
                 signal_weights = self.focus_helper._signal_confidence_weights(total_g, valid)
                 focus_loss = torch.zeros_like(loss)
-                weighted_mask = mask * signal_weights.unsqueeze(-1)
-                weighted_td = (td_loss.view_as(mask) * rho * weighted_mask).sum()
-                weighted_td = weighted_td / (weighted_mask[:, :, 0].sum() + self.focus_config.get("eps", 1e-8))
-                loss = (1.0 - alpha) * loss + alpha * weighted_td
+                td_gate = signal_weights * confidence.detach()
+                weighted_mask = mask * td_gate.unsqueeze(-1)
+                denom = weighted_mask[:, :, 0].sum()
+                if denom.detach().item() > self.focus_config.get("eps", 1e-8):
+                    weighted_td = (td_loss.view_as(mask) * rho * weighted_mask).sum()
+                    weighted_td = weighted_td / (denom + self.focus_config.get("eps", 1e-8))
+                    loss = (1.0 - alpha) * loss + alpha * weighted_td
             loss = loss + beta * belief_loss
             valid_signal_weights = signal_weights[valid] if valid.any() else signal_weights.reshape(-1)
             self.last_focus_stats.update({
@@ -197,7 +206,8 @@ class QMixLoss(nn.Module):
                 "focus_alpha_credit": alpha,
                 "focus_beta_belief": beta,
             })
-            self.last_focus_stats.update(self.focus_helper.last_belief_stats)
+            self.last_focus_stats.update(confidence_stats(confidence, valid, confidence_mode))
+            self.last_focus_stats.update(belief_stats)
         return loss, mask, masked_td_error, chosen_action_qvals, targets
 
 

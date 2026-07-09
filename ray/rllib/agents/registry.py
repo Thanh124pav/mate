@@ -148,6 +148,11 @@ def _import_qmix_focus():
 
     return qmix_focus.QMixTrainer, qmix_focus.DEFAULT_CONFIG
 
+def _import_qmix_focus2():
+    from ray.rllib.agents import qmix_focus2
+
+    return qmix_focus2.QMixFocus2Trainer, qmix_focus2.DEFAULT_CONFIG
+
 def _import_qplex():
     from ray.rllib.agents import qplex
 
@@ -168,10 +173,20 @@ def _import_qplex_focus2():
 
     return qplex_focus2.QPlexFocus2Trainer, qplex_focus2.DEFAULT_CONFIG
 
+def _import_qplex_focus3():
+    from ray.rllib.agents import qplex_focus3
+
+    return qplex_focus3.QPlexFocus3Trainer, qplex_focus3.DEFAULT_CONFIG
+
 def _import_duelmix_focus():
     from ray.rllib.agents import duelmix_focus
 
     return duelmix_focus.DuelMixTrainer, duelmix_focus.DEFAULT_CONFIG
+
+def _import_duelmix_focus2():
+    from ray.rllib.agents import duelmix_focus2
+
+    return duelmix_focus2.DuelMixFocus2Trainer, duelmix_focus2.DEFAULT_CONFIG
 
 def _import_dqn_focus():
     from ray.rllib.agents import dqn_focus
@@ -252,12 +267,15 @@ ALGORITHMS = {
     "PPO": _import_ppo,
     "QMIX": _import_qmix,
     "QMIX_FOCUS": _import_qmix_focus,
+    "QMIX_FOCUS2": _import_qmix_focus2,
     "QPLEX": _import_qplex,
     "QPLEX_V2": _import_qplex_v2,
     "QPLEX_FOCUS": _import_qplex_focus,
     "QPLEX_FOCUS2": _import_qplex_focus2,
+    "QPLEX_FOCUS3": _import_qplex_focus3,
     "DUELMIX": _import_duelmix,
     "DUELMIX_FOCUS": _import_duelmix_focus,
+    "DUELMIX_FOCUS2": _import_duelmix_focus2,
     "SPECTRA": _import_spectra,
     "R2D2": _import_r2d2,
     "RNNSAC": _import_rnnsac,

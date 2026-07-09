@@ -22,6 +22,12 @@ from ray.rllib.models.modelv2 import _unpack_obs
 from ray.rllib.utils.framework import try_import_torch
 from ray.rllib.utils.metrics.learner_info import LEARNER_STATS_KEY
 from ray.rllib.utils.annotations import override
+from ray.rllib.agents.focus_utils import (
+    add_confidence_defaults,
+    confidence_stats,
+    gated_focus_loss,
+    resolve_confidence,
+)
 
 torch, nn = try_import_torch(error=True)
 
@@ -108,6 +114,7 @@ def resolve_focus_config(config):
     focus_config.setdefault("n_agents", 4)
     focus_config.setdefault("n_obstacles", 0)
     focus_config.setdefault("obstacle_transmittance", 0.0)
+    add_confidence_defaults(focus_config)
     return focus_config
 
 
@@ -612,6 +619,8 @@ class QPLEXFocusLoss(nn.Module):
         n_targets = int(self.focus_config.get("n_targets", 8))
         min_signal = float(self.focus_config.get("min_credit_signal", 1e-6))
         belief_loss = torch.zeros((), dtype=torch.float, device=actions.device)
+        confidence = torch.ones(actions.shape[:2], dtype=torch.float, device=actions.device)
+        confidence_mode = "off"
         self.last_belief_stats = {}
 
         required_dim = PRESERVED_DIM + self.n_agents * CAMERA_STATE_DIM_PRIVATE + n_targets * TARGET_STATE_DIM_PRIVATE
@@ -624,7 +633,8 @@ class QPLEXFocusLoss(nn.Module):
                 device=actions.device,
             )
             valid = torch.zeros((B, T), dtype=torch.bool, device=actions.device)
-            return rho, valid, torch.zeros((B, T), dtype=torch.float, device=actions.device), belief_loss
+            total_g = torch.zeros((B, T), dtype=torch.float, device=actions.device)
+            return rho, valid, total_g, belief_loss, confidence, confidence_mode
 
         belief_mode = self.focus_config.get("belief_mode", "learned")
         if belief_mode == "learned":
@@ -637,13 +647,16 @@ class QPLEXFocusLoss(nn.Module):
                     device=actions.device,
                 )
                 valid = torch.zeros((B, T), dtype=torch.bool, device=actions.device)
-                return rho, valid, torch.zeros((B, T), dtype=torch.float, device=actions.device), belief_loss
+                total_g = torch.zeros((B, T), dtype=torch.float, device=actions.device)
+                return rho, valid, total_g, belief_loss, confidence, confidence_mode
             per_horizon_losses, per_horizon_valid, mean, std, diagnostics = self.occupancy_model.nll(state, next_state)
             valid_belief = mask[:, :, 0] > 0.0
             horizon_weights = self._horizon_weights(mean.size(2), actions.device, mean.dtype)
             weighted_losses = []
+            per_step_belief_loss = torch.zeros_like(valid_belief, dtype=mean.dtype)
             belief_stats = {}
             for h, (nll_per_step, valid_h) in enumerate(zip(per_horizon_losses, per_horizon_valid)):
+                per_step_belief_loss = per_step_belief_loss + horizon_weights[h] * nll_per_step
                 valid_h = valid_h & valid_belief
                 if valid_h.any():
                     weighted_losses.append(horizon_weights[h] * nll_per_step[valid_h].mean())
@@ -655,6 +668,13 @@ class QPLEXFocusLoss(nn.Module):
                     belief_stats[f"focus_belief_pred_std_h{horizon_id}"] = pred_std[valid_h].mean().detach().item()
             if weighted_losses:
                 belief_loss = torch.stack(weighted_losses).sum()
+            confidence, confidence_mode = resolve_confidence(
+                self.focus_config,
+                valid_belief,
+                per_step_belief_loss,
+                default_mode="loss",
+                per_step_loss=per_step_belief_loss,
+            )
             self.last_belief_stats = belief_stats
             integral_mode = self.focus_config.get("integral_mode", "MC")
             if integral_mode == "grid":
@@ -677,7 +697,7 @@ class QPLEXFocusLoss(nn.Module):
         rho = g / (total_g.unsqueeze(-1) + eps)
         uniform = torch.full_like(rho, 1.0 / self.n_agents)
         rho = torch.where(valid.unsqueeze(-1), rho, uniform)
-        return rho.detach(), valid.detach(), total_g.detach(), belief_loss
+        return rho.detach(), valid.detach(), total_g.detach(), belief_loss, confidence.detach(), confidence_mode
 
     def _signal_confidence_weights(self, total_g, valid):
         eps = self.focus_config.get("eps", 1e-8)
@@ -692,13 +712,18 @@ class QPLEXFocusLoss(nn.Module):
         max_weight = float(self.focus_config.get("signal_weight_max", 3.0))
         return weights.clamp(min=min_weight, max=max_weight)
 
-    def _weighted_focus_loss(self, per_step_loss, valid, total_g, reference_loss):
-        if not valid.any():
-            weights = self._signal_confidence_weights(total_g, valid)
-            return torch.zeros_like(reference_loss), weights
+    def _weighted_focus_loss(self, per_step_loss, valid, total_g, reference_loss, confidence=None):
         weights = self._signal_confidence_weights(total_g, valid)
-        focus_loss = (per_step_loss[valid] * weights[valid]).sum()
-        focus_loss = focus_loss / (weights[valid].sum() + self.focus_config.get("eps", 1e-8))
+        if confidence is None:
+            confidence = torch.ones_like(weights)
+        focus_loss = gated_focus_loss(
+            per_step_loss,
+            valid,
+            confidence,
+            reference_loss,
+            eps=self.focus_config.get("eps", 1e-8),
+            weights=weights,
+        )
         return focus_loss, weights
 
     def forward(
@@ -727,8 +752,8 @@ class QPLEXFocusLoss(nn.Module):
             next_action_mask: Tensor of shape [B, T, n_agents, n_actions]
             state: Tensor of shape [B, T, state_dim] (optional)
             next_state: Tensor of shape [B, T, state_dim] (optional)
-        
-        According to https://github.com/wjh720/QPLEX/blob/master/pymarl-master/src/learners/dmaq_qatten_learner.py 
+
+        According to https://github.com/wjh720/QPLEX/blob/master/pymarl-master/src/learners/dmaq_qatten_learner.py
         We have some notes:
             rewards = batch['reward'][:, :-1]
             actions = batch['actions'][:,:-1]
@@ -832,14 +857,18 @@ class QPLEXFocusLoss(nn.Module):
         belief_loss = torch.zeros((), dtype=td_loss.dtype, device=td_loss.device)
         self.last_focus_stats = {}
         if self.focus_config.get("enabled", True) and self.mixer is not None:
-            rho, valid, total_g, belief_loss = self._focus_credit_target(state, next_state, actions, mask)
+            rho, valid, total_g, belief_loss, confidence, confidence_mode = self._focus_credit_target(
+                state, next_state, actions, mask
+            )
             lambda_dist = lambda_weights / (lambda_weights.sum(dim=-1, keepdim=True) + self.focus_config.get("eps", 1e-8))
             if hasattr(self.mixer, "credit_prior"):
                 p_dist = self.mixer.credit_prior(state).view(state.size(0), state.size(1), self.n_agents)
             else:
                 p_dist = lambda_dist
             per_step_ce = -(rho * torch.log(p_dist + self.focus_config.get("eps", 1e-8))).sum(dim=-1)
-            focus_loss, signal_weights = self._weighted_focus_loss(per_step_ce, valid, total_g, td_loss)
+            focus_loss, signal_weights = self._weighted_focus_loss(
+                per_step_ce, valid, total_g, td_loss, confidence=confidence
+            )
             alpha = float(self.focus_config.get("alpha_credit", 0.05))
             beta = float(self.focus_config.get("beta_belief", 0.01))
             rho_entropy = -(rho * torch.log(rho + self.focus_config.get("eps", 1e-8))).sum(dim=-1)
@@ -858,6 +887,7 @@ class QPLEXFocusLoss(nn.Module):
                 "focus_alpha_credit": alpha,
                 "focus_beta_belief": beta,
             }
+            self.last_focus_stats.update(confidence_stats(confidence, valid, confidence_mode))
             self.last_focus_stats.update(self.last_belief_stats)
             loss = td_loss + alpha * focus_loss + beta * belief_loss
         else:
@@ -870,7 +900,7 @@ def adjust_args(args):
         'target_update_interval': 200,
         'agent_output_type': "q",
         'double_q': True,
-        
+
         'hypernet_embed': 64,
         'adv_hypernet_layers': 2,
         'adv_hypernet_embed': 64,
@@ -898,11 +928,11 @@ class QPLEXFocusTorchPolicy(Policy):
     Action masking: to specify an action mask for individual agents, use a
     dict space with an action_mask key, e.g. {"obs": ob, "action_mask": mask}.
     The mask space must be `Box(0, 1, (n_actions,))`.
-    Addition arguments for QPLEX: 
+    Addition arguments for QPLEX:
     'target_update_interval': 200,
     'agent_output_type': "q",
     'double_q': True,
-    
+
     'hypernet_embed': 64,
     'adv_hypernet_layers': 2,
     'adv_hypernet_embed': 64,
@@ -1325,7 +1355,7 @@ class QPLEXFocusTorchPolicy(Policy):
             state = np.concatenate(tree.flatten(unpacked[0][ENV_STATE]), 1)
         else:
             state = None
-        return obs, action_mask, state 
+        return obs, action_mask, state
 
 def _validate(obs_space, action_space):
     if not hasattr(obs_space, "original_space") or not isinstance(
@@ -1379,7 +1409,7 @@ def _mac(model, obs, h):
     q_flat, h_flat = model(obs_agents_as_batches, h_flat, None)
     return q_flat.reshape([B, n_agents, -1]), [
         s.reshape([B, n_agents, -1]) for s in h_flat
-    ] 
+    ]
 
 def _unroll_mac(model, obs_tensor):
     """Computes the estimated Q values for an entire trajectory batch"""
