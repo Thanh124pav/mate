@@ -475,14 +475,23 @@ The methodology is written mainly for a QPLEX-style mixer with responsibility fa
 
 ### Current Code
 
-The implementation extends the same FOCUS helper to several algorithms:
+The implementation extends the same FOCUS helper to several algorithms. As of the
+`focus-replace-kl-coefficients` change, the credit mechanism no longer *regularizes* the mixer
+coefficients toward `rho` with a KL/cross-entropy loss; instead `rho` is injected **directly** into
+the mixer, replacing the learned responsibility coefficient at training time (see section 13):
 
-- QPLEX-FOCUS: regularizes `credit_prior(state)` or normalized lambda weights.
-- DuelMIX-FOCUS: regularizes normalized lambda weights.
-- QMIX-FOCUS: regularizes implicit mixer sensitivities from `W_1(s)W_f(s)`.
-- DQN-FOCUS: no mixer, so it reweights per-agent TD error by `rho`.
+- QPLEX-FOCUS / FOCUS2 / FOCUS3: `rho` replaces the softmax responsibility factor `p_i` inside the
+  lambda factorization `lambda_i = |k_h| * p_i * m_i` (key and action/magnitude modulation kept).
+- DuelMIX-FOCUS / FOCUS2: `rho` replaces the softmax responsibility factor in the advantage
+  mixing lambda weights.
+- QMIX-FOCUS / FOCUS2: QMIX has no softmax responsibility factor, so `rho` scales the per-agent
+  monotonic mixing weights (`W_1` rows) as `rho * n_agents` (a uniform `rho` is a no-op).
+- DQN-FOCUS: no mixer, so it still reweights per-agent TD error by `rho` (unchanged).
 - MAPPO: only adds the belief-model auxiliary loss in `custom_loss`; it does not implement the
-  FOCUS credit regularizer.
+  FOCUS credit mechanism.
+
+In all variants the belief-model auxiliary loss (`beta * belief_loss`) is retained, since `rho`
+is derived from the belief model and must still be trained; only the credit KL/CE term is removed.
 
 ### Difference
 
@@ -584,3 +593,43 @@ To make the code match `FOCUS_QMC_Methodology_FIXED.md`, the implementation woul
    ```
 
 After these changes, the code would be much closer to the methodology file.
+
+---
+
+## 14. Direct Coefficient Replacement (removing the KL term)
+
+The `focus-replace-kl-coefficients` change alters how the environment-derived responsibility `rho`
+interacts with the mixer. Previously (sections 8–9) the code computed a cross-entropy / KL term
+between `rho` and a softmax-derived credit coefficient and added it to the loss:
+
+```python
+per_step_ce = -(rho * torch.log(p_dist + eps)).sum(dim=-1)   # or an explicit KL
+loss = td_loss + alpha * focus_loss + beta * belief_loss
+```
+
+Now the KL/CE term is removed entirely. Instead, `rho` is substituted **directly** for the softmax
+responsibility factor inside the mixer during the loss forward pass:
+
+```math
+\lambda_i = \sum_h |k_h(s)|\; \rho_i\; \big(1+\tanh(r_{h,i}(s,a))\big).
+```
+
+```python
+# mixer.forward now accepts rho and uses it in place of softmax(agents)
+ans_adv, lambda_weights = self.mixer(..., is_v=False, return_lambda=True, rho=rho)
+loss = td_loss + beta * belief_loss   # only the belief auxiliary loss remains
+```
+
+Key properties of this change:
+
+- **No KL/CE loss.** `alpha_credit` and the `focus_credit_loss` term are no longer used; the config
+  key is kept only for backward compatibility.
+- **`rho` is detached.** Gradients do not flow to the belief model through the mixer; the belief
+  model is still trained solely by `beta * belief_loss`.
+- **Online mixer only.** `rho` (a current-state belief signal) is injected into the online chosen
+  advantage; the target mixer keeps its learned coefficients.
+- **Uniform fallback.** When there is no valid credit signal (`valid = False`), `rho` is already set
+  to a uniform distribution, so the mixer's credit falls back to a uniform responsibility.
+- **QMIX adaptation.** QMIX has no softmax responsibility factor in its monotonic mix, so `rho` is
+  applied as a per-agent scaling `rho * n_agents` of the first-layer mixing weights `W_1(s)`; a
+  uniform `rho` leaves QMIX unchanged.

@@ -42,11 +42,13 @@ class Focus2LambdaWeight(nn.Module):
         modules.append(nn.Linear(hidden, out_dim))
         return nn.Sequential(*modules)
 
-    def forward(self, states, actions):
+    def forward(self, states, actions, rho=None):
         states = states.reshape(-1, self.state_dim)
         actions = actions.reshape(-1, self.action_dim)
         state_action = torch.cat([states, actions], dim=-1)
         eps = 1e-10
+        if rho is not None:
+            rho = rho.reshape(-1, self.n_agents)
 
         lambda_heads = []
         p_heads = []
@@ -56,7 +58,12 @@ class Focus2LambdaWeight(nn.Module):
             self.key_extractors, self.resp_extractors, self.mag_extractors
         ):
             key = F.softplus(key_net(states)) + eps
-            p = F.softmax(resp_net(states) / math.log(self.n_agents), dim=-1)
+            if rho is not None:
+                # Replace the learned softmax responsibility p_i with the
+                # environment-derived responsibility rho.
+                p = rho
+            else:
+                p = F.softmax(resp_net(states) / math.log(self.n_agents), dim=-1)
             mag = 1.0 + torch.tanh(mag_net(state_action))
             lambda_heads.append(key * p * mag)
             p_heads.append(p)
@@ -93,13 +100,13 @@ class Focus2DuelMixer(nn.Module):
     def calc_v(self, agent_qs):
         return torch.sum(agent_qs.view(-1, self.n_agents), dim=-1)
 
-    def calc_adv(self, agent_qs, states, actions, max_action_vals, return_credit=False):
+    def calc_adv(self, agent_qs, states, actions, max_action_vals, return_credit=False, rho=None):
         states = states.reshape(-1, self.state_dim)
         actions = actions.reshape(-1, self.action_dim)
         agent_qs = agent_qs.view(-1, self.n_agents)
         max_action_vals = max_action_vals.view(-1, self.n_agents)
         adv_q = (agent_qs - max_action_vals).detach()
-        lambda_w, p_dist, mag = self.lambda_weight(states, actions)
+        lambda_w, p_dist, mag = self.lambda_weight(states, actions, rho=rho)
         if self.args.is_minus_one:
             adv_tot = torch.sum(adv_q * (lambda_w - 1.0), dim=-1)
         else:
@@ -109,7 +116,7 @@ class Focus2DuelMixer(nn.Module):
         return adv_tot
 
     def forward(self, agent_qs, states, actions=None, max_action_vals=None,
-                is_v=False, return_credit=False):
+                is_v=False, return_credit=False, rho=None):
         bs = agent_qs.size(0)
         w_final, v, _, _ = self.attention_weight(agent_qs, states, actions)
         w_final = w_final.view(-1, self.n_agents) + 1e-10
@@ -126,7 +133,7 @@ class Focus2DuelMixer(nn.Module):
         max_action_vals = max_action_vals.view(-1, self.n_agents)
         max_action_vals = w_final * max_action_vals + v
         out = self.calc_adv(
-            agent_qs, states, actions, max_action_vals, return_credit=return_credit
+            agent_qs, states, actions, max_action_vals, return_credit=return_credit, rho=rho
         )
         if return_credit:
             adv_tot, lambda_w, p_dist, _ = out

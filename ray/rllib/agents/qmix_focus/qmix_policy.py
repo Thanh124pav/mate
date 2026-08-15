@@ -147,9 +147,30 @@ class QMixLoss(nn.Module):
             there may be a state with no valid actions."
 
         agent_chosen_qvals = chosen_action_qvals
+
+        # FOCUS: compute the environment-derived responsibility rho BEFORE mixing
+        # so it is injected directly into the mixer as a per-agent responsibility
+        # scaling (instead of being matched against the mixer credit via a
+        # cross-entropy loss). QMIX has no softmax responsibility factor, so rho
+        # scales the per-agent monotonic mixing weights (see QMixer.forward).
+        focus_enabled = self.focus_config.get("enabled", False)
+        rho = valid = total_g = confidence = None
+        belief_loss = torch.zeros((), dtype=chosen_action_qvals.dtype, device=chosen_action_qvals.device)
+        belief_stats = {}
+        confidence_mode = "off"
+        if focus_enabled:
+            focus_target = self.focus_helper._focus_credit_target(
+                state, next_state, actions, mask
+            )
+            if len(focus_target) == 7:
+                rho, valid, total_g, belief_loss, belief_stats, confidence, confidence_mode = focus_target
+            else:
+                rho, valid, total_g, belief_loss, confidence, confidence_mode = focus_target
+                belief_stats = self.focus_helper.last_belief_stats
+
         # Mix
         if self.mixer is not None:
-            chosen_action_qvals = self.mixer(chosen_action_qvals, state)
+            chosen_action_qvals = self.mixer(chosen_action_qvals, state, rho=rho)
             target_max_qvals = self.target_mixer(target_max_qvals, next_state)
 
         # Calculate 1-step Q-Learning targets
@@ -166,44 +187,20 @@ class QMixLoss(nn.Module):
         td_loss = (masked_td_error ** 2)
         loss = td_loss.sum() / mask.sum()
         self.last_focus_stats = {"td_loss": loss.detach().item()}
-        if self.focus_config.get("enabled", False):
-            focus_target = self.focus_helper._focus_credit_target(
-                state, next_state, actions, mask
-            )
-            if len(focus_target) == 7:
-                rho, valid, total_g, belief_loss, belief_stats, confidence, confidence_mode = focus_target
-            else:
-                rho, valid, total_g, belief_loss, confidence, confidence_mode = focus_target
-                belief_stats = self.focus_helper.last_belief_stats
-            alpha = float(self.focus_config.get("alpha_credit", 0.05))
+        if focus_enabled:
+            eps = self.focus_config.get("eps", 1e-8)
             beta = float(self.focus_config.get("beta_belief", 0.01))
-            if self.mixer is not None and hasattr(self.mixer, "credit_weights"):
-                credit_w = self.mixer.credit_weights(agent_chosen_qvals.detach(), state)
-                credit_dist = credit_w / (credit_w.sum(dim=-1, keepdim=True) + self.focus_config.get("eps", 1e-8))
-                per_step_ce = -(rho * torch.log(credit_dist + self.focus_config.get("eps", 1e-8))).sum(dim=-1)
-                focus_loss, signal_weights = self.focus_helper._weighted_focus_loss(
-                    per_step_ce, valid, total_g, loss, confidence=confidence
-                )
-                loss = loss + alpha * focus_loss
-            else:
-                signal_weights = self.focus_helper._signal_confidence_weights(total_g, valid)
-                focus_loss = torch.zeros_like(loss)
-                td_gate = signal_weights * confidence.detach()
-                weighted_mask = mask * td_gate.unsqueeze(-1)
-                denom = weighted_mask[:, :, 0].sum()
-                if denom.detach().item() > self.focus_config.get("eps", 1e-8):
-                    weighted_td = (td_loss.view_as(mask) * rho * weighted_mask).sum()
-                    weighted_td = weighted_td / (denom + self.focus_config.get("eps", 1e-8))
-                    loss = (1.0 - alpha) * loss + alpha * weighted_td
+            # rho is injected directly into the mixer above; only the belief
+            # model still needs a supervised objective.
             loss = loss + beta * belief_loss
+            signal_weights = self.focus_helper._signal_confidence_weights(total_g, valid)
             valid_signal_weights = signal_weights[valid] if valid.any() else signal_weights.reshape(-1)
             self.last_focus_stats.update({
-                "focus_credit_loss": focus_loss.detach().item(),
                 "focus_belief_loss": belief_loss.detach().item(),
                 "focus_valid_ratio": valid.float().mean().detach().item(),
                 "focus_mean_signal": total_g.mean().detach().item(),
                 "focus_signal_weight_mean": valid_signal_weights.mean().detach().item(),
-                "focus_alpha_credit": alpha,
+                "focus_rho_entropy": (-(rho * torch.log(rho + eps)).sum(dim=-1)).mean().detach().item(),
                 "focus_beta_belief": beta,
             })
             self.last_focus_stats.update(confidence_stats(confidence, valid, confidence_mode))

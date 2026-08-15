@@ -9,7 +9,12 @@ class VDNMixer(nn.Module):
     def __init__(self):
         super(VDNMixer, self).__init__()
 
-    def forward(self, agent_qs, batch):
+    def forward(self, agent_qs, batch, rho=None):
+        if rho is not None:
+            # Inject the environment-derived responsibility directly as a
+            # per-agent scaling (rho*n_agents so a uniform rho is a no-op).
+            n_agents = agent_qs.size(2)
+            agent_qs = agent_qs * (rho.reshape_as(agent_qs) * n_agents)
         return torch.sum(agent_qs, dim=2, keepdim=True)
 
     def credit_weights(self, agent_qs, states):
@@ -37,12 +42,16 @@ class QMixer(nn.Module):
             nn.Linear(self.embed_dim, 1),
         )
 
-    def forward(self, agent_qs, states):
+    def forward(self, agent_qs, states, rho=None):
         """Forward pass for the mixer.
 
         Args:
             agent_qs: Tensor of shape [B, T, n_agents] - Q_value for each agent with its action
             states: Tensor of shape [B, T, state_dim]
+            rho: optional [B, T, n_agents] environment-derived responsibility. When
+                given, it directly scales the per-agent monotonic mixing weights
+                (as rho*n_agents, so a uniform rho leaves the mixer unchanged),
+                replacing FOCUS's KL regularization of the mixer credit.
         """
         bs = agent_qs.size(0)
         states = states.reshape(-1, self.state_dim)
@@ -51,6 +60,8 @@ class QMixer(nn.Module):
         w1 = torch.abs(self.hyper_w_1(states)) # [B, T, n_agents * embed_dim]
         b1 = self.hyper_b_1(states)
         w1 = w1.view(-1, self.n_agents, self.embed_dim) # [B*T, n_agents, embed_dim]
+        if rho is not None:
+            w1 = w1 * (rho.reshape(-1, self.n_agents, 1) * self.n_agents)
         b1 = b1.view(-1, 1, self.embed_dim)
         hidden = nn.functional.elu(torch.bmm(agent_qs, w1) + b1) # [B*T, 1, embed_dim]
         # Second layer

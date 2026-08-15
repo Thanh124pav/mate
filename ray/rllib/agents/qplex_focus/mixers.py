@@ -34,6 +34,29 @@ class FocusDuelMixer(nn.Module):
         actions = actions.reshape(-1, self.action_dim)
         return self.si_weight(states, actions).view(-1, self.n_agents)
 
+    def lambda_weights_from_rho(self, states, actions, rho):
+        """Lambda weights with the softmax responsibility factor replaced by rho.
+
+        Mirrors ``LamdaWeight.forward`` but substitutes the environment-derived
+        responsibility ``rho`` for the learned per-head softmax prior ``p_i``,
+        keeping the per-head key and action modulation intact:
+
+            lambda_i = sum_h |key_h| * rho_i * (tanh(action_h) + 1).
+        """
+        states = states.reshape(-1, self.state_dim)
+        actions = actions.reshape(-1, self.action_dim)
+        rho = rho.reshape(-1, self.n_agents)
+        data = torch.cat([states, actions], dim=1)
+
+        head_attend = torch.zeros_like(rho)
+        for key_ext, action_ext in zip(
+            self.si_weight.key_extractors, self.si_weight.action_extractors
+        ):
+            x_key = torch.abs(key_ext(states)).repeat(1, self.n_agents) + 1e-10
+            x_action = torch.tanh(action_ext(data)) + 1
+            head_attend = head_attend + x_key * rho * x_action
+        return head_attend.view(-1, self.n_agents)
+
     def credit_prior(self, states):
         """Return the softmax agent prior p_i before action modulation."""
         states = states.reshape(-1, self.state_dim)
@@ -51,13 +74,16 @@ class FocusDuelMixer(nn.Module):
         prior = (priors * keys).sum(dim=1) / (keys.sum(dim=1) + 1e-10)
         return prior
 
-    def calc_adv(self, agent_qs, states, actions, max_action_vals, return_lambda=False):
+    def calc_adv(self, agent_qs, states, actions, max_action_vals, return_lambda=False, rho=None):
         states = states.reshape(-1, self.state_dim)
         agent_qs = agent_qs.view(-1, self.n_agents)
         max_action_vals = max_action_vals.view(-1, self.n_agents)
 
         adv_q = (agent_qs - max_action_vals).view(-1, self.n_agents).detach()
-        adv_w_final = self.lambda_weights(states, actions)
+        if rho is not None:
+            adv_w_final = self.lambda_weights_from_rho(states, actions, rho)
+        else:
+            adv_w_final = self.lambda_weights(states, actions)
 
         if self.args.is_minus_one:
             adv_tot = torch.sum(adv_q * (adv_w_final - 1.0), dim=1)
@@ -75,6 +101,7 @@ class FocusDuelMixer(nn.Module):
         max_action_vals=None,
         is_v=False,
         return_lambda=False,
+        rho=None,
     ):
         bs = agent_qs.size(0)
 
@@ -101,6 +128,7 @@ class FocusDuelMixer(nn.Module):
             actions=actions,
             max_action_vals=max_action_vals,
             return_lambda=return_lambda,
+            rho=rho,
         )
         if return_lambda:
             y, lambda_w = out

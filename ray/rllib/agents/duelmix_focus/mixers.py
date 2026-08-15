@@ -72,10 +72,12 @@ class LamdaWeight(nn.Module):
                     nn.Linear(adv_hypernet_embed, self.n_agents),
                 ))
 
-    def forward(self, states, actions):
+    def forward(self, states, actions, rho=None):
         states = states.reshape(-1, self.state_dim)
         actions = actions.reshape(-1, self.action_dim)
         data = torch.cat([states, actions], dim=1)
+        if rho is not None:
+            rho = rho.reshape(-1, self.n_agents)
 
         all_head_key = [k_ext(states) for k_ext in self.key_extractors]
         all_head_agents = [a_ext(states) for a_ext in self.agents_extractors]
@@ -87,7 +89,12 @@ class LamdaWeight(nn.Module):
         ):
             x_key = torch.abs(curr_key).repeat(1, self.n_agents) + 1e-10
             scale_factor = math.log(self.n_agents)
-            x_agents = F.softmax(curr_agents / scale_factor, dim=-1)
+            if rho is not None:
+                # Replace the learned softmax responsibility with the
+                # environment-derived responsibility rho.
+                x_agents = rho
+            else:
+                x_agents = F.softmax(curr_agents / scale_factor, dim=-1)
             x_action = torch.tanh(curr_action) + 1
             weights = x_key * x_agents * x_action
             head_attend_weights.append(weights)
@@ -147,7 +154,7 @@ class DuelMixMixer(nn.Module):
 
     def forward(self, agent_vs, agent_as=None, states=None,
                 actions=None, max_action_advs=None, is_v=False,
-                return_lambda=False):
+                return_lambda=False, rho=None):
         """Compute V_tot or A_tot.
 
         Args:
@@ -197,7 +204,7 @@ class DuelMixMixer(nn.Module):
                 adv_q = transformed_a.detach()
 
             # Lambda weights (positive)
-            lambda_w = self.lambda_weight(states_flat, actions)
+            lambda_w = self.lambda_weight(states_flat, actions, rho=rho)
             lambda_w = lambda_w.view(-1, self.n_agents)
 
             a_tot = torch.sum(adv_q * lambda_w, dim=-1, keepdim=True)

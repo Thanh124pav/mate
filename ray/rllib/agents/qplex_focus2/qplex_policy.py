@@ -412,11 +412,25 @@ class QPLEXFocus2Loss(nn.Module):
             cur_max_actions = target_mac_out.argmax(dim=3, keepdim=True)
             target_max_qvals = target_mac_out.max(dim=3)[0]
 
+        # FOCUS: compute the environment-derived responsibility rho BEFORE mixing
+        # so it directly replaces the mixer's softmax responsibility factor
+        # (instead of being matched against it via a KL divergence).
+        focus_enabled = self.focus_config.get("enabled", True)
+        rho = valid = total_g = confidence = None
+        belief_loss = torch.zeros((), dtype=chosen_action_qvals.dtype, device=chosen_action_qvals.device)
+        belief_stats = {}
+        confidence_mode = "off"
+        if focus_enabled:
+            rho, valid, total_g, belief_loss, belief_stats, confidence, confidence_mode = self._focus_credit_target(
+                state, next_state, actions, mask
+            )
+
         ans_chosen = self.mixer(chosen_action_qvals, state, is_v=True)
         actions_onehot = F.one_hot(actions, num_classes=self.n_actions)
         ans_adv, lambda_weights, p_dist = self.mixer(
             chosen_action_qvals, state, actions_onehot,
-            max_action_vals=max_action_vals, is_v=False, return_credit=True
+            max_action_vals=max_action_vals, is_v=False, return_credit=True,
+            rho=rho,
         )
         chosen_q_tot = ans_chosen + ans_adv
 
@@ -436,27 +450,19 @@ class QPLEXFocus2Loss(nn.Module):
 
         loss = td_loss
         self.last_focus_stats = {"td_loss": td_loss.detach().item()}
-        if self.focus_config.get("enabled", True):
-            rho, valid, total_g, belief_loss, belief_stats, confidence, confidence_mode = self._focus_credit_target(
-                state, next_state, actions, mask
-            )
+        if focus_enabled:
             eps = self.focus_config.get("eps", 1e-8)
-            per_step_kl = (rho * (torch.log(rho + eps) - torch.log(p_dist + eps))).sum(dim=-1)
-            focus_loss = self._weighted_focus_loss(
-                per_step_kl, valid, total_g, td_loss, confidence=confidence
-            )
-            alpha = float(self.focus_config.get("alpha_credit", 0.1))
             beta = float(self.focus_config.get("beta_belief", 0.05))
-            loss = td_loss + alpha * focus_loss + beta * belief_loss
+            # rho is injected directly into the mixer above; only the belief
+            # model still needs a supervised objective.
+            loss = td_loss + beta * belief_loss
+            lambda_dist = lambda_weights / (lambda_weights.sum(dim=-1, keepdim=True) + eps)
             self.last_focus_stats.update({
-                "focus_credit_loss": focus_loss.detach().item(),
                 "focus_belief_loss": belief_loss.detach().item(),
                 "focus_valid_ratio": valid.float().mean().detach().item(),
                 "focus_mean_signal": total_g.mean().detach().item(),
                 "focus_rho_entropy": (-(rho * torch.log(rho + eps)).sum(dim=-1)).mean().detach().item(),
-                "focus_p_entropy": (-(p_dist * torch.log(p_dist + eps)).sum(dim=-1)).mean().detach().item(),
-                "focus_lambda_entropy": (-(lambda_weights / (lambda_weights.sum(dim=-1, keepdim=True) + eps) * torch.log(lambda_weights / (lambda_weights.sum(dim=-1, keepdim=True) + eps) + eps)).sum(dim=-1)).mean().detach().item(),
-                "focus_alpha_credit": alpha,
+                "focus_lambda_entropy": (-(lambda_dist * torch.log(lambda_dist + eps)).sum(dim=-1)).mean().detach().item(),
                 "focus_beta_belief": beta,
             })
             self.last_focus_stats.update(confidence_stats(confidence, valid, confidence_mode))
