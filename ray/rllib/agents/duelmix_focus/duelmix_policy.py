@@ -26,7 +26,7 @@ from ray.rllib.models.modelv2 import _unpack_obs
 from ray.rllib.utils.framework import try_import_torch
 from ray.rllib.utils.metrics.learner_info import LEARNER_STATS_KEY
 from ray.rllib.utils.annotations import override
-from ray.rllib.agents.focus_utils import confidence_stats
+from ray.rllib.agents.focus_utils import confidence_stats, focus_action_q_bias
 
 torch, nn = try_import_torch(error=True)
 
@@ -116,6 +116,17 @@ class DuelMixLoss(nn.Module):
                 self.model, next_obs, prev_actions=actions, n_actions=self.n_actions
             )
             mac_q_tp1 = mac_v_tp1 + mac_a_tp1
+            if self.focus_config.get("action_bias_bootstrap", True):
+                action_bias = focus_action_q_bias(
+                    mac_q_tp1,
+                    next_state,
+                    self.focus_config,
+                    self.n_agents,
+                    self.n_actions,
+                )
+                if action_bias is not None:
+                    eta = float(self.focus_config.get("action_bias_eta", 0.0))
+                    mac_q_tp1 = mac_q_tp1 + eta * action_bias
             mac_q_tp1[ignore_tp1] = -np.inf
             cur_max_actions = mac_q_tp1.argmax(dim=3, keepdim=True)
             target_max_v = target_v.squeeze(3)  # [B, T, n_agents]
@@ -292,6 +303,8 @@ class DuelMixTorchPolicy(Policy):
         self.cur_epsilon = 1.0
         self.update_target()
         focus_config = resolve_focus_config(self.config)
+        self.focus_config = focus_config
+        self.last_action_bias_stats = {}
         self.occupancy_model = None
         if focus_config.get("enabled", False) and focus_config.get("belief_mode", "learned") == "learned":
             self.occupancy_model = LearnedOccupancyModel(
@@ -302,6 +315,9 @@ class DuelMixTorchPolicy(Policy):
                 hidden_dim=int(focus_config.get("belief_hidden_dim", 256)),
                 max_delta=float(focus_config.get("belief_max_delta", 400.0)),
                 min_std=float(focus_config.get("belief_min_std", 25.0)),
+                architecture=focus_config.get("belief_arch", focus_config.get("belief_architecture", "mlp")),
+                num_layers=int(focus_config.get("belief_num_layers", 1)),
+                dropout=float(focus_config.get("belief_dropout", 0.0)),
             ).to(self.device)
 
         self.params = list(self.model.parameters()) + list(self.mixer.parameters())
@@ -324,7 +340,7 @@ class DuelMixTorchPolicy(Policy):
                         prev_reward_batch=None, info_batch=None, episodes=None,
                         explore=None, timestep=None, **kwargs):
         explore = explore if explore is not None else self.config["explore"]
-        obs_batch, action_mask, _ = self._unpack_observation(obs_batch)
+        obs_batch, action_mask, env_global_state = self._unpack_observation(obs_batch)
 
         with torch.no_grad():
             v_vals, a_vals, hiddens = _mac_duelmix(
@@ -339,6 +355,24 @@ class DuelMixTorchPolicy(Policy):
             )
             # Q = V + A for action selection
             q_values = v_vals + a_vals  # [B, n_agents, n_actions]
+            # CTDE: centralized state may bias exploratory training actions, but
+            # decentralized evaluation calls this with explore=False and skips it.
+            if explore and env_global_state is not None:
+                action_bias = focus_action_q_bias(
+                    q_values,
+                    torch.as_tensor(env_global_state, dtype=torch.float, device=self.device),
+                    self.focus_config,
+                    self.n_agents,
+                    self.n_actions,
+                )
+                if action_bias is not None:
+                    eta = float(self.focus_config.get("action_bias_eta", 0.0))
+                    q_values = q_values + eta * action_bias
+                    self.last_action_bias_stats = {
+                        "focus_action_bias_mean": action_bias.mean().detach().item(),
+                        "focus_action_bias_std": action_bias.std(unbiased=False).detach().item(),
+                        "focus_action_bias_eta": eta,
+                    }
             avail = torch.as_tensor(action_mask, dtype=torch.float, device=self.device)
             masked_q = q_values.clone()
             masked_q[avail == 0.0] = -float("inf")
@@ -442,6 +476,7 @@ class DuelMixTorchPolicy(Policy):
             "target_mean": (targets * mask).sum().item() / mask_elems,
         }
         stats.update(getattr(self.loss, "last_focus_stats", {}))
+        stats.update(self.last_action_bias_stats)
         return {LEARNER_STATS_KEY: stats}
 
     @override(Policy)

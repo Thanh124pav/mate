@@ -3,6 +3,15 @@ from typing import Dict, List, Type, Union
 
 import ray
 from ray.rllib.agents.ppo.ppo_tf_policy import setup_config
+from ray.rllib.agents.focus_common import (
+    FOCUS_CONFIDENCE,
+    FOCUS_GAIN,
+    FOCUS_RHO,
+    FOCUS_RHO_ENTROPY,
+    FOCUS_TOTAL_GAIN,
+    FOCUS_VALID,
+    FOCUS_WEIGHT,
+)
 from ray.rllib.evaluation.postprocessing import (
     compute_gae_for_sample_batch,
     Postprocessing,
@@ -67,9 +76,13 @@ class PPOTorchPolicy(TorchPolicy, LearningRateSchedule, EntropyCoeffSchedule):
         # in torch (issue #6962).
         # TODO: no_grad still necessary?
         with torch.no_grad():
-            return compute_gae_for_sample_batch(
+            batch = compute_gae_for_sample_batch(
                 self, sample_batch, other_agent_batches, episode
             )
+            add_focus = getattr(self.model, "add_focus_to_trajectory", None)
+            if callable(add_focus):
+                batch = add_focus(self, batch, other_agent_batches, episode)
+            return batch
 
     # TODO: Add method to Policy base class (as the new way of defining loss
     #  functions (instead of passing 'loss` to the super's constructor)).
@@ -140,7 +153,23 @@ class PPOTorchPolicy(TorchPolicy, LearningRateSchedule, EntropyCoeffSchedule):
                 logp_ratio, 1 - self.config["clip_param"], 1 + self.config["clip_param"]
             ),
         )
-        mean_policy_loss = reduce_mean_valid(-surrogate_loss)
+        if FOCUS_WEIGHT in train_batch:
+            focus_weight = train_batch[FOCUS_WEIGHT].detach().to(
+                dtype=surrogate_loss.dtype, device=surrogate_loss.device
+            )
+            if FOCUS_VALID in train_batch:
+                focus_valid = train_batch[FOCUS_VALID].bool().to(surrogate_loss.device)
+            else:
+                focus_valid = torch.ones_like(focus_weight, dtype=torch.bool)
+            effective_focus_weight = torch.where(
+                focus_valid, focus_weight, torch.ones_like(focus_weight)
+            )
+        else:
+            effective_focus_weight = torch.ones_like(surrogate_loss)
+
+        weighted_surrogate_loss = effective_focus_weight * surrogate_loss
+        mean_native_policy_loss = reduce_mean_valid(-surrogate_loss)
+        mean_policy_loss = reduce_mean_valid(-weighted_surrogate_loss)
 
         # Compute a value function loss.
         if self.config["use_critic"]:
@@ -155,7 +184,7 @@ class PPOTorchPolicy(TorchPolicy, LearningRateSchedule, EntropyCoeffSchedule):
             vf_loss_clipped = mean_vf_loss = 0.0
 
         total_loss = reduce_mean_valid(
-            -surrogate_loss
+            -weighted_surrogate_loss
             + self.config["vf_loss_coeff"] * vf_loss_clipped
             - self.entropy_coeff * curr_entropy
         )
@@ -169,12 +198,49 @@ class PPOTorchPolicy(TorchPolicy, LearningRateSchedule, EntropyCoeffSchedule):
         # multi-GPU, we do not override them during the parallel loss phase.
         model.tower_stats["total_loss"] = total_loss
         model.tower_stats["mean_policy_loss"] = mean_policy_loss
+        model.tower_stats["mean_native_policy_loss"] = mean_native_policy_loss
         model.tower_stats["mean_vf_loss"] = mean_vf_loss
         model.tower_stats["vf_explained_var"] = explained_variance(
             train_batch[Postprocessing.VALUE_TARGETS], model.value_function()
         )
         model.tower_stats["mean_entropy"] = mean_entropy
         model.tower_stats["mean_kl_loss"] = mean_kl_loss
+        if FOCUS_WEIGHT in train_batch:
+            focus_values = (
+                effective_focus_weight[mask] if mask is not None else effective_focus_weight
+            )
+            model.tower_stats["focus_weight_mean"] = focus_values.mean()
+            model.tower_stats["focus_weight_std"] = focus_values.std(unbiased=False)
+            model.tower_stats["focus_weight_min"] = focus_values.min()
+            model.tower_stats["focus_weight_max"] = focus_values.max()
+            model.tower_stats["focus_actor_loss_delta"] = (
+                mean_policy_loss - mean_native_policy_loss
+            )
+            if FOCUS_VALID in train_batch:
+                focus_valid_float = train_batch[FOCUS_VALID].float().to(logp_ratio.device)
+                valid_values = focus_valid_float[mask] if mask is not None else focus_valid_float
+                model.tower_stats["focus_valid_fraction"] = valid_values.mean()
+            if FOCUS_CONFIDENCE in train_batch:
+                confidence_values = train_batch[FOCUS_CONFIDENCE].float().to(logp_ratio.device)
+                confidence_values = confidence_values[mask] if mask is not None else confidence_values
+                model.tower_stats["focus_confidence_mean"] = confidence_values.mean()
+            if FOCUS_GAIN in train_batch:
+                gain_values = train_batch[FOCUS_GAIN].float().to(logp_ratio.device)
+                gain_values = gain_values[mask] if mask is not None else gain_values
+                model.tower_stats["focus_gain_mean"] = gain_values.mean()
+            if FOCUS_TOTAL_GAIN in train_batch:
+                total_gain_values = train_batch[FOCUS_TOTAL_GAIN].float().to(logp_ratio.device)
+                total_gain_values = total_gain_values[mask] if mask is not None else total_gain_values
+                model.tower_stats["focus_total_gain_mean"] = total_gain_values.mean()
+            if FOCUS_RHO in train_batch:
+                rho_values = train_batch[FOCUS_RHO].float().to(logp_ratio.device)
+                rho_values = rho_values[mask] if mask is not None else rho_values
+                model.tower_stats["focus_rho_min"] = rho_values.min()
+                model.tower_stats["focus_rho_max"] = rho_values.max()
+            if FOCUS_RHO_ENTROPY in train_batch:
+                entropy_values = train_batch[FOCUS_RHO_ENTROPY].float().to(logp_ratio.device)
+                entropy_values = entropy_values[mask] if mask is not None else entropy_values
+                model.tower_stats["focus_rho_entropy"] = entropy_values.mean()
 
         return total_loss
 
@@ -223,29 +289,58 @@ class PPOTorchPolicy(TorchPolicy, LearningRateSchedule, EntropyCoeffSchedule):
     #  "after_losses_computed").
     @override(TorchPolicy)
     def extra_grad_info(self, train_batch: SampleBatch) -> Dict[str, TensorType]:
-        return convert_to_numpy(
-            {
-                "cur_kl_coeff": self.kl_coeff,
-                "cur_lr": self.cur_lr,
-                "total_loss": torch.mean(
-                    torch.stack(self.get_tower_stats("total_loss"))
-                ),
-                "policy_loss": torch.mean(
-                    torch.stack(self.get_tower_stats("mean_policy_loss"))
-                ),
-                "vf_loss": torch.mean(
-                    torch.stack(self.get_tower_stats("mean_vf_loss"))
-                ),
-                "vf_explained_var": torch.mean(
-                    torch.stack(self.get_tower_stats("vf_explained_var"))
-                ),
-                "kl": torch.mean(torch.stack(self.get_tower_stats("mean_kl_loss"))),
-                "entropy": torch.mean(
-                    torch.stack(self.get_tower_stats("mean_entropy"))
-                ),
-                "entropy_coeff": self.entropy_coeff,
-            }
-        )
+        stats = {
+            "cur_kl_coeff": self.kl_coeff,
+            "cur_lr": self.cur_lr,
+            "total_loss": torch.mean(torch.stack(self.get_tower_stats("total_loss"))),
+            "policy_loss": torch.mean(
+                torch.stack(self.get_tower_stats("mean_policy_loss"))
+            ),
+            "native_policy_loss": torch.mean(
+                torch.stack(self.get_tower_stats("mean_native_policy_loss"))
+            ),
+            "vf_loss": torch.mean(torch.stack(self.get_tower_stats("mean_vf_loss"))),
+            "vf_explained_var": torch.mean(
+                torch.stack(self.get_tower_stats("vf_explained_var"))
+            ),
+            "kl": torch.mean(torch.stack(self.get_tower_stats("mean_kl_loss"))),
+            "entropy": torch.mean(torch.stack(self.get_tower_stats("mean_entropy"))),
+            "entropy_coeff": self.entropy_coeff,
+        }
+        optional_focus_stats = {
+            "focus/weight_mean": "focus_weight_mean",
+            "focus/weight_std": "focus_weight_std",
+            "focus/weight_min": "focus_weight_min",
+            "focus/weight_max": "focus_weight_max",
+            "focus/confidence_mean": "focus_confidence_mean",
+            "focus/valid_fraction": "focus_valid_fraction",
+            "focus/gain_mean": "focus_gain_mean",
+            "focus/total_gain_mean": "focus_total_gain_mean",
+            "focus/rho_entropy": "focus_rho_entropy",
+            "focus/rho_max": "focus_rho_max",
+            "focus/rho_min": "focus_rho_min",
+            "focus/native_actor_loss": "mean_native_policy_loss",
+            "focus/weighted_actor_loss": "mean_policy_loss",
+            "focus/actor_loss_delta": "focus_actor_loss_delta",
+            "focus/action_prior_loss": "focus_action_prior_loss",
+            "focus/action_prior_coeff": "focus_action_prior_coeff",
+            "focus/action_prior_target_entropy": "focus_action_prior_target_entropy",
+            "focus/action_prior_weight_mean": "focus_action_prior_weight_mean",
+            "focus/action_prior_positive_fraction": "focus_action_prior_positive_fraction",
+            "focus/belief_state_loss": "focus_belief_state_loss",
+            "focus/belief_state_coeff": "focus_belief_state_coeff",
+            "focus/belief_state_mae": "focus_belief_state_mae",
+            "focus/belief_loss": "focus_belief_loss",
+            "focus/beta_belief": "focus_beta_belief",
+        }
+        for public_key, tower_key in optional_focus_stats.items():
+            try:
+                values = self.get_tower_stats(tower_key)
+            except AssertionError:
+                continue
+            if values:
+                stats[public_key] = torch.mean(torch.stack(values))
+        return convert_to_numpy(stats)
 
     # TODO: Make lr-schedule and entropy-schedule Plugin-style functionalities
     #  that can be added (via the config) to any Trainer/Policy.

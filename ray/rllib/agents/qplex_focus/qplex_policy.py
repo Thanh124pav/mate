@@ -27,6 +27,7 @@ from ray.rllib.agents.focus_utils import (
     confidence_stats,
     gated_focus_loss,
     resolve_confidence,
+    focus_action_q_bias,
 )
 
 torch, nn = try_import_torch(error=True)
@@ -182,6 +183,9 @@ class LearnedOccupancyModel(nn.Module):
         hidden_dim=256,
         max_delta=400.0,
         min_std=25.0,
+        architecture="mlp",
+        num_layers=1,
+        dropout=0.0,
     ):
         super(LearnedOccupancyModel, self).__init__()
         self.state_dim = int(np.prod(state_dim))
@@ -190,20 +194,46 @@ class LearnedOccupancyModel(nn.Module):
         self.horizon = horizon
         self.max_delta = max_delta
         self.min_std = min_std
-        self.net = nn.Sequential(
-            nn.Linear(self.state_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, horizon * n_targets * 4),
-        )
+        self.architecture = str(architecture).lower()
+        self.num_layers = int(num_layers)
+
+        if self.architecture == "mlp":
+            self.net = nn.Sequential(
+                nn.Linear(self.state_dim, hidden_dim),
+                nn.ReLU(),
+                nn.Linear(hidden_dim, hidden_dim),
+                nn.ReLU(),
+                nn.Linear(hidden_dim, horizon * n_targets * 4),
+            )
+        elif self.architecture == "lstm":
+            self.rnn = nn.LSTM(
+                input_size=self.state_dim,
+                hidden_size=hidden_dim,
+                num_layers=self.num_layers,
+                batch_first=True,
+                dropout=float(dropout) if self.num_layers > 1 else 0.0,
+            )
+            self.head = nn.Linear(hidden_dim, horizon * n_targets * 4)
+        else:
+            raise ValueError(f"Unknown belief architecture: {architecture}")
 
     def forward(self, state):
         B, T = state.shape[:2]
         current_pos = _extract_target_positions(state, self.n_agents, self.n_targets)
-        out = self.net(state.reshape(-1, self.state_dim)).view(
-            B, T, self.horizon, self.n_targets, 4
-        )
+        state_flat = state.reshape(B, T, self.state_dim)
+        if self.architecture == "mlp":
+            out = self.net(state_flat.reshape(-1, self.state_dim)).view(
+                B, T, self.horizon, self.n_targets, 4
+            )
+        elif self.architecture == "lstm":
+            # Avoid cuDNN LSTM kernels here: some cluster/conda CUDA stacks can
+            # report CUDNN_STATUS_VERSION_MISMATCH even when regular Torch CUDA
+            # ops work. The belief model is small enough for the native kernel.
+            with torch.backends.cudnn.flags(enabled=False):
+                features, _ = self.rnn(state_flat)
+            out = self.head(features).view(B, T, self.horizon, self.n_targets, 4)
+        else:
+            raise ValueError(f"Unknown belief architecture: {self.architecture}")
         delta = torch.tanh(out[..., :2]) * self.max_delta
         std = F.softplus(out[..., 2:]) + self.min_std
         mean = current_pos.unsqueeze(2) + delta
@@ -286,10 +316,38 @@ class QPLEXFocusLoss(nn.Module):
             bits.append(((actions.long() // (2 ** shift)) % 2).float())
         return torch.stack(bits, dim=-1)
 
-    def _sigma_points(self, mean, std):
+    def _legacy_sigma_points(self, mean, std):
         x = torch.stack([std[..., 0], torch.zeros_like(std[..., 0])], dim=-1)
         y = torch.stack([torch.zeros_like(std[..., 1]), std[..., 1]], dim=-1)
-        return torch.stack([mean, mean + x, mean - x, mean + y, mean - y], dim=4)
+        points = torch.stack([mean, mean + x, mean - x, mean + y, mean - y], dim=4)
+        weights = torch.full((5,), 1.0 / 5.0, device=mean.device, dtype=mean.dtype)
+        return points, weights
+
+    def _gauss_hermite_sigma_points(self, mean, std, order):
+        nodes_np, weights_np = np.polynomial.hermite.hermgauss(order)
+        nodes = torch.as_tensor(nodes_np, device=mean.device, dtype=mean.dtype)
+        weights_1d = torch.as_tensor(weights_np, device=mean.device, dtype=mean.dtype)
+        nodes = np.sqrt(2.0) * nodes
+        weights_1d = weights_1d / np.sqrt(np.pi)
+
+        yy, xx = torch.meshgrid(nodes, nodes, indexing="ij")
+        wy, wx = torch.meshgrid(weights_1d, weights_1d, indexing="ij")
+        normals = torch.stack([xx.reshape(-1), yy.reshape(-1)], dim=-1)
+        weights = (wx * wy).reshape(-1)
+        weights = weights / (weights.sum() + self.focus_config.get("eps", 1e-8))
+        points = mean.unsqueeze(4) + std.unsqueeze(4) * normals.view(1, 1, 1, 1, -1, 2)
+        return points, weights
+
+    def _sigma_points(self, mean, std):
+        method = str(self.focus_config.get("sigma_method", "legacy5")).lower()
+        if method in ("legacy5", "legacy_5", "legacy"):
+            return self._legacy_sigma_points(mean, std)
+        if method in ("gauss_hermite", "gh"):
+            order = int(self.focus_config.get("sigma_order", 3))
+            if order < 1:
+                raise ValueError(f"sigma_order must be >= 1, got {order}")
+            return self._gauss_hermite_sigma_points(mean, std, order)
+        raise ValueError(f"Unknown sigma_method: {method}")
 
     def _mc_points(self, mean, std):
         eps = self.focus_config.get("eps", 1e-8)
@@ -505,6 +563,7 @@ class QPLEXFocusLoss(nn.Module):
         cam_range,
         cam_half_angle,
         selection,
+        sample_weights=None,
         obstacle_pos=None,
         obstacle_radius=None,
     ):
@@ -530,6 +589,8 @@ class QPLEXFocusLoss(nn.Module):
                 others = torch.cat([one_minus[:, :, :i, :], one_minus[:, :, i + 1 :, :]], dim=2)
                 all_uncovered_by_others.append(torch.prod(others, dim=2))
         unique_gain = visible * torch.stack(all_uncovered_by_others, dim=2)
+        if sample_weights is not None:
+            unique_gain = unique_gain * sample_weights.view(1, 1, 1, 1, 1, -1)
         return unique_gain.sum(dim=-1).sum(dim=-1)
 
     def _credit_geometry(self, state, n_targets):
@@ -548,7 +609,14 @@ class QPLEXFocusLoss(nn.Module):
             )
         return cam_pos, cam_orient, cam_range, cam_half_angle, obstacle_pos, obstacle_radius
 
-    def _credit_from_sigma_points(self, target_samples, state, actions, n_targets):
+    def _credit_from_sigma_points(
+        self,
+        target_samples,
+        state,
+        actions,
+        n_targets,
+        sample_weights=None,
+    ):
         cam_pos, cam_orient, cam_range, cam_half_angle, obstacle_pos, obstacle_radius = (
             self._credit_geometry(state, n_targets)
         )
@@ -557,11 +625,19 @@ class QPLEXFocusLoss(nn.Module):
         chunk_size = int(self.focus_config.get("sample_chunk_size", self.focus_config.get("mc_chunk_size", 32)))
         chunk_size = max(1, min(chunk_size, target_samples.size(4)))
         total_samples = target_samples.size(4)
+        if sample_weights is not None and sample_weights.numel() != total_samples:
+            raise ValueError(
+                f"Expected {total_samples} sigma weights, got {sample_weights.numel()}"
+            )
         g = target_samples.new_zeros(target_samples.size(0), target_samples.size(1), self.n_agents)
 
         for h in range(target_samples.size(2)):
             for start in range(0, total_samples, chunk_size):
-                samples = target_samples[:, :, h : h + 1, :, start : start + chunk_size, :]
+                end = start + chunk_size
+                samples = target_samples[:, :, h : h + 1, :, start:end, :]
+                chunk_weights = None
+                if sample_weights is not None:
+                    chunk_weights = sample_weights[start:end]
                 chunk_sum = self._credit_chunk_sum(
                     samples,
                     cam_pos,
@@ -569,10 +645,13 @@ class QPLEXFocusLoss(nn.Module):
                     cam_range,
                     cam_half_angle,
                     selection,
+                    sample_weights=chunk_weights,
                     obstacle_pos=obstacle_pos,
                     obstacle_radius=obstacle_radius,
                 ).squeeze(3)
-                g = g + horizon_weights[h] * chunk_sum / float(total_samples)
+                if sample_weights is None:
+                    chunk_sum = chunk_sum / float(total_samples)
+                g = g + horizon_weights[h] * chunk_sum
         return g
 
     def _credit_from_mc_points(self, mean, std, state, actions, n_targets):
@@ -680,8 +759,14 @@ class QPLEXFocusLoss(nn.Module):
             if integral_mode == "grid":
                 g = self._credit_from_grid(mean.detach(), std.detach(), state, actions, n_targets)
             elif integral_mode == "sigma":
-                target_samples = self._sigma_points(mean, std).detach()
-                g = self._credit_from_sigma_points(target_samples, state, actions, n_targets)
+                target_samples, sample_weights = self._sigma_points(mean, std)
+                g = self._credit_from_sigma_points(
+                    target_samples.detach(),
+                    state,
+                    actions,
+                    n_targets,
+                    sample_weights=sample_weights.detach(),
+                )
             elif integral_mode == "MC":
                 g = self._credit_from_mc_points(mean.detach(), std.detach(), state, actions, n_targets)
             else:
@@ -803,6 +888,18 @@ class QPLEXFocusLoss(nn.Module):
             mac_out_tp1 = _unroll_mac(self.model, next_obs)
 
             # mask out unallowed actions
+            if self.focus_config.get("action_bias_bootstrap", True):
+                action_bias = focus_action_q_bias(
+                    mac_out_tp1,
+                    next_state,
+                    self.focus_config,
+                    self.n_agents,
+                    self.n_actions,
+                )
+                if action_bias is not None:
+                    eta = float(self.focus_config.get("action_bias_eta", 0.0))
+                    mac_out_tp1 = mac_out_tp1 + eta * action_bias
+
             mac_out_tp1[ignore_action_tp1] = -np.inf
 
             # obtain best actions at t+1 according to policy NN
@@ -1019,6 +1116,8 @@ class QPLEXFocusTorchPolicy(Policy):
         self.target_mixer = FocusDuelMixer(self.args, self.n_agents, self.n_actions, self.env_global_state_shape, config['mixing_embed_dim'], self.args.ffn_hidden_dim, self.args.num_kernel).to(self.device)
         assert config['mixer'] == 'qplex_focus', f"Expected qplex_focus, get {config['mixer']}"
         focus_config = resolve_focus_config(self.config)
+        self.focus_config = focus_config
+        self.last_action_bias_stats = {}
         self.occupancy_model = None
         if focus_config.get("enabled", True) and focus_config.get("belief_mode", "learned") == "learned":
             self.occupancy_model = LearnedOccupancyModel(
@@ -1029,6 +1128,9 @@ class QPLEXFocusTorchPolicy(Policy):
                 hidden_dim=int(focus_config.get("belief_hidden_dim", 256)),
                 max_delta=float(focus_config.get("belief_max_delta", 400.0)),
                 min_std=float(focus_config.get("belief_min_std", 25.0)),
+                architecture=focus_config.get("belief_arch", focus_config.get("belief_architecture", "mlp")),
+                num_layers=int(focus_config.get("belief_num_layers", 1)),
+                dropout=float(focus_config.get("belief_dropout", 0.0)),
             ).to(self.device)
 
         self.cur_epsilon = 1.0
@@ -1075,9 +1177,9 @@ class QPLEXFocusTorchPolicy(Policy):
         **kwargs
     ):
         explore = explore if explore is not None else self.config["explore"]
-        obs_batch, action_mask, _ = self._unpack_observation(obs_batch)
-        # We need to ensure we do not use the env global state
-        # to compute actions
+        obs_batch, action_mask, env_global_state = self._unpack_observation(obs_batch)
+        # CTDE: centralized state may bias exploratory training actions, but
+        # decentralized evaluation calls this with explore=False and skips it.
 
         # Compute actions
         with torch.no_grad():
@@ -1089,6 +1191,22 @@ class QPLEXFocusTorchPolicy(Policy):
                     for s in state_batches
                 ],
             )
+            if explore and env_global_state is not None:
+                action_bias = focus_action_q_bias(
+                    q_values,
+                    torch.as_tensor(env_global_state, dtype=torch.float, device=self.device),
+                    self.focus_config,
+                    self.n_agents,
+                    self.n_actions,
+                )
+                if action_bias is not None:
+                    eta = float(self.focus_config.get("action_bias_eta", 0.0))
+                    q_values = q_values + eta * action_bias
+                    self.last_action_bias_stats = {
+                        "focus_action_bias_mean": action_bias.mean().detach().item(),
+                        "focus_action_bias_std": action_bias.std(unbiased=False).detach().item(),
+                        "focus_action_bias_eta": eta,
+                    }
             avail = torch.as_tensor(action_mask, dtype=torch.float, device=self.device)
             masked_q_values = q_values.clone()
             masked_q_values[avail == 0.0] = -float("inf")
@@ -1245,6 +1363,7 @@ class QPLEXFocusTorchPolicy(Policy):
             "target_mean": (targets * mask).sum().item() / mask_elems,
         }
         stats.update(getattr(self.loss, "last_focus_stats", {}))
+        stats.update(self.last_action_bias_stats)
         return {LEARNER_STATS_KEY: stats}
 
     @override(Policy)

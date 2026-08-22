@@ -43,6 +43,12 @@ dependencies = [
 ]
 dynamic = ["version"]
 
+[project.optional-dependencies]
+hmvfe = [
+    "torch",
+    "wandb",
+]
+
 [project.urls]
 Homepage = "https://github.com/XuehaiPan/mate"
 Repository = "https://github.com/XuehaiPan/mate"
@@ -53,7 +59,7 @@ Documentation = "https://mate-gym.readthedocs.io"
 include-package-data = true
 
 [tool.setuptools.packages.find]
-include = ["mate", "mate.*"]
+include = ["mate", "mate.*", "hmvfe_mate_d", "hmvfe_mate_d.*"]
 
 [tool.setuptools.package-data]
 assets = [

@@ -60,6 +60,35 @@ python -m mate.evaluate --episodes 1 --render-communication \
     --camera-kwargs '{ "checkpoint_path": "examples/hrl/qplex_v2/camera/ray_results/HRL-QPLEXV2/QPLEX_V2_mate-hrl.qplex_v2.camera_f1636_00000_0_2026-01-19_15-50-45/latest-checkpoint" }' \
     --config "MATE-4v5-0.yaml"
 ```
+
+### HMVFE Coordinator
+
+This repo includes a ray-free HMVFE coordinator integration in `hmvfe_mate_d/`,
+with the examples entry point under `examples/hmvfe/camera`. It uses the existing
+MATE camera-team wrappers with a discretized coordinator observation, an HMVFE FM
++ Mixture-of-Experts policy, and A2C/GAE training.
+
+Install the extra dependencies when needed:
+
+```bash
+pip install -r hmvfe_mate_d/requirements.txt
+pip install -e . --no-deps
+```
+
+Run a smoke training job:
+
+```bash
+python -m examples.hmvfe.camera.train --total-env-steps 5000 --rollout-length 8 \
+    --eval-interval 5 --eval-episodes 2 --log-interval 1 --wandb-mode disabled
+```
+
+Or use the script wrapper:
+
+```bash
+scripts/camera.hmvfe.sh --env-config MATE-4v8-9.yaml --seed 0 \
+    --total-env-steps 10000000 --wandb-project mate-hmvfe
+```
+
 ## Results
 
 #### 4v5-0
@@ -421,6 +450,7 @@ The following algorithms are implemented in [`examples`](examples):
   1. **MADDPG** (MA-TD3) (<https://arxiv.org/abs/1706.02275>)
   1. **IPPO** (<https://arxiv.org/abs/2011.09533>)
   1. **MAPPO** (<https://arxiv.org/abs/2103.01955>)
+  1. **HMVFE** (source: [`examples/hmvfe`](examples/hmvfe), core: [`hmvfe_mate_d`](hmvfe_mate_d))
 
 - _Multi-Agent Reinforcement Learning Algorithms_ with **Multi-Agent Communication:**
 

@@ -1,0 +1,23 @@
+# Pinned environment for the HMVFE-on-MATE integration (Python 3.9).
+# Install order matters: gym/numpy first, then mate (editable, no deps), then torch/wandb.
+#
+#   python3.9 -m venv .venv
+#   ./.venv/bin/python -m pip install -U pip setuptools wheel
+#   ./.venv/bin/python -m pip install -r hmvfe_mate_d/requirements.txt
+#   ./.venv/bin/python -m pip install -e . --no-deps          # installs `mate`
+#
+# Notes:
+#  - gym is pinned to 0.23.1 (classic 4-tuple step API that MATE targets). A
+#    compatibility shim in hmvfe_mate_d/compat.py fixes gym 0.23.1's deepcopy bug.
+#  - numpy is pinned < 1.25; np.bool8 (used by MATE) is only deprecated here.
+#  - torch has no ray/rllib dependency: this integration is intentionally ray-free.
+
+gym==0.23.1
+numpy==1.24.4
+scipy>=1.0
+pyglet>=1.3,<2
+pyyaml>=5.1
+tqdm>=4.11
+typing-extensions
+torch
+wandb
