@@ -1,6 +1,10 @@
 """Reusable FOCUS responsibility utilities."""
 
-from ray.rllib.agents.focus_common.adapters import MAPPOFocusAdapter
+from ray.rllib.agents.focus_common.adapters import (
+    MAPPOFocusAdapter,
+    ValueDecompositionFocusAdapter,
+)
+from ray.rllib.agents.focus_common.belief_state import GlobalStateBelief
 from ray.rllib.agents.focus_common.constants import (
     FOCUS_CONFIDENCE,
     FOCUS_GAIN,
@@ -26,4 +30,6 @@ __all__ = [
     "FocusOutput",
     "FocusResponsibilityEngine",
     "MAPPOFocusAdapter",
+    "ValueDecompositionFocusAdapter",
+    "GlobalStateBelief",
 ]

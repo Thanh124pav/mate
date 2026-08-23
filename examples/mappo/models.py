@@ -21,6 +21,7 @@ from ray.rllib.agents.focus_common import (
     FOCUS_WEIGHT,
     FocusResponsibilityEngine,
     MAPPOFocusAdapter,
+    GlobalStateBelief,
 )
 
 
@@ -138,11 +139,12 @@ class MAPPOModel(TorchRNN, nn.Module):
         )
         self.belief_state_head = None
         if self.belief_state_enabled:
-            self.belief_state_head = nn.Sequential(
-                nn.Linear(actor_feature_dim, belief_state_hidden_dim),
-                nn.Tanh(),
-                nn.Linear(belief_state_hidden_dim, self.global_state_dim),
-                nn.Tanh(),
+            self.belief_state_head = GlobalStateBelief(
+                actor_feature_dim,
+                self.global_state_dim,
+                hidden_dim=belief_state_hidden_dim,
+                recurrent=False,
+                output_activation="tanh",
             )
         self.focus_model = None
         self.focus_engine = None
@@ -185,7 +187,7 @@ class MAPPOModel(TorchRNN, nn.Module):
 
         self._last_belief_state = None
         if self.belief_state_head is not None:
-            belief_state = self.belief_state_head(self.actor.last_features)
+            belief_state, _ = self.belief_state_head(self.actor.last_features)
             self._last_belief_state = belief_state.reshape(-1, belief_state.size(-1))
 
         if self.has_action_mask:

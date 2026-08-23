@@ -63,6 +63,10 @@ class SyncVectorCoordinatorEnv:
                     obs[i] = env.reset() if d else o
         return np.stack(obs, axis=0)  # [num_envs, N_cam, N_tgt, F]
 
+    def global_state(self) -> np.ndarray:
+        """Return normalized privileged states aligned with the current obs."""
+        return np.stack([env.global_state() for env in self.envs], axis=0)
+
     def step(self, actions):
         """``actions``: sequence of ``num_envs`` arrays shaped ``[N_cam, N_tgt]``."""
 

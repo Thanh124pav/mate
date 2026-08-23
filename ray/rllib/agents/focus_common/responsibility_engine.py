@@ -41,6 +41,24 @@ class FocusResponsibilityEngine(nn.Module):
     def last_belief_stats(self):
         return getattr(self.estimator, "last_belief_stats", {})
 
+    def compute_target(self, global_state, next_global_state, joint_actions, valid_mask):
+        """Compute detached responsibility targets and belief supervision.
+
+        This is the stable learner-facing API shared by QPLEX, QMIX, DuelMIX
+        and policy-gradient adapters.  The wrapped legacy estimator remains the
+        source of truth for geometry and belief semantics.
+        """
+        return self.estimator._focus_credit_target(
+            global_state,
+            next_global_state,
+            joint_actions,
+            valid_mask,
+        )
+
+    def signal_confidence_weights(self, total_gain, valid):
+        """Expose signal weighting without exposing QPLEX internals."""
+        return self.estimator._signal_confidence_weights(total_gain, valid)
+
     def forward(
         self,
         global_state,
@@ -63,13 +81,11 @@ class FocusResponsibilityEngine(nn.Module):
                 -1, -1, self.estimator.n_agents
             )
 
-        rho, valid, total_gain, belief_loss, confidence, _ = (
-            self.estimator._focus_credit_target(
-                global_state,
-                next_global_state,
-                joint_actions,
-                valid_mask,
-            )
+        rho, valid, total_gain, belief_loss, confidence, _ = self.compute_target(
+            global_state,
+            next_global_state,
+            joint_actions,
+            valid_mask,
         )
 
         gains = rho * total_gain.unsqueeze(-1)

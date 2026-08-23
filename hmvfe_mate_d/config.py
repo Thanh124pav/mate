@@ -79,7 +79,18 @@ class HMVFEConfig:
     critic_reduction: str = 'learned'   # max | mean | learned
     value_head_hidden: int = 128        # hidden units of the learned value head
 
+    # --- CTDE belief state ----------------------------------------------------
+    # The actor sees only the discretized local observation and its predicted
+    # belief.  The true normalized state is reserved for the centralized critic
+    # and the auxiliary supervision target.
+    belief_enabled: bool = False
+    belief_hidden_dim: int = 128
+    belief_loss_coeff: float = 0.05
+    belief_loss: str = 'smooth_l1'      # smooth_l1 | mse
+    critic_use_global_state: bool = True
+
     # --- A2C / GAE training ---------------------------------------------------
+
     total_env_steps: int = 10_000_000
     num_envs: int = 8                 # HMVFE's critic is a PARAMETER-FREE max over interaction
                                       # scores (Sec. 4.1.3), so -- unlike HiT-MAC's Shapley critic,

@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import dataclasses
 
+import numpy as np
 import torch
 
 from hmvfe_mate_d.config import HMVFEConfig, make_env
@@ -68,6 +69,16 @@ def parse_args(prog: str = 'python -m hmvfe_mate_d') -> argparse.Namespace:
     p.add_argument('--num-angle-bins', dest='num_angle_bins', type=int)
     p.add_argument('--num-occlusion-bins', dest='num_occlusion_bins', type=int,
                    help='Bins for obstacle occlusion of the camera->target ray (variant B).')
+
+    # CTDE belief path
+    p.add_argument('--belief-enabled', dest='belief_enabled', action='store_true', default=None,
+                   help='Train a local-to-global belief head and feed predicted belief to the actor.')
+    p.add_argument('--belief-hidden-dim', dest='belief_hidden_dim', type=int)
+    p.add_argument('--belief-loss-coeff', dest='belief_loss_coeff', type=float)
+    p.add_argument('--belief-loss', dest='belief_loss', choices=['smooth_l1', 'mse'])
+    p.add_argument('--no-critic-global-state', dest='critic_use_global_state',
+                   action='store_false', default=None,
+                   help='Do not use privileged global state in the centralized training critic.')
 
     # training
     p.add_argument('--total-env-steps', dest='total_env_steps', type=int)
@@ -128,6 +139,10 @@ def main() -> None:
             mlp_layers=config.mlp_layers,
             critic_reduction=config.critic_reduction,
             value_head_hidden=config.value_head_hidden,
+            global_state_dim=int(np.prod(env.base_env.state_space.shape)),
+            belief_enabled=config.belief_enabled,
+            belief_hidden_dim=config.belief_hidden_dim,
+            critic_use_global_state=config.critic_use_global_state,
         )
         state = torch.load(args.load, map_location='cpu')
         model.load_state_dict(state['model'])

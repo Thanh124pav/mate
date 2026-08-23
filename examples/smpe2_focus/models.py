@@ -113,7 +113,20 @@ class SMPE2FocusModel(SMPE2Model):
             return None
 
         local_obs = inputs[..., self.local_obs_slice]
-        global_state = inputs[..., self.global_state_slice]
+        state_source = str(
+            self.focus_config.get("action_bias_state_source", "belief")
+        ).lower()
+        if state_source in ("belief", "predicted", "local_belief"):
+            # SMPE2's variational decoder is trained against the privileged state
+            # but receives only local observations at execution.
+            if self._z is None:
+                return None
+            global_state = self.decoder(self._z).detach()
+        elif bool(self.focus_config.get("allow_privileged_action_bias", False)):
+            global_state = inputs[..., self.global_state_slice]
+        else:
+            # Never allow an accidental privileged action path by default.
+            return None
         agent_index = local_obs[..., 3].round().long().clamp(0, self.n_focus_agents - 1)
         cam_pos, cam_orient, cam_range, cam_half_angle = _extract_camera_fov(
             global_state, self.n_focus_agents

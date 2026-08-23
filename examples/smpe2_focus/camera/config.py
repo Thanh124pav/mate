@@ -27,6 +27,8 @@ focus_config.update(
         "mc_chunk_size": 64,
         "min_credit_signal": 1e-6,
         "action_bias_eta": 3.0,
+        "action_bias_state_source": "belief",
+        "allow_privileged_action_bias": False,
         "action_bias_rotation_step": 5.0,
         "action_bias_zooming_step": 2.5,
         "action_bias_min_viewing_angle": 30.0,

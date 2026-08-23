@@ -11,6 +11,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from ray.rllib.agents.focus_common.adapters import ValueDecompositionFocusAdapter
 
 
 class LamdaWeight(nn.Module):
@@ -77,7 +78,9 @@ class LamdaWeight(nn.Module):
         actions = actions.reshape(-1, self.action_dim)
         data = torch.cat([states, actions], dim=1)
         if rho is not None:
-            rho = rho.reshape(-1, self.n_agents)
+            rho = ValueDecompositionFocusAdapter.duelmix_allocation(
+                rho.reshape(-1, self.n_agents), self.n_agents
+            )
 
         all_head_key = [k_ext(states) for k_ext in self.key_extractors]
         all_head_agents = [a_ext(states) for a_ext in self.agents_extractors]

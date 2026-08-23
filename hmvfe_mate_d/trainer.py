@@ -90,6 +90,7 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
     num_envs = max(1, int(config.num_envs))
     venv = SyncVectorCoordinatorEnv(config, num_envs)
     feature_dim = venv.feature_dim
+    state_dim = int(np.prod(venv.envs[0].base_env.state_space.shape))
 
     model = HMVFECoordinator(
         venv.num_cameras,
@@ -104,6 +105,10 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
         mlp_layers=config.mlp_layers,
         critic_reduction=config.critic_reduction,
         value_head_hidden=config.value_head_hidden,
+        global_state_dim=state_dim,
+        belief_enabled=config.belief_enabled,
+        belief_hidden_dim=config.belief_hidden_dim,
+        critic_use_global_state=config.critic_use_global_state,
     ).to(device)
     optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
     run = _init_wandb(config, output_dir)
@@ -141,6 +146,8 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
         # buffers indexed [t][env]
         log_probs_te = [[None] * num_envs for _ in range(rollout)]
         values_te = [[None] * num_envs for _ in range(rollout)]
+        belief_te = [[None] * num_envs for _ in range(rollout)]
+        states_te = np.zeros((rollout, num_envs, state_dim), dtype=np.float32)
         entropies_te = [[None] * num_envs for _ in range(rollout)]
         rewards_te = np.zeros((rollout, num_envs))
         dones_te = np.zeros((rollout, num_envs))
@@ -149,9 +156,21 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
 
         for t in range(rollout):
             actions = []
+            current_global_states = venv.global_state()
+            states_te[t] = current_global_states
             for i in range(num_envs):
                 state = torch.as_tensor(obs[i], dtype=torch.float32, device=device)
-                action, log_prob, entropy, value = model.act(state)
+                critic_state = None
+                if config.belief_enabled and config.critic_use_global_state:
+                    critic_state = torch.as_tensor(
+                        current_global_states[i], dtype=torch.float32, device=device
+                    )
+                action, log_prob, entropy, value = model.act(
+                    state, critic_state=critic_state
+                )
+                belief_te[t][i] = (
+                    model.last_belief_state if model.belief_enabled else None
+                )
                 actions.append(action.detach().cpu().numpy())
                 log_probs_te[t][i] = log_prob
                 entropies_te[t][i] = entropy
@@ -186,7 +205,14 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
             else:
                 with torch.no_grad():
                     state = torch.as_tensor(obs[i], dtype=torch.float32, device=device)
-                    bootstrap_value = float(model.value_only(state).squeeze().cpu())
+                    critic_state = None
+                    if config.belief_enabled and config.critic_use_global_state:
+                        critic_state = torch.as_tensor(
+                            venv.global_state()[i], dtype=torch.float32, device=device
+                        )
+                    bootstrap_value = float(
+                        model.value_only(state, critic_state=critic_state).squeeze().cpu()
+                    )
             adv_i, ret_i = _compute_gae(
                 rewards_te[:, i].tolist(), values_f_te[:, i].tolist(),
                 dones_te[:, i].tolist(), bootstrap_value, config.gamma, config.gae_lambda,
@@ -211,7 +237,30 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
 
         policy_loss = -(log_probs_stacked * advantages_t).mean()
         value_loss = 0.5 * (returns_t - values_stacked).pow(2).mean()
-        loss = policy_loss + config.value_coef * value_loss - config.entropy_coef * entropy_mean
+        belief_loss = torch.zeros((), dtype=policy_loss.dtype, device=device)
+        if config.belief_enabled and config.belief_loss_coeff > 0.0:
+            belief_predictions = [
+                belief_te[t][i]
+                for i in range(num_envs)
+                for t in range(rollout)
+                if belief_te[t][i] is not None
+            ]
+            if belief_predictions:
+                prediction = torch.stack(belief_predictions)
+                target = torch.as_tensor(
+                    states_te.transpose(1, 0, 2).reshape(-1, state_dim),
+                    dtype=prediction.dtype,
+                    device=device,
+                )
+                belief_loss = model.belief_loss(
+                    target[: prediction.shape[0]], prediction=prediction
+                )
+        loss = (
+            policy_loss
+            + config.value_coef * value_loss
+            - config.entropy_coef * entropy_mean
+            + config.belief_loss_coeff * belief_loss
+        )
 
         optimizer.zero_grad()
         loss.backward()
@@ -228,6 +277,7 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
                 'train/policy_loss': float(policy_loss.detach().cpu()),
                 'train/value_loss': float(value_loss.detach().cpu()),
                 'train/entropy': float(entropy_mean.detach().cpu()),
+                'train/belief_loss': float(belief_loss.detach().cpu()),
                 'train/grad_norm': float(grad_norm),
                 'train/mean_reward': float(rewards_te.mean()),
                 'train/lr': float(lr_now),

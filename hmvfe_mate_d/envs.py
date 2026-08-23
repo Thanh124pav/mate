@@ -143,6 +143,22 @@ class MATECoordinatorEnv(gym.Env):
     def close(self):
         return self.env.close()
 
+    def global_state(self) -> np.ndarray:
+        """Return the normalized privileged state for centralized training.
+
+        The public observation remains the discretized partial view.  This
+        method is intentionally separate so callers can make the CTDE boundary
+        explicit: the actor never receives this value during action selection,
+        while the critic/belief target may use it during training.
+        """
+        import mate
+
+        state = self.base_env.state()
+        return np.asarray(
+            mate.normalize_observation(state, self.base_env.state_space),
+            dtype=np.float32,
+        )
+
     # -- helpers ---------------------------------------------------------------
 
     def _view_mask(self, observations) -> np.ndarray:

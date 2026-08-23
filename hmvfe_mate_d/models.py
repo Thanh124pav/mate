@@ -102,6 +102,10 @@ class HMVFECoordinator(nn.Module):
         num_fields: int = 5,
         critic_reduction: str = 'learned',
         value_head_hidden: int = 128,
+        global_state_dim: int = 0,
+        belief_enabled: bool = False,
+        belief_hidden_dim: int = 128,
+        critic_use_global_state: bool = False,
     ) -> None:
         super().__init__()
         self.num_cameras = int(num_cameras)
@@ -110,6 +114,11 @@ class HMVFECoordinator(nn.Module):
         self.num_experts = int(num_experts)
         self.top_k = max(1, min(int(top_k), int(num_experts)))
         self.critic_reduction = str(critic_reduction).lower()
+        self.global_state_dim = int(global_state_dim)
+        self.belief_enabled = bool(belief_enabled) and self.global_state_dim > 0
+        self.belief_hidden_dim = int(belief_hidden_dim)
+        self.critic_use_global_state = bool(critic_use_global_state) and self.belief_enabled
+        self.last_belief_state = None
         if self.critic_reduction not in ('max', 'mean', 'learned'):
             raise ValueError(f"critic_reduction must be max|mean|learned, got {critic_reduction!r}")
 
@@ -125,13 +134,39 @@ class HMVFECoordinator(nn.Module):
             for _ in range(num_experts)
         )
 
+        pooled_dim = num_fields * embedding_dim + num_fields
+        self.belief_head = None
+        self.belief_actor_head = None
+        self.central_value_head = None
+        if self.belief_enabled:
+            self.belief_head = nn.Sequential(
+                nn.Linear(pooled_dim, self.belief_hidden_dim),
+                nn.LayerNorm(self.belief_hidden_dim),
+                nn.Tanh(),
+                nn.Linear(self.belief_hidden_dim, self.global_state_dim),
+                nn.Tanh(),
+            )
+            # The actor receives only this predicted belief at execution.  The
+            # head emits one bounded logit correction per camera-target pair.
+            self.belief_actor_head = nn.Sequential(
+                nn.Linear(pooled_dim + self.global_state_dim, self.belief_hidden_dim),
+                nn.Tanh(),
+                nn.Linear(self.belief_hidden_dim, self.num_cameras * self.num_targets),
+            )
+            if self.critic_use_global_state:
+                self.central_value_head = nn.Sequential(
+                    nn.Linear(self.global_state_dim, self.belief_hidden_dim),
+                    nn.Tanh(),
+                    nn.Linear(self.belief_hidden_dim, 1),
+                )
+
         # Tier B: a separate value head on the shared trunk (decoupled from the
         # actor's per-pair scores). Input = mean-pooled reweighted 2nd-order
         # embeddings (num_fields * d) concatenated with pooled 1st-order weights.
         if self.critic_reduction == 'learned':
-            pooled_dim = num_fields * embedding_dim + num_fields
+            value_input_dim = pooled_dim + (self.global_state_dim if self.belief_enabled else 0)
             self.value_head = nn.Sequential(
-                nn.Linear(pooled_dim, value_head_hidden),
+                nn.Linear(value_input_dim, value_head_hidden),
                 nn.ReLU(inplace=True),
                 nn.Linear(value_head_hidden, 1),
             )
@@ -166,31 +201,77 @@ class HMVFECoordinator(nn.Module):
         # mean-pooled trunk summary for the learned critic (decoupled from z)
         pooled = torch.cat(
             [e_star.mean(dim=0).reshape(-1), u_star.mean(dim=0)]
-        ) if self.critic_reduction == 'learned' else None
+        ) if (self.critic_reduction == 'learned' or self.belief_enabled) else None
         return z, pooled
 
-    def _value(self, z: torch.Tensor, pooled) -> torch.Tensor:
+    def _belief_from_pool(self, pooled):
+        if self.belief_head is None or pooled is None:
+            self.last_belief_state = None
+            return None
+        belief = self.belief_head(pooled).reshape(-1)
+        self.last_belief_state = belief
+        return belief
+
+    def belief_loss(self, target: torch.Tensor, prediction: torch.Tensor | None = None) -> torch.Tensor:
+        """Supervised local-to-global loss used only during centralized training."""
+        if self.belief_head is None:
+            return target.new_zeros(())
+        prediction = self.last_belief_state if prediction is None else prediction
+        if prediction is None:
+            return target.new_zeros(())
+        target = target.to(device=prediction.device, dtype=prediction.dtype).reshape_as(prediction)
+        return torch.nn.functional.smooth_l1_loss(prediction, target)
+
+    def _actor_logits(self, z: torch.Tensor, pooled):
+        """Add belief-only context to actor logits without privileged state."""
+        if self.belief_actor_head is None:
+            return z
+        belief = self._belief_from_pool(pooled)
+        if belief is None:
+            return z
+        actor_input = torch.cat([pooled, belief], dim=-1)
+        return z + self.belief_actor_head(actor_input).reshape_as(z)
+
+    def _value(self, z: torch.Tensor, pooled, critic_state: torch.Tensor | None = None) -> torch.Tensor:
+        if critic_state is not None and self.central_value_head is not None:
+            state = critic_state.to(device=z.device, dtype=z.dtype).reshape(-1)
+            return self.central_value_head(state).reshape(1)
         if self.critic_reduction == 'max':
             return z.max().reshape(1)
         if self.critic_reduction == 'mean':
             return z.mean().reshape(1)
-        return self.value_head(pooled).reshape(1)          # 'learned'
+        belief = self._belief_from_pool(pooled)
+        if critic_state is not None and self.belief_enabled:
+            context = critic_state.to(device=z.device, dtype=z.dtype).reshape(-1)
+        elif self.belief_enabled:
+            context = belief
+        else:
+            context = None
+        value_input = pooled if context is None else torch.cat([pooled, context], dim=-1)
+        return self.value_head(value_input).reshape(1)     # 'learned'
 
-    def forward(self, obs: torch.Tensor):
+    def belief_from_observation(self, obs: torch.Tensor) -> torch.Tensor | None:
+        """Return the local belief prediction for auxiliary supervised training."""
+        _, pooled = self._scores_and_pool(obs)
+        return self._belief_from_pool(pooled)
+
+    def forward(self, obs: torch.Tensor, critic_state: torch.Tensor | None = None):
         z, pooled = self._scores_and_pool(obs)
+        z = self._actor_logits(z, pooled)
         prob = torch.sigmoid(z)
-        return prob.reshape(self.num_cameras, self.num_targets), self._value(z, pooled)
+        return prob.reshape(self.num_cameras, self.num_targets), self._value(z, pooled, critic_state)
 
-    def act(self, obs: torch.Tensor, deterministic: bool = False):
+    def act(self, obs: torch.Tensor, deterministic: bool = False, critic_state: torch.Tensor | None = None):
         """Returns ``(action[N_cam,N_tgt], log_prob, entropy, value)``."""
 
         z, pooled = self._scores_and_pool(obs)
+        z = self._actor_logits(z, pooled)
         prob = torch.sigmoid(z).clamp(1e-6, 1.0 - 1e-6)
         dist = torch.distributions.Bernoulli(probs=prob)
         action = (prob > 0.5).float() if deterministic else dist.sample()
         log_prob = dist.log_prob(action).sum()
         entropy = dist.entropy().sum()
-        value = self._value(z, pooled)
+        value = self._value(z, pooled, critic_state)
         return (
             action.reshape(self.num_cameras, self.num_targets).long(),
             log_prob,
@@ -198,6 +279,7 @@ class HMVFECoordinator(nn.Module):
             value,
         )
 
-    def value_only(self, obs: torch.Tensor) -> torch.Tensor:
+    def value_only(self, obs: torch.Tensor, critic_state: torch.Tensor | None = None) -> torch.Tensor:
         z, pooled = self._scores_and_pool(obs)
-        return self._value(z, pooled)
+        z = self._actor_logits(z, pooled)
+        return self._value(z, pooled, critic_state)

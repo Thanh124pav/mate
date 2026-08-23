@@ -1,6 +1,7 @@
 import numpy as np
 
 from ray.rllib.utils.framework import try_import_torch
+from ray.rllib.agents.focus_common.adapters import ValueDecompositionFocusAdapter
 
 torch, nn = try_import_torch()
 
@@ -14,7 +15,8 @@ class VDNMixer(nn.Module):
             # Inject the environment-derived responsibility directly as a
             # per-agent scaling (rho*n_agents so a uniform rho is a no-op).
             n_agents = agent_qs.size(2)
-            agent_qs = agent_qs * (rho.reshape_as(agent_qs) * n_agents)
+            scale = ValueDecompositionFocusAdapter.qmix_scale(agent_qs, rho)
+            agent_qs = agent_qs * scale.reshape_as(agent_qs)
         return torch.sum(agent_qs, dim=2, keepdim=True)
 
     def credit_weights(self, agent_qs, states):
@@ -61,7 +63,10 @@ class QMixer(nn.Module):
         b1 = self.hyper_b_1(states)
         w1 = w1.view(-1, self.n_agents, self.embed_dim) # [B*T, n_agents, embed_dim]
         if rho is not None:
-            w1 = w1 * (rho.reshape(-1, self.n_agents, 1) * self.n_agents)
+            scale = ValueDecompositionFocusAdapter.qmix_scale(
+                w1, rho.reshape(-1, self.n_agents), n_agents=self.n_agents
+            )
+            w1 = w1 * scale.reshape(-1, self.n_agents, 1)
         b1 = b1.view(-1, 1, self.embed_dim)
         hidden = nn.functional.elu(torch.bmm(agent_qs, w1) + b1) # [B*T, 1, embed_dim]
         # Second layer

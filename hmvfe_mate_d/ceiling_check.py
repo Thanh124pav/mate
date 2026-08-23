@@ -72,6 +72,10 @@ def main():
             mlp_layers=cfg.mlp_layers,
             critic_reduction=cfg.critic_reduction,
             value_head_hidden=cfg.value_head_hidden,
+            global_state_dim=int(np.prod(env.base_env.state_space.shape)),
+            belief_enabled=cfg.belief_enabled,
+            belief_hidden_dim=cfg.belief_hidden_dim,
+            critic_use_global_state=cfg.critic_use_global_state,
         )
         model.load_state_dict(state['model'])
         model.eval()

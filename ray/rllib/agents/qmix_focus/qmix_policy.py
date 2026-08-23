@@ -8,9 +8,9 @@ from ray.rllib.agents.qmix_focus.mixers import VDNMixer, QMixer
 from ray.rllib.agents.qmix_focus.model import RNNModel, _get_size
 from ray.rllib.agents.qplex_focus.qplex_policy import (
     LearnedOccupancyModel,
-    QPLEXFocusLoss,
     resolve_focus_config,
 )
+from ray.rllib.agents.focus_common import FocusResponsibilityEngine
 from ray.rllib.env.multi_agent_env import ENV_STATE
 from ray.rllib.env.wrappers.group_agents_wrapper import GROUP_REWARDS
 from ray.rllib.models.torch.torch_action_dist import TorchCategorical
@@ -54,9 +54,11 @@ class QMixLoss(nn.Module):
         self.double_q = double_q
         self.gamma = gamma
         self.focus_config = focus_config or {}
-        self.focus_helper = QPLEXFocusLoss(
-            None, None, None, None, n_agents, n_actions,
-            focus_config=self.focus_config, occupancy_model=occupancy_model,
+        self.focus_helper = FocusResponsibilityEngine(
+            occupancy_model=occupancy_model,
+            n_agents=n_agents,
+            n_actions=n_actions,
+            focus_config=self.focus_config,
         )
         self.last_focus_stats = {}
 
@@ -171,7 +173,7 @@ class QMixLoss(nn.Module):
         belief_stats = {}
         confidence_mode = "off"
         if focus_enabled:
-            focus_target = self.focus_helper._focus_credit_target(
+            focus_target = self.focus_helper.compute_target(
                 state, next_state, actions, mask
             )
             if len(focus_target) == 7:
@@ -205,7 +207,7 @@ class QMixLoss(nn.Module):
             # rho is injected directly into the mixer above; only the belief
             # model still needs a supervised objective.
             loss = loss + beta * belief_loss
-            signal_weights = self.focus_helper._signal_confidence_weights(total_g, valid)
+            signal_weights = self.focus_helper.signal_confidence_weights(total_g, valid)
             valid_signal_weights = signal_weights[valid] if valid.any() else signal_weights.reshape(-1)
             self.last_focus_stats.update({
                 "focus_belief_loss": belief_loss.detach().item(),
