@@ -1,0 +1,7 @@
+/home/pavt1024/vsn/mate/mate/evaluate.py:18: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import parse_version
+/home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+  gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+/home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+  gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+Evaluating: 100%|██████████| 1/1 [00:00<?, ?episode/s, FPS=17.2, MeanCoverageRate=47.3%, MeanTransportRate=49.0%, NormalizedTargetEpisodeReward=+0.48969]Evaluating: 100%|██████████| 1/1 [00:00<?, ?episode/s, FPS=17.2, MeanCoverageRate=47.3%, MeanTransportRate=49.0%, NormalizedTargetEpisodeReward=+0.48969]

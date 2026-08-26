@@ -1,1508 +1,1517 @@
-# PLAN.md — Predictive Occupancy-Guided Credit Assignment for Sparse Multi-Agent Tracking
+# PLAN.md — FOCUS Privileged-to-Local Action Guidance
 
-## 0. One-line thesis
+## 0. Goal
 
-In sparse and occluded multi-agent tracking, realized binary coverage events provide noisy and delayed credit signals. We improve credit assignment by replacing sparse realized credit with a lower-variance predictive credit signal computed as the conditional expectation of each camera's counterfactual marginal coverage over a future target occupancy belief.
+The current `QPLEX_FOCUS` uses a strong training-time privileged action prior
 
----
+\[
+B_i^T(s_t,a)=\texttt{focus\_action\_q\_bias}(s_t,a),
+\]
 
-## 1. Motivation
+and modifies action selection as
 
-### 1.1 Problem setting
+\[
+Q_i'(a)=Q_i(o_{i,t},a)+\eta B_i^T(s_t,a).
+\]
 
-We consider a multi-camera multi-target tracking environment such as MATE.
+The problem is that decentralized execution does not have the global state \(s_t\). When the privileged bias is removed, the local policy may lose much of the training-time gain.
 
-There are:
+The new direction is therefore
 
-- `N_c` camera agents.
-- `N_t` target agents.
-- A 2D map/grid `Omega`.
-- Each camera has a field of view (FoV), controlled by action `a_i`.
-- Targets may be hidden by obstacles, leave FoV, or behave strategically to avoid cameras.
-- Camera reward is team-level, so individual camera credit is not directly observed.
-
-For camera `i` and target `j`, define the binary visibility event:
-
-```math
-Z_{ij,t}
-=
-1[\text{camera } i \text{ tracks target } j \text{ at time } t].
-```
-
-The team-level coverage event for target `j` is:
-
-```math
-C_{j,t}
-=
-1[\exists i: Z_{ij,t}=1].
-```
-
-A typical team reward contains sparse coverage feedback:
-
-```math
-R_t
-\propto
-\sum_j C_{j,t}.
-```
-
-When the environment is sparse or occluded:
-
-```math
-P(Z_{ij,t}=1) \ll 1.
-```
-
-This makes credit assignment difficult because the reward is:
-
-1. sparse: most transitions have no coverage signal;
-2. delayed: useful camera moves may only lead to target coverage several steps later;
-3. aliased: when targets are invisible, many latent target states collapse into the same local observation;
-4. redundant: multiple cameras may observe the same target, so naive credit double-counts overlapping FoV.
-
----
-
-### 1.2 Why QPLEX-like credit becomes noisy
-
-QPLEX decomposes the joint action value as:
-
-```math
-Q_{\text{tot}}
-=
-V_{\text{tot}}
-+
-\sum_i \lambda_i A_i,
-```
-
-where:
-
-```math
-A_i = Q_i - V_i
-```
-
-is the local advantage, and:
-
-```math
-\lambda_i \geq 0
-```
-
-is an importance or credit-like coefficient.
-
-The TD loss is:
-
-```math
-\mathcal L_{\text{TD}}
-=
-(y_{\text{tot}} - Q_{\text{tot}})^2.
-```
-
-Ignoring derivative terms through `lambda_i`, the gradient received by the individual advantage branch is approximately:
-
-```math
-\frac{\partial \mathcal L_{\text{TD}}}{\partial A_i}
-\approx
--2\delta_t \lambda_i,
-```
-
-where:
-
-```math
-\delta_t = y_{\text{tot}} - Q_{\text{tot}}.
-```
-
-Therefore, the learned credit signal depends heavily on sparse TD errors. If target coverage events are rare, then `lambda_i` is learned from weak, noisy, and infrequent evidence.
-
-The central hypothesis of this project is:
-
-```math
+\[
 \boxed{
-\text{Sparse visibility creates high-variance credit, while predictive occupancy belief provides a lower-variance credit target.}
+\text{privileged global-state teacher}
+\rightarrow
+\text{explicit local action supervision}
+\rightarrow
+\text{decentralized student}
 }
-```
+\]
+
+The implementation should first test whether the bottleneck is **teacher-to-student knowledge transfer**, before making the belief model more complex.
+
+Recommended progression:
+
+1. Audit evaluation to guarantee true decentralized execution.
+2. Keep the existing `focus_action_q_bias()` as an oracle-like privileged teacher during training.
+3. Train a local recurrent student to reproduce the teacher's action preference.
+4. Compare hard-label cross entropy and soft-label KL / soft cross entropy.
+5. Let the local student bias guide decentralized action selection.
+6. Only after direct distillation works, replace the direct bias head by a structured `local history -> belief -> action bias` pipeline.
+7. Optionally unify responsibility prediction and action guidance under one recurrent local belief representation.
 
 ---
 
-## 2. Analysis
+# 1. Core hypothesis
 
-### 2.1 Realized binary credit
+The current implementation implicitly assumes:
 
-Define the realized non-redundant marginal contribution of camera `i` for target `j`:
+> Better teacher-guided trajectories and TD targets will automatically cause the local Q-network to internalize the teacher's preferred actions.
 
-```math
-Y_{ij,t}
-=
-C_{j,t}(\mathbf a_t)
--
-C_{j,t}(\mathbf a_{-i,t}).
-```
+This is not guaranteed.
 
-If coverage is binary:
+The new hypothesis is
 
-```math
-C_{j,t}
-=
-1-
-\prod_k (1-Z_{kj,t}),
-```
-
-then:
-
-```math
-Y_{ij,t}
-=
-Z_{ij,t}
-\prod_{k\neq i}(1-Z_{kj,t}).
-```
-
-This means camera `i` receives realized marginal credit only when it sees target `j` and no other camera sees the same target.
-
-Let:
-
-```math
-\alpha_{ij}
-=
-P(Y_{ij,t}=1).
-```
-
-Then:
-
-```math
-Y_{ij,t}
-\sim \text{Bernoulli}(\alpha_{ij}).
-```
-
-The Monte Carlo estimator of expected credit is:
-
-```math
-\widehat \mu_{ij}
-=
-\frac{1}{n}
-\sum_{t=1}^n
-Y_{ij,t}.
-```
-
-It is unbiased:
-
-```math
-E[\widehat \mu_{ij}]
-=
-\alpha_{ij}.
-```
-
-Its variance is:
-
-```math
-\operatorname{Var}[\widehat \mu_{ij}]
-=
-\frac{\alpha_{ij}(1-\alpha_{ij})}{n}.
-```
-
-However, the relative standard error is:
-
-```math
-\frac{
-\sqrt{\operatorname{Var}[\widehat \mu_{ij}]}
-}{
-E[\widehat \mu_{ij}]
+\[
+\boxed{
+\text{The main bottleneck is privileged-to-local knowledge transfer, not teacher quality.}
 }
-=
-\sqrt{
-\frac{1-\alpha_{ij}}{n\alpha_{ij}}
-}.
-```
+\]
 
-When sparse visibility implies:
-
-```math
-\alpha_{ij}\to 0,
-```
-
-we get:
-
-```math
-\frac{
-\sqrt{\operatorname{Var}[\widehat \mu_{ij}]}
-}{
-E[\widehat \mu_{ij}]
-}
-\to \infty.
-```
-
-Therefore, realized binary credit becomes statistically unreliable in sparse environments.
+We test this by making the teacher preference an explicit supervised target for a local recurrent student.
 
 ---
 
-### 2.2 Predictive credit as Rao-Blackwellized credit
+# 2. Target architecture
 
-Let the local/global history available for prediction be:
+## 2.1 Privileged teacher
 
-```math
-h_t.
-```
+Keep the current teacher unchanged for the MVP:
 
-Define predictive credit as the conditional expectation of realized marginal credit:
-
-```math
-g_{ij,t}
-=
-E[Y_{ij,t}\mid h_t,\mathbf a_t].
-```
-
-This is the Rao-Blackwellized version of the realized binary credit.
-
-By the law of total variance:
-
-```math
-\operatorname{Var}(Y_{ij})
-=
-E[
-\operatorname{Var}(Y_{ij}\mid h_t,\mathbf a_t)
-]
-+
-\operatorname{Var}(
-E[Y_{ij}\mid h_t,\mathbf a_t]
-).
-```
-
-Therefore:
-
-```math
-\operatorname{Var}(g_{ij})
-=
-\operatorname{Var}(
-E[Y_{ij}\mid h_t,\mathbf a_t]
+```python
+teacher_bias = focus_action_q_bias(
+    q_values,
+    global_state,
+    focus_config,
+    n_agents,
+    n_actions,
 )
-\leq
-\operatorname{Var}(Y_{ij}).
 ```
 
-So predictive credit `g` has lower or equal variance than realized binary credit `Y`.
+Expected sequence shape:
+
+```text
+[B, T, N_agents, N_actions]
+```
 
 Interpretation:
 
-```math
+\[
+B_i^T(s_t,a)
+=
+\text{one-step privileged geometric action utility}.
+\]
+
+Do **not** call this true \(Q^*\).
+
+---
+
+## 2.2 Decentralized student
+
+The student must depend only on information available at decentralized execution.
+
+Use local recurrent features
+
+\[
+h_{i,t}=f_\theta(o_{i,1:t}),
+\]
+
+where `f_theta` is the existing GRU/LSTM/RNN feature extractor.
+
+Add a local action-guidance head
+
+\[
+\hat B_i(h_{i,t})\in\mathbb R^{N_{actions}}.
+\]
+
+Conceptually:
+
+```text
+local observation history
+          |
+          v
+      GRU / LSTM
+          |
+          v
+         h_i
+       /     \
+      /       \
+ Q-head      bias-head
+ Q_i(a)      B_hat_i(a)
+      \       /
+       \     /
+   decentralized action
+```
+
+At evaluation, `B_hat_i(a)` must be computed without global state.
+
+---
+
+# 3. Phase 0 — Audit decentralized evaluation first
+
+Before adding new losses, make the evaluation path unambiguous.
+
+Potential current ambiguity:
+
+```text
+deterministic=None
+    ->
+explore=None
+    ->
+config["explore"] may be True
+```
+
+## 3.1 Add explicit `decentralized_execution`
+
+In `examples/qplex_focus/camera/agent.py`, add:
+
+```python
+decentralized_execution=True
+```
+
+When enabled, force:
+
+```python
+config["explore"] = False
+config["focus"]["action_bias_eta"] = 0.0
+```
+
+and in `act()`:
+
+```python
+if self.decentralized_execution:
+    deterministic = True
+```
+
+## 3.2 Safety assertions
+
+During decentralized evaluation, log/assert:
+
+```text
+explore == False
+action_bias_eta == 0.0
+focus_action_q_bias() is not used for action selection
+```
+
+## 3.3 Baseline rerun
+
+Rerun at least:
+
+```text
+QPLEX
+QPLEX_FOCUS current
+```
+
+under identical conditions:
+
+```text
+same checkpoint selection rule
+same environment config
+same target agent
+same frame skip
+same seed set
+same number of episodes
+```
+
+Recommended:
+
+```text
+>= 20 episodes
+>= 3 seeds, ideally 5
+```
+
+This becomes the trustworthy baseline.
+
+---
+
+# 4. Phase 1 — Convert teacher bias into training labels
+
+The current teacher already gives a score for every discrete action.
+
+## 4.1 Teacher logits
+
+```python
+teacher_logits = teacher_bias.detach()
+```
+
+Never backpropagate into `focus_action_q_bias()`.
+
+## 4.2 Hard teacher label
+
+```python
+teacher_action = teacher_logits.argmax(dim=-1)
+```
+
+so
+
+\[
+a^T_{i,t}=\arg\max_a B_i^T(s_t,a).
+\]
+
+This is the target for the hard cross-entropy ablation.
+
+## 4.3 Soft teacher distribution — preferred
+
+Instead of throwing away the ranking information, form
+
+\[
+p_i^T(a\mid s_t)
+=
+\operatorname{softmax}\left(\frac{B_i^T(s_t,a)}{\tau_T}\right).
+\]
+
+Implementation:
+
+```python
+teacher_probs = torch.softmax(
+    teacher_logits / teacher_temperature,
+    dim=-1,
+).detach()
+```
+
+Initial config:
+
+```python
+"teacher_temperature": 1.0,
+```
+
+Suggested later sweep:
+
+```text
+0.5, 0.75, 1.0, 1.5, 2.0
+```
+
+---
+
+# 5. Phase 2 — Add a local action-bias head
+
+## 5.1 MVP: direct bias prediction
+
+Do **not** start by changing the full occupancy model.
+
+Add a small head on local recurrent features:
+
+```python
+self.focus_bias_head = nn.Sequential(
+    nn.Linear(hidden_dim, hidden_dim),
+    nn.ReLU(),
+    nn.Linear(hidden_dim, n_actions),
+)
+```
+
+Input:
+
+```text
+[B, T, N, H]
+```
+
+Output:
+
+```text
+[B, T, N, A]
+```
+
+This predicts
+
+\[
+\hat B_i(h_{i,t},a).
+\]
+
+## 5.2 Reuse the existing recurrent representation
+
+Preferred order:
+
+1. Reuse the existing Q-network recurrent feature if it can be exposed cleanly.
+2. Refactor the RNN model to optionally return recurrent features.
+3. Avoid creating a second independent LSTM unless necessary.
+
+Desired conceptual interface:
+
+```python
+q_values, hidden_features = _unroll_mac(
+    self.model,
+    obs,
+    return_features=True,
+)
+```
+
+The same local recurrent representation may later serve:
+
+```text
+Q prediction
+teacher-action distillation
+future belief prediction
+```
+
+---
+
+# 6. Phase 3 — Explicitly learn the good action
+
+Implement hard CE and soft KL. Do not start with contrastive learning.
+
+## 6.1 Hard cross entropy
+
+Student logits:
+
+```python
+student_logits = self.focus_bias_head(hidden_features)
+```
+
+Loss:
+
+\[
+L_{hard}
+=
+-\log p_i^S(a^T_{i,t}\mid h_{i,t}).
+\]
+
+Implementation:
+
+```python
+hard_ce = F.cross_entropy(
+    student_logits.reshape(-1, n_actions),
+    teacher_action.reshape(-1),
+    reduction="none",
+)
+```
+
+Apply the valid sequence mask afterward.
+
+Purpose:
+
+- simplest classification baseline;
+- directly tests the user's "good action as label" idea.
+
+---
+
+## 6.2 Soft cross entropy / KL — preferred main objective
+
+Student distribution:
+
+\[
+p_i^S(a\mid h_{i,t})
+=
+\operatorname{softmax}\left(\frac{\hat B_i(h_{i,t},a)}{\tau_S}\right).
+\]
+
+Use
+
+\[
+L_{soft}
+=
+-\sum_a p_i^T(a\mid s_t)\log p_i^S(a\mid h_{i,t}).
+\]
+
+Implementation:
+
+```python
+student_log_probs = F.log_softmax(
+    student_logits / student_temperature,
+    dim=-1,
+)
+
+soft_ce = -(
+    teacher_probs * student_log_probs
+).sum(dim=-1)
+```
+
+Equivalent KL form:
+
+```python
+kl = F.kl_div(
+    student_log_probs,
+    teacher_probs,
+    reduction="none",
+).sum(dim=-1)
+```
+
+Initial config:
+
+```python
+"action_distill_mode": "soft_kl",
+"teacher_temperature": 1.0,
+"student_temperature": 1.0,
+```
+
+Why prefer this over hard CE:
+
+- keeps the full action ranking;
+- nearby good actions are not treated the same as obviously bad actions;
+- better matches what `focus_action_q_bias()` already computes.
+
+---
+
+# 7. Phase 4 — Teacher confidence
+
+The teacher is only a geometric one-step oracle surrogate, not true \(Q^*\).
+
+Do not trust it equally everywhere.
+
+## 7.1 Entropy confidence
+
+Teacher entropy:
+
+\[
+H_T=-\sum_a p_T(a)\log p_T(a).
+\]
+
+Normalized entropy:
+
+\[
+\bar H_T=\frac{H_T}{\log A}.
+\]
+
+Confidence:
+
+\[
+c_t=1-\bar H_T.
+\]
+
+Implementation:
+
+```python
+teacher_entropy = -(
+    teacher_probs
+    * torch.log(teacher_probs + eps)
+).sum(dim=-1)
+
+teacher_confidence = (
+    1.0 - teacher_entropy / math.log(n_actions)
+).clamp(0.0, 1.0).detach()
+```
+
+Weighted action loss:
+
+```python
+action_loss = (
+    teacher_confidence * distill_per_step * valid_mask
+).sum() / (
+    (teacher_confidence * valid_mask).sum() + eps
+)
+```
+
+## 7.2 Optional top-1/top-2 gap confidence
+
+Later ablation:
+
+\[
+c_t
+=
+\sigma\left(
+\frac{B_{(1)}-B_{(2)}}{\tau_{gap}}
+\right).
+\]
+
+Do not implement before entropy confidence is working.
+
+---
+
+# 8. Phase 5 — Total loss
+
+Current QPLEX_FOCUS approximately uses
+
+\[
+L=L_{TD}+\beta L_{belief}.
+\]
+
+Add explicit action knowledge transfer:
+
+\[
 \boxed{
-g_i \text{ is the expected counterfactual marginal coverage contribution of camera } i
-\text{ under the current future occupancy belief.}
+L
+=
+L_{TD}
++
+\beta L_{belief}
++
+\lambda_{act}L_{distill}
 }
-```
+\]
 
-It is not an environment reward. It is an auxiliary credit target used to guide the learned credit coefficients of a value-decomposition algorithm.
-
----
-
-### 2.3 Occupancy belief
-
-For each target `j`, predict a future occupancy field:
-
-```math
-B_{j,t}^{H}(x)
-=
-\sum_{h=1}^{H}
-\omega_h
-P_\phi(X_{j,t+h}=x\mid h_t),
-```
-
-where:
-
-- `x` is a grid cell or continuous coordinate;
-- `H` is the prediction horizon;
-- `omega_h` is a temporal discount/weight;
-- `P_phi` may be produced by a learned world model, a particle filter, a known target-policy simulator, or a hybrid model.
-
-If the target behavior is known, for example greedy, then the belief model may be algorithm-aware rather than fully learned.
-
-If target behavior is adaptive or learned, use a behavior-conditioned belief:
-
-```math
-B_{j,t}^{H}(x)
-=
-\sum_z
-q_\psi(z\mid h_t)
-B_{j,t}^{H}(x\mid z),
-```
-
-where `z` is a latent target behavior type.
-
----
-
-### 2.4 Visibility kernel
-
-For camera `i`, action `a_i`, and position/grid cell `x`, define:
-
-```math
-v_i(x,a_i)\in[0,1].
-```
-
-This is the probability or soft score that camera `i` observes a target at `x`.
-
-A simple hard version is:
-
-```math
-v_i(x,a_i)
-=
-1[x\in \mathcal F_i(a_i)]1[\text{not occluded}].
-```
-
-A soft version may include:
-
-```math
-v_i(x,a_i)
-=
-\text{FoVSoftness}(x,a_i)
-\cdot
-\text{ObstacleTransmittance}(x).
-```
-
----
-
-### 2.5 Predictive counterfactual marginal credit
-
-The joint predictive coverage of target `j` under all cameras is:
-
-```math
-C_j^{\text{pred}}(\mathbf a)
-=
-\int_\Omega
-B_{j,t}^{H}(x)
-\left[
-1-
-\prod_{k=1}^{N_c}
-(1-v_k(x,a_k))
-\right]
-dx.
-```
-
-The marginal predictive credit of camera `i` for target `j` is:
-
-```math
-\Delta_{ij}^{\text{pred}}
-=
-C_j^{\text{pred}}(\mathbf a)
--
-C_j^{\text{pred}}(\mathbf a_{-i}).
-```
-
-Expanding:
-
-```math
-\Delta_{ij}^{\text{pred}}
-=
-\int_\Omega
-B_{j,t}^{H}(x)
-v_i(x,a_i)
-\prod_{k\neq i}
-(1-v_k(x,a_k))
-dx.
-```
-
-Total predictive credit for camera `i` is:
-
-```math
-g_i
-=
-\sum_j
-w_j
-\Delta_{ij}^{\text{pred}}.
-```
-
-Normalize this into a credit distribution:
-
-```math
-\rho_i
-=
-\frac{g_i+\epsilon}
-{\sum_k(g_k+\epsilon)}.
-```
-
-This `rho_i` is the predictive credit target for QPLEX-like `lambda_i`.
-
----
-
-## 3. Method
-
-### 3.1 Base architecture
-
-Use a QPLEX/Qatten-style value-decomposition architecture:
-
-```math
-Q_{\text{tot}}
-=
-V_{\text{tot}}
-+
-\sum_i
-\lambda_i A_i.
-```
-
-Use softmax credit coefficients:
-
-```math
-\lambda_i
-=
-\frac{\exp z_i}{\sum_k \exp z_k}.
-```
-
-The main TD objective is:
-
-```math
-\mathcal L_{\text{TD}}
-=
-(y_{\text{tot}}-Q_{\text{tot}})^2.
-```
-
-The predictive credit regularizer is:
-
-```math
-\mathcal L_\lambda
-=
-D_{\mathrm{KL}}
-(
-\operatorname{sg}(\rho)
-\|
-\lambda
-).
-```
-
-In code, this is usually cross-entropy:
-
-```math
-\mathcal L_\lambda
-=
--\sum_i
-\operatorname{sg}(\rho_i)
-\log(\lambda_i+\epsilon).
-```
-
-The belief/world-model loss is:
-
-```math
-\mathcal L_{\text{belief}}
-=
--\sum_{j,h}
-\log
-P_\phi(X_{j,t+h}^{\text{true}}\mid h_t).
-```
-
-Full loss:
-
-```math
-\mathcal L
-=
-\mathcal L_{\text{TD}}
-+
-\alpha
-\mathcal L_\lambda
-+
-\beta
-\mathcal L_{\text{belief}}.
-```
-
-Recommended first implementation:
-
-```math
-\beta > 0
-```
-
-only if the belief model is learned.
-
-If the belief is computed from a known target-policy simulator or particle filter, set:
-
-```math
-\beta = 0.
-```
-
----
-
-### 3.2 What is exact and what is approximate?
-
-#### Exact or nearly exact
-
-1. Camera geometry/FoV under action `a_i`.
-2. Obstacle transmittance or binary occlusion if map geometry is available.
-3. Current true target state during centralized training, if provided by env info.
-4. Visibility map `V[i, cell]` once camera pose/action and map are known.
-5. Predictive credit `g_i` given occupancy grid and visibility map.
-
-#### Approximate
-
-1. Future occupancy belief `B`.
-2. Adaptive or learned target behavior.
-3. Continuous-space integral over `Omega`.
-4. Counterfactual action baselines if regularizing local advantages.
-5. Q-values and TD targets.
-6. Any credit target derived from a learned belief model.
-
----
-
-### 3.3 Grid approximation of the credit integral
-
-Discretize the map into grid cells:
-
-```math
-\Omega \approx \mathcal G.
-```
-
-Let:
-
-```math
-B[j, c]
-```
-
-be the probability mass of target `j` at cell `c`.
-
-Let:
-
-```math
-V[i, c]
-```
-
-be the visibility score of camera `i` at cell `c`.
-
-Then:
-
-```math
-g_i
-\approx
-\sum_j
-w_j
-\sum_{c\in\mathcal G}
-B[j,c]
-V[i,c]
-\prod_{k\neq i}
-(1-V[k,c]).
-```
-
-This is the main computation to implement.
-
----
-
-### 3.4 Pseudocode: predictive credit computation
+Recommended config:
 
 ```python
-def compute_predictive_credit(
-    occ_belief,        # Tensor [B, N_t, G] probability mass over grid
-    visibility,        # Tensor [B, N_c, G] soft visibility map for current camera actions
-    target_weight,     # Tensor [B, N_t]
+"action_distill_enabled": True,
+"action_distill_coeff": 0.05,
+"action_distill_mode": "soft_kl",
+"teacher_temperature": 1.0,
+"student_temperature": 1.0,
+"action_distill_confidence": "entropy",
+```
+
+Initial coefficient sweep after smoke test:
+
+```text
+0.01, 0.03, 0.05, 0.1
+```
+
+Do not jointly tune all FOCUS parameters at this stage.
+
+---
+
+# 9. Phase 6 — Teacher scheduling
+
+Do not keep strong privileged supervision forever by default.
+
+Use
+
+\[
+\lambda_{act}(t):\lambda_0\rightarrow\lambda_{final}.
+\]
+
+Suggested first schedule:
+
+```text
+lambda_0     = 0.05
+lambda_final = 0.005
+```
+
+Interpretation:
+
+```text
+early training:
+teacher transfer strong
+
+late training:
+RL objective dominates
+
+evaluation:
+teacher absent
+```
+
+This allows the student to eventually deviate from an imperfect one-step teacher.
+
+---
+
+# 10. Phase 7 — How the teacher should affect behavior
+
+Test these variants separately.
+
+## Variant A — Distillation only
+
+Behavior policy:
+
+\[
+a=\epsilon\text{-greedy}(Q).
+\]
+
+Teacher is only a supervised target.
+
+Purpose:
+
+```text
+pure knowledge-transfer test
+```
+
+## Variant B — Teacher collection + distillation
+
+Training behavior:
+
+\[
+Q'(a)=Q(a)+\eta B^T(s,a).
+\]
+
+Also train
+
+\[
+L_{distill}.
+\]
+
+This combines:
+
+```text
+better trajectories
++
+explicit transfer
+```
+
+This is the strongest practical MVP candidate.
+
+## Variant C — Student-guided decentralized collection
+
+Use local predicted bias:
+
+\[
+Q'(a)=Q(a)+\eta_S\hat B(h,a).
+\]
+
+This is decentralized because \(\hat B\) depends only on local history.
+
+Recommended later training handoff:
+
+\[
+B^{mix}
+=
+\alpha_t B^T
++
+(1-\alpha_t)\hat B,
+\qquad
+\alpha_t:1\rightarrow0.
+\]
+
+Conceptually:
+
+```text
+early:  centralized teacher
+middle: teacher + student
+late:   decentralized student
+```
+
+This explicitly reduces train/eval mismatch.
+
+---
+
+# 11. Phase 8 — Separate privileged data collection from privileged bootstrap
+
+The current method also uses teacher bias during Double-Q bootstrap action selection.
+
+This can blur the causal mechanism.
+
+Add a clean experiment with:
+
+```python
+"action_bias_bootstrap": False,
+```
+
+Recommended comparison:
+
+```text
+A. No teacher
+B. Teacher collection only
+C. Teacher bootstrap only
+D. Teacher collection + bootstrap
+E. Distillation only
+F. Teacher collection + distillation
+G. Teacher collection + bootstrap + distillation
+```
+
+Do not assume G is best.
+
+A particularly clean method candidate is:
+
+```text
+teacher improves data collection
++
+explicit action distillation
++
+normal Q-learning bootstrap
+```
+
+because the Bellman operator remains standard.
+
+---
+
+# 12. Phase 9 — Metrics for teacher internalization
+
+Add the following metrics.
+
+## 12.1 Teacher-student top-1 agreement
+
+\[
+\text{Agreement}_{B}
+=
+P\left[
+\arg\max_a B^T(a)
+=
+\arg\max_a\hat B(a)
+\right].
+\]
+
+Log:
+
+```text
+focus_teacher_student_top1_agreement
+```
+
+## 12.2 Teacher-Q agreement
+
+\[
+\text{Agreement}_{Q}
+=
+P\left[
+\arg\max_a B^T(a)
+=
+\arg\max_a Q(o,a)
+\right].
+\]
+
+Log:
+
+```text
+focus_teacher_q_top1_agreement
+```
+
+This directly tests whether standard Q-learning internalizes the teacher.
+
+## 12.3 Teacher-student KL
+
+```text
+focus_teacher_student_kl
+```
+
+## 12.4 Teacher entropy / confidence
+
+```text
+focus_teacher_entropy
+focus_teacher_confidence
+```
+
+## 12.5 Student bias scale
+
+```text
+focus_student_bias_abs_mean
+focus_student_bias_std
+```
+
+---
+
+# 13. Phase 10 — Evaluation modes
+
+Every checkpoint should be evaluated in three distinct modes.
+
+## Mode 1 — Teacher-on diagnostic
+
+\[
+Q+\eta B^T.
+\]
+
+Not valid decentralized execution.
+
+Purpose:
+
+```text
+privileged teacher ceiling
+```
+
+## Mode 2 — Q-only decentralized
+
+\[
+Q(o,a).
+\]
+
+Purpose:
+
+```text
+did ordinary Q internalize the teacher?
+```
+
+## Mode 3 — Q + local student bias decentralized
+
+\[
+Q(o,a)+\eta_S\hat B(h,a).
+\]
+
+Purpose:
+
+```text
+can the distilled local surrogate preserve the gain?
+```
+
+Mode 3 is the main deployment setting for the new method.
+
+---
+
+# 14. Phase 11 — Structured belief-based action guidance
+
+Only implement this after direct bias distillation gives a positive result.
+
+The direct student tests
+
+\[
+h_i\rightarrow\hat B_i(a).
+\]
+
+The structured version should instead use
+
+\[
+h_i
+\rightarrow
+\text{future target belief}
+\rightarrow
+\hat B_i(a).
+\]
+
+## 14.1 Local recurrent belief
+
+Desired model:
+
+\[
+h_{i,t}=\mathrm{LSTM}(o_{i,1:t}).
+\]
+
+Then predict future target occupancy.
+
+Gaussian option:
+
+\[
+h_{i,t}
+\rightarrow
+(\mu_{i,j,t+h},\sigma_{i,j,t+h}).
+\]
+
+Grid option later:
+
+\[
+h_{i,t}
+\rightarrow
+P_{i,j,t+h}(x).
+\]
+
+Important:
+
+The execution-time belief predictor must use only local history.
+
+## 14.2 Predictive action utility
+
+For each candidate action:
+
+\[
+\hat B_i(a)
+=
+\sum_{h=1}^{H}\gamma_h
+\sum_j
+\mathbb E_{x\sim p_\phi(x_{j,t+h}\mid h_{i,t})}
+[V_i(x;a)].
+\]
+
+This is the predictive version of the current reactive global-state action bias.
+
+Start with independent per-camera coverage.
+
+A unique-coverage extension can be added later:
+
+\[
+\hat B_i^{unique}(a_i)
+=
+\sum_h\gamma_h\sum_j
+\mathbb E\left[
+V_i(x;a_i)
+\prod_{k\neq i}(1-V_k(x))
+\right].
+\]
+
+Do not start with this more complex form.
+
+---
+
+# 15. Phase 12 — Unified FOCUS representation
+
+Final target architecture:
+
+```text
+                    local history
+                         |
+                         v
+                      LSTM/GRU
+                         |
+                         v
+                        h_i
+              __________/|\__________
+             /           |           \
+            /            |            \
+        Q-head       belief-head    action-head
+          |              |              |
+       Q_i(a)       future belief    B_hat_i(a)
+                         |
+                         v
+               predictive responsibility
+                         |
+                         v
+                       rho_i
+```
+
+Potential total objective:
+
+\[
+L
+=
+L_{TD}
++
+\beta_{belief}L_{belief}
++
+\lambda_{act}L_{action}
+\]
+
+with optional responsibility supervision if retained.
+
+The final method story is:
+
+\[
+\boxed{
+\text{local history}
+\rightarrow
+\text{predictive belief}
+\rightarrow
+\begin{cases}
+\text{credit responsibility}\\
+\text{decentralized action guidance}
+\end{cases}
+}
+\]
+
+---
+
+# 16. Contrastive learning — optional, not MVP
+
+Do not implement contrastive learning before CE/KL distillation is tested.
+
+Possible formulation:
+
+\[
+z_{i,t}=f(o_{i,1:t})
+\]
+
+with learnable action embeddings \(e_a\).
+
+Use teacher-best action as the positive and lower-ranked actions as negatives:
+
+\[
+L_{NCE}
+=
+-\log
+\frac{
+\exp(\operatorname{sim}(z,e_{a^+})/\tau)
+}{
+\sum_a\exp(\operatorname{sim}(z,e_a)/\tau)
+}.
+\]
+
+Potential motivation:
+
+- richer representation learning;
+- action-geometry structure;
+- possible transfer across environments/action grids.
+
+For the current small discrete action space, soft CE/KL is simpler and more directly aligned with the goal.
+
+Use contrastive learning as an ablation only after the main transfer mechanism works.
+
+---
+
+# 17. Code changes
+
+## 17.1 `ray/rllib/agents/focus_utils.py`
+
+Keep:
+
+```python
+focus_action_q_bias(...)
+```
+
+Add:
+
+```python
+def focus_teacher_distribution(
+    action_bias,
+    temperature=1.0,
     eps=1e-8,
-    mask_no_signal=True,
-    min_signal=1e-6,
 ):
-    """
-    Returns:
-        rho: Tensor [B, N_c], normalized predictive credit distribution
-        g:   Tensor [B, N_c], unnormalized predictive credit
-        valid_mask: Tensor [B], whether enough predictive signal exists
-    """
-
-    Bsz, N_t, G = occ_belief.shape
-    _, N_c, _ = visibility.shape
-
-    # g[b, i] = sum_j w[b,j] sum_c B[b,j,c] V[b,i,c] prod_{k!=i}(1 - V[b,k,c])
-    g = zeros(Bsz, N_c)
-
-    one_minus_v = 1.0 - visibility.clamp(0.0, 1.0)
-
-    for i in range(N_c):
-        # product over all cameras except i
-        prod_not_seen_by_others = ones(Bsz, G)
-
-        for k in range(N_c):
-            if k == i:
-                continue
-            prod_not_seen_by_others *= one_minus_v[:, k, :]
-
-        # unique coverage of camera i at each cell
-        unique_vis_i = visibility[:, i, :] * prod_not_seen_by_others  # [B, G]
-
-        # contribution for each target
-        # occ_belief: [B, N_t, G]
-        # unique_vis_i: [B, G] -> [B, 1, G]
-        contrib_ij = (occ_belief * unique_vis_i[:, None, :]).sum(dim=-1)  # [B, N_t]
-
-        # weighted sum over targets
-        g[:, i] = (target_weight * contrib_ij).sum(dim=-1)
-
-    total_g = g.sum(dim=-1, keepdim=True)  # [B, 1]
-
-    valid_mask = (total_g.squeeze(-1) > min_signal)
-
-    rho = (g + eps) / (total_g + eps * N_c)
-
-    return rho, g, valid_mask
+    ...
 ```
-
----
-
-### 3.5 Pseudocode: training step
-
-```python
-def train_step(batch, networks, optimizers, cfg):
-    """
-    batch contains:
-        obs/history
-        actions
-        rewards
-        next_obs/history
-        dones
-        global_state or centralized info if available
-        target future positions for belief training, if learned belief
-    """
-
-    # 1. Individual agent networks
-    q_i, v_i, a_i_adv = networks.agent_q(batch.obs, batch.actions)
-    # q_i:       [B, N_c, A]
-    # a_i_adv:  [B, N_c] selected action advantages
-
-    # 2. Mixer/QPLEX forward
-    q_tot, lambda_credit = networks.mixer(
-        agent_advantages=a_i_adv,
-        state=batch.state,
-        joint_action=batch.actions,
-        return_lambda=True,
-    )
-    # q_tot: [B]
-    # lambda_credit: [B, N_c], softmax-normalized if using proposed variant
-
-    # 3. TD target
-    with no_grad():
-        target_q_tot = compute_qplex_target(batch, networks.target_networks, cfg)
-        y_tot = batch.reward + cfg.gamma * (1 - batch.done) * target_q_tot
-
-    td_loss = mse_loss(q_tot, y_tot)
-
-    # 4. Future occupancy belief
-    if cfg.belief_mode == "learned":
-        occ_belief = networks.belief_model(batch.history, batch.map_info)
-        belief_loss = occupancy_nll_loss(
-            occ_belief,
-            batch.future_target_positions,
-        )
-    elif cfg.belief_mode == "known_greedy_rollout":
-        with no_grad():
-            occ_belief = rollout_known_target_policy_to_occupancy(
-                history=batch.history,
-                map_info=batch.map_info,
-                target_policy="greedy",
-                horizon=cfg.pred_horizon,
-                num_particles=cfg.num_particles,
-            )
-        belief_loss = 0.0
-    elif cfg.belief_mode == "particle_filter":
-        with no_grad():
-            occ_belief = particle_filter_predictive_occupancy(
-                history=batch.history,
-                map_info=batch.map_info,
-                horizon=cfg.pred_horizon,
-                num_particles=cfg.num_particles,
-            )
-        belief_loss = 0.0
-    else:
-        raise ValueError("Unknown belief mode")
-
-    # occ_belief: [B, N_t, G]
-
-    # 5. Visibility maps for current joint camera actions
-    with no_grad():
-        visibility = compute_visibility_grid(
-            camera_state=batch.camera_state,
-            camera_actions=batch.actions,
-            map_info=batch.map_info,
-            grid=cfg.grid,
-            soft=cfg.soft_visibility,
-        )
-        # visibility: [B, N_c, G]
-
-    # 6. Target weights
-    with no_grad():
-        target_weight = compute_target_weights(
-            batch.target_state_or_info,
-            mode=cfg.target_weight_mode,
-        )
-        # target_weight: [B, N_t]
-
-    # 7. Predictive credit target rho
-    with no_grad():
-        rho, g, valid_mask = compute_predictive_credit(
-            occ_belief=occ_belief.detach(),
-            visibility=visibility,
-            target_weight=target_weight,
-            eps=cfg.eps,
-            min_signal=cfg.min_credit_signal,
-        )
-
-    # 8. Credit loss: align lambda with predictive responsibility
-    # lambda_credit: [B, N_c]
-    credit_loss_per_sample = -(rho * log(lambda_credit + cfg.eps)).sum(dim=-1)
-
-    if cfg.mask_no_credit_signal:
-        credit_loss = (credit_loss_per_sample * valid_mask.float()).sum() / (
-            valid_mask.float().sum() + cfg.eps
-        )
-    else:
-        credit_loss = credit_loss_per_sample.mean()
-
-    # 9. Total loss
-    loss = (
-        td_loss
-        + cfg.alpha_credit * credit_loss
-        + cfg.beta_belief * belief_loss
-    )
-
-    optimizers.main.zero_grad()
-    loss.backward()
-    clip_grad_norm_(networks.parameters(), cfg.grad_clip)
-    optimizers.main.step()
-
-    return {
-        "loss": loss.item(),
-        "td_loss": td_loss.item(),
-        "credit_loss": credit_loss.item(),
-        "belief_loss": float(belief_loss),
-        "mean_credit_signal": g.sum(dim=-1).mean().item(),
-        "valid_credit_ratio": valid_mask.float().mean().item(),
-        "lambda_entropy": entropy(lambda_credit).mean().item(),
-        "rho_entropy": entropy(rho).mean().item(),
-    }
-```
-
----
-
-### 3.6 Possible variants
-
-#### Variant A: regularize only lambda
-
-This is the recommended first variant.
-
-```math
-\mathcal L_\lambda
-=
-D_{\mathrm{KL}}(\rho\|\lambda).
-```
-
-Pros:
-
-- Stable.
-- Does not require matching the scale of `A_i`.
-- Natural when `lambda` is softmax-normalized.
-
-Cons:
-
-- Only controls credit distribution, not advantage magnitude.
-
-#### Variant B: regularize local advantage
-
-Define action-level predictive advantage:
-
-```math
-\widetilde g_i
-=
-g_i(a_i,\mathbf a_{-i})
--
-\sum_{a_i'}
-\pi_i(a_i'\mid \tau_i)
-g_i(a_i',\mathbf a_{-i}).
-```
-
-Then:
-
-```math
-\mathcal L_A
-=
-\sum_i
-(A_i-\eta \operatorname{sg}(\widetilde g_i))^2.
-```
-
-Pros:
-
-- Stronger connection to QPLEX advantage decomposition.
-
-Cons:
-
-- Requires enumerating or sampling counterfactual actions.
-- Requires careful scaling because `A_i` is return-scale while `g_i` is coverage-scale.
-
-#### Variant C: reward shaping baseline
-
-Use:
-
-```math
-r_i^{\text{aux}} = g_i.
-```
-
-This is easy but should not be the main contribution because it may be viewed as dense reward shaping.
-
----
-
-## 4. How to estimate whether `g` has lower variance than `Y`
-
-### 4.1 Empirical variance comparison
-
-Collect a replay/evaluation dataset.
-
-For each transition, compute:
-
-1. realized binary marginal credit `Y_i`;
-2. predictive credit `g_i`.
-
-Then estimate:
-
-```math
-\widehat{\operatorname{Var}}(Y_i),
-\qquad
-\widehat{\operatorname{Var}}(g_i).
-```
-
-Report variance ratio:
-
-```math
-\operatorname{VR}_i
-=
-\frac{
-\widehat{\operatorname{Var}}(g_i)
-}{
-\widehat{\operatorname{Var}}(Y_i)+\epsilon
-}.
-```
-
-Expected result:
-
-```math
-\operatorname{VR}_i < 1.
-```
-
-Also report average variance ratio:
-
-```math
-\operatorname{VR}
-=
-\frac{1}{N_c}
-\sum_i
-\operatorname{VR}_i.
-```
-
----
-
-### 4.2 Conditional variance decomposition
-
-Group transitions by similar histories, difficulty regimes, visibility bins, or belief states.
-
-Estimate:
-
-```math
-\operatorname{Var}(Y_i)
-=
-E[\operatorname{Var}(Y_i\mid h)]
-+
-\operatorname{Var}(E[Y_i\mid h]).
-```
-
-Since:
-
-```math
-g_i \approx E[Y_i\mid h],
-```
-
-compare:
-
-```math
-\widehat{\operatorname{Var}}(g_i)
-```
-
-with:
-
-```math
-\widehat{\operatorname{Var}}(Y_i).
-```
-
-This supports the Rao-Blackwellization claim.
-
----
-
-### 4.3 Relative standard error
-
-For sparse Bernoulli credit:
-
-```math
-Y_i\sim \text{Bernoulli}(\alpha_i).
-```
-
-Estimate:
-
-```math
-\widehat \alpha_i = \frac{1}{n}\sum_t Y_{i,t}.
-```
-
-The relative standard error of realized credit is approximately:
-
-```math
-\operatorname{RSE}(Y_i)
-=
-\sqrt{
-\frac{1-\widehat\alpha_i}
-{n\widehat\alpha_i+\epsilon}
-}.
-```
-
-For predictive credit, use bootstrap over the dataset:
-
-```math
-\operatorname{RSE}(g_i)
-=
-\frac{
-\operatorname{Std}_{\text{bootstrap}}(\widehat E[g_i])
-}{
-|\widehat E[g_i]|+\epsilon
-}.
-```
-
-Report:
-
-```math
-\frac{\operatorname{RSE}(g_i)}{\operatorname{RSE}(Y_i)}.
-```
-
----
-
-### 4.4 SNR of learning signal
-
-For each transition, define approximate credit gradient signal:
-
-```math
-G_i^{Y}
-=
-Y_i \cdot \|\nabla_{\theta_i} A_i\|
-```
-
-and predictive-credit signal:
-
-```math
-G_i^{g}
-=
-g_i \cdot \|\nabla_{\theta_i} A_i\|.
-```
-
-Estimate:
-
-```math
-\operatorname{SNR}(S)
-=
-\frac{\|\mathbb E[S]\|^2}
-{\operatorname{Var}(S)+\epsilon}.
-```
-
-Report:
-
-```math
-\operatorname{SNR}(G_i^g)
->
-\operatorname{SNR}(G_i^Y).
-```
-
-This is optional but useful for connecting credit variance to optimization.
-
----
-
-### 4.5 Correlation with oracle marginal credit
-
-If centralized information is available, compute oracle marginal credit:
-
-```math
-\Delta_i^{\text{oracle}}
-=
-C(\mathbf a)
--
-C(\mathbf a_{-i})
-```
-
-using true target positions.
-
-Measure:
-
-```math
-\operatorname{Corr}(g_i,\Delta_i^{\text{oracle}}),
-```
-
-and compare with:
-
-```math
-\operatorname{Corr}(\lambda_i,\Delta_i^{\text{oracle}}),
-\qquad
-\operatorname{Corr}(\lambda_i A_i,\Delta_i^{\text{oracle}}).
-```
-
-After training with the proposed method, expected results:
-
-```math
-\operatorname{Corr}(\lambda_i,\Delta_i^{\text{oracle}})
-\text{ increases.}
-```
-
----
-
-## 5. Experiments
-
-### 5.1 Core research questions
-
-RQ1. Does sparse visibility increase credit noise?
-
-RQ2. Does predictive occupancy credit have lower variance than realized binary credit?
-
-RQ3. Does regularizing QPLEX lambda with predictive credit improve learned credit assignment?
-
-RQ4. Does improved credit assignment translate to better coverage/return in sparse and occluded environments?
-
-RQ5. Does opponent-aware or behavior-conditioned belief help when targets are non-greedy or learned to evade cameras?
-
----
-
-### 5.2 Environment regimes
-
-Create multiple MATE configurations.
-
-#### Easy regime
-
-- Many targets.
-- Few obstacles.
-- Wider FoV.
-- High visibility rate.
-
-Expected:
-
-```math
-p_{\text{vis}} \text{ high},
-\quad
-\alpha_i \text{ high},
-\quad
-\text{credit noise low}.
-```
-
-#### Sparse regime
-
-- Fewer targets.
-- Narrower FoV.
-- Larger map or more empty space.
-
-Expected:
-
-```math
-p_{\text{vis}} \downarrow,
-\quad
-\alpha_i \downarrow,
-\quad
-\text{credit noise} \uparrow.
-```
-
-#### Occluded regime
-
-- More obstacles.
-- Lower transmittance.
-- Targets can hide behind obstacles.
-
-Expected:
-
-```math
-I(o_i;X_j)\downarrow,
-\quad
-D_{\text{invisible}}\uparrow.
-```
-
-#### Overlap regime
-
-- Cameras have overlapping FoVs.
-- Tests whether the method reduces redundant credit.
-
-Expected:
-
-```math
-\text{redundant coverage}\downarrow,
-\quad
-\text{unique coverage}\uparrow.
-```
-
-#### Adaptive target regime
-
-- Targets use different policies:
-  - random;
-  - greedy;
-  - evasive heuristic;
-  - learned policy;
-  - mixture of policies.
-
-Expected:
-
-```math
-\text{opponent-aware belief} > \text{single-policy belief}.
-```
-
----
-
-### 5.3 Baselines
-
-Minimum baselines:
-
-1. GreedyCamera.
-2. QMIX.
-3. QPLEX.
-4. Qatten.
-5. QPLEX + softmax lambda.
-6. QPLEX + MATE soft coverage auxiliary reward.
-7. QPLEX + reward shaping using `g_i`.
-8. Proposed: QPLEX + predictive credit lambda regularization.
 
 Optional:
 
-9. MAPPO.
-10. MAPPO + predictive credit advantage weighting.
-11. Oracle occupancy credit upper bound.
-
----
-
-### 5.4 Ablations
-
-#### Ablation A: source of belief
-
-Compare:
-
-1. no belief;
-2. current visible target only;
-3. constant velocity belief;
-4. known greedy-policy rollout;
-5. learned occupancy world model;
-6. hybrid greedy prior + learned residual;
-7. oracle future occupancy.
-
-#### Ablation B: role of predictive credit
-
-Compare:
-
-1. TD loss only;
-2. TD + softmax lambda;
-3. TD + predictive credit lambda regularization;
-4. TD + predictive credit reward shaping;
-5. TD + predictive credit advantage regularization.
-
-#### Ablation C: horizon
-
-Test:
-
-```math
-H\in\{1,3,5,10,20\}.
-```
-
-Expected:
-
-- Small `H`: insufficient future information.
-- Very large `H`: belief becomes too diffuse.
-- Medium `H`: best.
-
-#### Ablation D: grid resolution
-
-Test:
-
-```math
-G\in\{16\times16,\;32\times32,\;64\times64\}.
-```
-
-Measure runtime, memory, and performance.
-
-#### Ablation E: credit coefficient
-
-Test:
-
-```math
-\alpha\in\{0,0.01,0.05,0.1,0.5,1.0\}.
-```
-
-Expected:
-
-- Too small: no effect.
-- Too large: over-constrains lambda with imperfect belief.
-
----
-
-### 5.5 Metrics
-
-#### Performance metrics
-
-1. Team return.
-2. Coverage rate:
-
-```math
-\frac{
-\#\text{tracked target timesteps}
-}{
-N_tT
-}.
-```
-
-3. Real coverage rate for targets with cargo/bounty.
-4. Target transport success rate.
-5. Win/loss if environment defines it.
-
-#### Sparsity metrics
-
-1. Visibility probability:
-
-```math
-p_{\text{vis}}
-=
-\frac{1}{TN_cN_t}
-\sum_{t,i,j}
-Z_{ij,t}.
-```
-
-2. Coverage event rate:
-
-```math
-r_{\text{cov}}
-=
-\frac{1}{TN_t}
-\sum_{t,j}
-1[\exists i:Z_{ij,t}=1].
-```
-
-3. Mean invisible duration.
-4. Reward-zero ratio:
-
-```math
-\zeta_R
-=
-\frac{1}{T}
-\sum_t
-1[R_t=0].
-```
-
-#### Credit metrics
-
-1. Realized marginal credit probability:
-
-```math
-\alpha_i
-=
-\frac{1}{T}
-\sum_t
-Y_{i,t}.
-```
-
-2. Credit variance ratio:
-
-```math
-\operatorname{VR}
-=
-\frac{
-\operatorname{Var}(g_i)
-}{
-\operatorname{Var}(Y_i)+\epsilon
-}.
-```
-
-3. Relative standard error:
-
-```math
-\operatorname{RSE}(Y_i),
-\quad
-\operatorname{RSE}(g_i).
-```
-
-4. Correlation with oracle marginal credit:
-
-```math
-\operatorname{Corr}(\lambda_i,\Delta_i^{\text{oracle}}).
-```
-
-5. Credit entropy:
-
-```math
-H(\lambda)
-=
--\sum_i
-\lambda_i\log\lambda_i.
-```
-
-6. Redundant overlap:
-
-```math
-\operatorname{Redundancy}
-=
-\sum_j
-\left(
-\sum_i Z_{ij}
--
-1[\exists i:Z_{ij}=1]
-\right).
-```
-
-#### Belief metrics
-
-1. Occupancy NLL.
-2. Calibration error.
-3. Top-k mass accuracy.
-4. Mass-in-FoV prediction error:
-
-```math
-\left|
-\int B_j^H(x)v_i(x,a_i)dx
--
-1[X_{j,t+h}\in \mathcal F_i(a_i)]
-\right|.
+```python
+def focus_teacher_confidence(
+    teacher_probs,
+    mode="entropy",
+):
+    ...
 ```
 
 ---
 
-### 5.6 Expected findings
+## 17.2 `ray/rllib/agents/qplex_focus/qplex_policy.py`
 
-Expected result 1:
+Add:
 
-```math
-p_{\text{vis}}\downarrow
-\Rightarrow
-\alpha_i\downarrow
-\Rightarrow
-\operatorname{RSE}(Y_i)\uparrow.
+```text
+- local recurrent feature extraction
+- local student action-bias head
+- teacher target generation
+- hard CE loss
+- soft KL / soft CE loss
+- confidence weighting
+- teacher/student agreement metrics
+- optional teacher-to-student schedule
 ```
 
-Expected result 2:
-
-```math
-\operatorname{Var}(g_i) < \operatorname{Var}(Y_i)
-```
-
-or at least:
-
-```math
-\operatorname{RSE}(g_i) < \operatorname{RSE}(Y_i).
-```
-
-Expected result 3:
-
-Proposed method improves:
-
-```math
-\operatorname{Corr}(\lambda_i,\Delta_i^{\text{oracle}})
-```
-
-over QPLEX and QPLEX+softmax.
-
-Expected result 4:
-
-Performance gains are strongest in:
-
-- sparse visibility;
-- high occlusion;
-- overlapping FoV;
-- adaptive/evasive target policies.
-
-Expected result 5:
-
-In easy environments, proposed method should be comparable to QPLEX, not necessarily much better.
-
-This supports the claim that the method specifically helps under difficult credit-assignment conditions.
+Do not change the existing FOCUS responsibility mechanism in the first patch.
 
 ---
 
-## 6. Paper positioning
+## 17.3 Q-network / `RNNModel`
 
-This is primarily a conceptual and algorithmic improvement for credit assignment.
+If required, expose recurrent features safely.
 
-The conceptual contribution is:
-
-```math
-\boxed{
-\text{From sparse realized credit to predictive Rao-Blackwellized credit.}
-}
-```
-
-The algorithmic contribution is:
-
-```math
-\boxed{
-\text{Use future occupancy belief to supervise QPLEX/Qatten credit coefficients.}
-}
-```
-
-The empirical contribution is:
-
-```math
-\boxed{
-\text{Show that predictive credit improves learned credit assignment and performance in sparse, occluded, and adaptive multi-agent tracking.}
-}
-```
-
-This direction should be positioned as:
-
-- not merely reward shaping;
-- not merely adding a world model;
-- not merely replacing sigmoid by softmax;
-- but a credit-assignment method that uses predictive occupancy as a lower-variance counterfactual responsibility signal.
-
----
-
-## 7. Minimal implementation checklist
-
-1. Implement grid representation of map.
-2. Implement visibility grid `V[i, cell]`.
-3. Implement occupancy belief provider:
-   - start with known greedy rollout or oracle-like supervised occupancy;
-   - then learned occupancy model.
-4. Implement `compute_predictive_credit`.
-5. Modify QPLEX mixer to return `lambda_i`.
-6. Change lambda to softmax if not already done.
-7. Add credit loss:
+Possible interface:
 
 ```python
-credit_loss = -(rho.detach() * torch.log(lambda_credit + eps)).sum(dim=-1)
+def forward_with_features(...):
+    ...
 ```
 
-8. Mask samples where total predictive credit is too small.
-9. Log:
-   - `td_loss`;
-   - `credit_loss`;
-   - `belief_loss`;
-   - `lambda_entropy`;
-   - `rho_entropy`;
-   - `credit_variance_ratio`;
-   - `lambda_oracle_credit_corr`.
-10. Run ablations.
+or cache the feature from the normal recurrent forward pass.
+
+Avoid breaking RLlib's standard model API.
 
 ---
 
-## 8. Risks and mitigations
+## 17.4 `examples/qplex_focus/camera/config.py`
 
-### Risk 1: belief model is wrong
+Add backward-compatible defaults:
 
-Mitigation:
+```python
+"action_distill_enabled": False,
+"action_distill_mode": "soft_kl",
+"action_distill_coeff": 0.05,
+"teacher_temperature": 1.0,
+"student_temperature": 1.0,
+"action_distill_confidence": "entropy",
+"student_action_bias_enabled": False,
+"student_action_bias_eta": 1.0,
+"teacher_student_mix_enabled": False,
+"teacher_student_mix_start": 1.0,
+"teacher_student_mix_end": 0.0,
+```
 
-- compare known greedy rollout, learned model, and oracle occupancy;
-- report belief NLL/calibration;
-- use small `alpha_credit` early;
-- anneal credit regularization.
+---
 
-### Risk 2: predictive credit over-constrains lambda
+## 17.5 `examples/qplex_focus/camera/agent.py`
 
-Mitigation:
+Add robust:
 
-- use mask when total credit signal is low;
-- tune `alpha_credit`;
-- regularize only lambda, not advantage magnitude at first.
+```python
+decentralized_execution=True
+```
 
-### Risk 3: method only helps one environment
+and hard-disable centralized action guidance in that mode.
 
-Mitigation:
+---
 
-- create multiple difficulty regimes within MATE;
-- test across target policies;
-- show effect correlates with visibility sparsity metrics.
+# 18. Backward compatibility
 
-### Risk 4: reviewer says this is dense reward shaping
+With
 
-Mitigation:
+```python
+"action_distill_enabled": False,
+"student_action_bias_enabled": False,
+```
 
-- include baseline with MATE soft coverage reward;
-- include baseline using `g_i` as reward shaping;
-- show lambda-credit alignment improves independently of reward shaping.
+the implementation should reproduce current `QPLEX_FOCUS` behavior.
 
-### Risk 5: reviewer says this is just a world model
+Regression checks on a fixed batch:
 
-Mitigation:
+```text
+same TD loss
+same rho
+same belief loss
+same teacher bias
+same greedy actions
+```
 
-- include world-model-only reward-imagination baseline;
-- show predictive credit regularization is the key component;
-- emphasize Rao-Blackwellized counterfactual credit.
+Use `torch.allclose(..., atol=1e-6, rtol=1e-6)` where appropriate.
+
+---
+
+# 19. Unit tests
+
+## Teacher distribution
+
+- probabilities sum to 1;
+- no NaN/Inf;
+- low temperature produces sharper distribution;
+- high temperature produces flatter distribution.
+
+## Distillation
+
+- exact teacher/student match -> KL approximately 0;
+- uniform student vs sharp teacher -> positive KL;
+- padded timesteps do not contribute;
+- unavailable actions are masked correctly.
+
+## Confidence
+
+- uniform teacher -> low confidence;
+- sharp teacher -> high confidence.
+
+## Decentralized safety
+
+When `decentralized_execution=True`, assert:
+
+```text
+no global state is used for action selection
+teacher bias is not added
+focus_action_q_bias() is not called by the deployed action path
+```
+
+---
+
+# 20. Experiment ladder
+
+## Experiment A — Evaluation audit
+
+```text
+A1 teacher ON
+A2 teacher OFF, explore=False
+A3 teacher OFF, deterministic=True
+A4 teacher OFF, eta=0, explore=False, deterministic=True
+```
+
+A2-A4 should match closely.
+
+If not, evaluation still has a bug or hidden dependency.
+
+---
+
+## Experiment B — Does explicit good-action learning help?
+
+```text
+B0 current QPLEX_FOCUS
+B1 hard CE
+B2 soft KL
+B3 soft KL + entropy confidence
+```
+
+Evaluate all with teacher OFF.
+
+Primary metric:
+
+```text
+decentralized mean coverage
+```
+
+Secondary metrics:
+
+```text
+teacher-student agreement
+teacher-Q agreement
+teacher-student KL
+```
+
+---
+
+## Experiment C — Good data vs explicit transfer
+
+```text
+C0 no teacher collection, no distillation
+C1 teacher collection only
+C2 distillation only
+C3 teacher collection + distillation
+```
+
+This is the most important causal ablation.
+
+---
+
+## Experiment D — Privileged bootstrap
+
+```text
+D0 action_bias_bootstrap=True
+D1 action_bias_bootstrap=False
+```
+
+Both with explicit action distillation.
+
+This tells whether the gain comes from privileged Bellman action selection or from data + transfer.
+
+---
+
+## Experiment E — Local student bias at execution
+
+```text
+E0 Q-only
+E1 Q + B_hat
+```
+
+Both must be fully decentralized.
+
+If E1 >> E0, ordinary Q did not fully internalize the teacher, but the local auxiliary head did.
+
+---
+
+## Experiment F — Teacher-to-student handoff
+
+Train with
+
+\[
+B^{mix}=\alpha_tB^T+(1-\alpha_t)\hat B.
+\]
+
+Compare:
+
+```text
+constant teacher
+linear handoff
+cosine handoff
+student-only late phase
+```
+
+Goal:
+
+```text
+reduce train/eval mismatch
+```
+
+---
+
+## Experiment G — Structured belief action guidance
+
+Only after direct-B works:
+
+```text
+G0 direct local B_hat head
+G1 local LSTM -> Gaussian future belief -> B_hat
+G2 local LSTM -> grid belief -> B_hat
+```
+
+Keep the same decentralized evaluation protocol.
+
+---
+
+# 21. Success criteria
+
+The direction is successful if:
+
+1. Decentralized evaluation is reproducible and explicitly teacher-free.
+2. Soft-KL distillation reduces teacher-student KL.
+3. Teacher-student top-1 agreement rises during training.
+4. Decentralized coverage improves over current teacher-off `QPLEX_FOCUS`.
+5. `Q + local student bias` retains a meaningful fraction of the teacher-on gain.
+6. The structured belief-based version approaches the direct-B student.
+
+A strong pattern would be:
+
+```text
+teacher ON:                  ~60%+
+teacher OFF, Q only:         ~40%+
+teacher OFF, Q + local bias: ~55-60%
+```
+
+This would demonstrate explicit privileged-to-local transfer.
+
+---
+
+# 22. Failure interpretation
+
+## Case 1 — Student matches teacher but eval is still poor
+
+```text
+teacher KL decreases
+agreement increases
+eval remains low
+```
+
+Interpretation:
+
+The one-step geometric teacher is not sufficiently aligned with long-term return.
+
+Next steps:
+
+```text
+advantage-weighted distillation
+short-horizon teacher
+predictive teacher
+```
+
+---
+
+## Case 2 — Student cannot match teacher
+
+```text
+teacher KL remains high
+```
+
+Interpretation:
+
+The local recurrent representation does not contain enough information to reconstruct the privileged teacher decision.
+
+Next steps:
+
+```text
+larger GRU/LSTM
+longer temporal context
+explicit local target-belief head
+agent-specific encoder/adapters
+```
+
+---
+
+## Case 3 — Direct-B works but belief->B fails
+
+Interpretation:
+
+The belief model is the bottleneck.
+
+Next:
+
+```text
+better recurrent belief architecture
+uncertainty calibration
+multimodal belief
+grid belief
+longer horizon
+```
+
+---
+
+## Case 4 — Local student bias works but Q-only does not
+
+Interpretation:
+
+Q-learning alone does not reliably internalize privileged action preferences.
+
+The auxiliary local action-guidance head should remain part of the final method.
+
+---
+
+# 23. Recommended implementation order
+
+## Milestone 1 — Evaluation correctness
+
+```text
+1. Add decentralized_execution flag.
+2. Force explore=False.
+3. Force action_bias_eta=0.
+4. Force deterministic=True.
+5. Rerun the current checkpoint.
+```
+
+Do this first.
+
+## Milestone 2 — Direct teacher distillation
+
+```text
+1. Expose local recurrent features.
+2. Add local action-bias head.
+3. Generate teacher scores from global state.
+4. Implement hard CE.
+5. Implement soft KL.
+6. Add entropy confidence.
+7. Log teacher-student agreement.
+8. Evaluate with teacher fully OFF.
+```
+
+This is the main MVP.
+
+## Milestone 3 — Student-guided decentralized action selection
+
+Use
+
+\[
+Q+\eta_S\hat B.
+\]
+
+with no global state.
+
+## Milestone 4 — Teacher-to-student handoff
+
+Anneal
+
+```text
+teacher bias -> student bias
+```
+
+during training.
+
+## Milestone 5 — Structured belief-based action guidance
+
+Replace
+
+```text
+h -> B_hat
+```
+
+with
+
+```text
+h -> future belief -> B_hat
+```
+
+and reuse the predictive belief for FOCUS responsibility.
+
+## Milestone 6 — Optional contrastive learning
+
+Only after soft CE/KL is established.
+
+---
+
+# 24. Recommended first experiment config
+
+Use the smallest change that directly tests the hypothesis:
+
+```python
+"focus": {
+    # existing FOCUS
+    "enabled": True,
+    "belief_mode": "learned",
+
+    # privileged teacher used during collection
+    "action_bias_eta": 3.0,
+    "action_bias_bootstrap": False,
+
+    # explicit transfer
+    "action_distill_enabled": True,
+    "action_distill_mode": "soft_kl",
+    "action_distill_coeff": 0.05,
+    "teacher_temperature": 1.0,
+    "student_temperature": 1.0,
+    "action_distill_confidence": "entropy",
+
+    # decentralized student guidance
+    "student_action_bias_enabled": True,
+    "student_action_bias_eta": 1.0,
+}
+```
+
+Train with:
+
+```text
+teacher collection ON
+teacher bootstrap OFF
+soft-KL distillation ON
+```
+
+Evaluate with:
+
+```text
+teacher OFF
+student local bias ON
+```
+
+This directly tests:
+
+\[
+\boxed{
+\text{Can privileged geometric action knowledge be explicitly transferred into a decentralized recurrent student?}
+}
+\]
+
+---
+
+# 25. Final target formulation
+
+The long-term FOCUS method should become
+
+\[
+\boxed{
+\text{Local history}
+\rightarrow
+\text{predictive belief}
+\rightarrow
+\begin{cases}
+\text{responsibility for credit assignment}\\
+\text{action utility for decentralized guidance}
+\end{cases}
+}
+\]
+
+Training may use global state as privileged supervision.
+
+Execution uses only
+
+\[
+\boxed{
+o_{i,1:t}
+\rightarrow
+h_{i,t}
+\rightarrow
+Q_i(a),\hat B_i(a)
+\rightarrow
+a_i
+}
+\]
+
+with no global state.
+
+This produces a cleaner CTDE story than retaining `focus_action_q_bias()` only as a training-time heuristic and hoping the local policy internalizes it implicitly.

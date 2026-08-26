@@ -1,0 +1,11 @@
+{'seed': 0, 'rc': 0, 'coverage': '47.263%', 'transport': '48.969%', 'reward': '+6268.00'}
+{'seed': 1, 'rc': 0, 'coverage': '46.620%', 'transport': '42.016%', 'reward': '+5378.00'}
+{'seed': 2, 'rc': 0, 'coverage': '47.685%', 'transport': '47.344%', 'reward': '+6060.00'}
+{'seed': 3, 'rc': 0, 'coverage': '45.841%', 'transport': '46.828%', 'reward': '+5994.00'}
+{'seed': 4, 'rc': 0, 'coverage': '41.778%', 'transport': '55.531%', 'reward': '+7108.00'}
+{'seed': 5, 'rc': 0, 'coverage': '40.378%', 'transport': '61.000%', 'reward': '+7808.00'}
+{'seed': 6, 'rc': 0, 'coverage': '50.639%', 'transport': '44.250%', 'reward': '+5664.00'}
+{'seed': 7, 'rc': 0, 'coverage': '34.878%', 'transport': '57.688%', 'reward': '+7384.00'}
+{'seed': 8, 'rc': 0, 'coverage': '43.124%', 'transport': '53.609%', 'reward': '+6862.00'}
+{'seed': 9, 'rc': 0, 'coverage': '48.760%', 'transport': '49.984%', 'reward': '+6398.00'}
+BEST {'seed': 6, 'rc': 0, 'coverage': '50.639%', 'transport': '44.250%', 'reward': '+5664.00'}

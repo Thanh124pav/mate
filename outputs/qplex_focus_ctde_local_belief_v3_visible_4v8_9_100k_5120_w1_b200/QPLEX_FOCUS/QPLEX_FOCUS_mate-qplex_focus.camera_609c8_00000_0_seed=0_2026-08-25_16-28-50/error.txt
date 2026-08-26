@@ -1,0 +1,966 @@
+Failure # 1 (occurred at 2026-08-25_16-29-42)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1809, in get
+    raise value.as_instanceof_cause()
+ray.exceptions.RayTaskError(NameError): [36mray::QPlexFocusTrainer.train()[39m (pid=260831, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 349, in train
+    result = self.step()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1088, in step
+    raise e
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1074, in step
+    step_attempt_results = self.step_attempt()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1155, in step_attempt
+    step_results = self._exec_plan_or_training_iteration_fn()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2174, in _exec_plan_or_training_iteration_fn
+    results = next(self.train_exec_impl)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1108, in build_union
+    item = next(it)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  [Previous line repeated 1 more time]
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 492, in base_iterator
+    yield ray.get(futures, timeout=timeout)
+ray.exceptions.RayTaskError(NameError): [36mray::RolloutWorker.par_iter_next()[39m (pid=260945, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x74c81906ad30>)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1186, in par_iter_next
+    return next(self.local_it)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 404, in gen_rollouts
+    yield self.sample()
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 815, in sample
+    batches = [self.input_reader.next()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 116, in next
+    batches = [self.get_data()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 289, in get_data
+    item = next(self._env_runner)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 702, in _env_runner
+    eval_results = _do_policy_eval(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 1162, in _do_policy_eval
+    eval_results[policy_id] = policy.compute_actions_from_input_dict(
+  File "/home/pavt1024/vsn/mate/ray/rllib/policy/policy.py", line 325, in compute_actions_from_input_dict
+    return self.compute_actions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1866, in compute_actions
+    local_belief_bias, local_belief_bias_stats = self.loss._local_belief_action_bias(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1144, in _local_belief_action_bias
+    observed_pos, visible_mask = _local_visible_target_positions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 192, in _local_visible_target_positions
+    target_block = TARGET_STATE_DIM_PUBLIC + 1
+NameError: name 'TARGET_STATE_DIM_PUBLIC' is not defined
+
+Failure # 2 (occurred at 2026-08-25_16-30-18)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1809, in get
+    raise value.as_instanceof_cause()
+ray.exceptions.RayTaskError(NameError): [36mray::QPlexFocusTrainer.train()[39m (pid=261032, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 349, in train
+    result = self.step()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1088, in step
+    raise e
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1074, in step
+    step_attempt_results = self.step_attempt()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1155, in step_attempt
+    step_results = self._exec_plan_or_training_iteration_fn()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2174, in _exec_plan_or_training_iteration_fn
+    results = next(self.train_exec_impl)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1108, in build_union
+    item = next(it)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  [Previous line repeated 1 more time]
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 492, in base_iterator
+    yield ray.get(futures, timeout=timeout)
+ray.exceptions.RayTaskError(NameError): [36mray::RolloutWorker.par_iter_next()[39m (pid=261077, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x7d91b44a5d30>)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1186, in par_iter_next
+    return next(self.local_it)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 404, in gen_rollouts
+    yield self.sample()
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 815, in sample
+    batches = [self.input_reader.next()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 116, in next
+    batches = [self.get_data()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 289, in get_data
+    item = next(self._env_runner)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 702, in _env_runner
+    eval_results = _do_policy_eval(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 1162, in _do_policy_eval
+    eval_results[policy_id] = policy.compute_actions_from_input_dict(
+  File "/home/pavt1024/vsn/mate/ray/rllib/policy/policy.py", line 325, in compute_actions_from_input_dict
+    return self.compute_actions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1866, in compute_actions
+    local_belief_bias, local_belief_bias_stats = self.loss._local_belief_action_bias(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1144, in _local_belief_action_bias
+    observed_pos, visible_mask = _local_visible_target_positions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 192, in _local_visible_target_positions
+    target_block = TARGET_STATE_DIM_PUBLIC + 1
+NameError: name 'TARGET_STATE_DIM_PUBLIC' is not defined
+
+Failure # 3 (occurred at 2026-08-25_16-30-50)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1809, in get
+    raise value.as_instanceof_cause()
+ray.exceptions.RayTaskError(NameError): [36mray::QPlexFocusTrainer.train()[39m (pid=261125, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 349, in train
+    result = self.step()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1088, in step
+    raise e
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1074, in step
+    step_attempt_results = self.step_attempt()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1155, in step_attempt
+    step_results = self._exec_plan_or_training_iteration_fn()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2174, in _exec_plan_or_training_iteration_fn
+    results = next(self.train_exec_impl)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1108, in build_union
+    item = next(it)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  [Previous line repeated 1 more time]
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 492, in base_iterator
+    yield ray.get(futures, timeout=timeout)
+ray.exceptions.RayTaskError(NameError): [36mray::RolloutWorker.par_iter_next()[39m (pid=261170, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x7f69dd792d30>)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1186, in par_iter_next
+    return next(self.local_it)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 404, in gen_rollouts
+    yield self.sample()
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 815, in sample
+    batches = [self.input_reader.next()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 116, in next
+    batches = [self.get_data()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 289, in get_data
+    item = next(self._env_runner)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 702, in _env_runner
+    eval_results = _do_policy_eval(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 1162, in _do_policy_eval
+    eval_results[policy_id] = policy.compute_actions_from_input_dict(
+  File "/home/pavt1024/vsn/mate/ray/rllib/policy/policy.py", line 325, in compute_actions_from_input_dict
+    return self.compute_actions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1866, in compute_actions
+    local_belief_bias, local_belief_bias_stats = self.loss._local_belief_action_bias(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1144, in _local_belief_action_bias
+    observed_pos, visible_mask = _local_visible_target_positions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 192, in _local_visible_target_positions
+    target_block = TARGET_STATE_DIM_PUBLIC + 1
+NameError: name 'TARGET_STATE_DIM_PUBLIC' is not defined
+
+Failure # 4 (occurred at 2026-08-25_16-31-22)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1809, in get
+    raise value.as_instanceof_cause()
+ray.exceptions.RayTaskError(NameError): [36mray::QPlexFocusTrainer.train()[39m (pid=261217, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 349, in train
+    result = self.step()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1088, in step
+    raise e
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1074, in step
+    step_attempt_results = self.step_attempt()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1155, in step_attempt
+    step_results = self._exec_plan_or_training_iteration_fn()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2174, in _exec_plan_or_training_iteration_fn
+    results = next(self.train_exec_impl)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1108, in build_union
+    item = next(it)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  [Previous line repeated 1 more time]
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 492, in base_iterator
+    yield ray.get(futures, timeout=timeout)
+ray.exceptions.RayTaskError(NameError): [36mray::RolloutWorker.par_iter_next()[39m (pid=261276, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x75b3f2480d30>)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1186, in par_iter_next
+    return next(self.local_it)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 404, in gen_rollouts
+    yield self.sample()
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 815, in sample
+    batches = [self.input_reader.next()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 116, in next
+    batches = [self.get_data()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 289, in get_data
+    item = next(self._env_runner)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 702, in _env_runner
+    eval_results = _do_policy_eval(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 1162, in _do_policy_eval
+    eval_results[policy_id] = policy.compute_actions_from_input_dict(
+  File "/home/pavt1024/vsn/mate/ray/rllib/policy/policy.py", line 325, in compute_actions_from_input_dict
+    return self.compute_actions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1866, in compute_actions
+    local_belief_bias, local_belief_bias_stats = self.loss._local_belief_action_bias(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1144, in _local_belief_action_bias
+    observed_pos, visible_mask = _local_visible_target_positions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 192, in _local_visible_target_positions
+    target_block = TARGET_STATE_DIM_PUBLIC + 1
+NameError: name 'TARGET_STATE_DIM_PUBLIC' is not defined
+
+Failure # 5 (occurred at 2026-08-25_16-31-47)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1809, in get
+    raise value.as_instanceof_cause()
+ray.exceptions.RayTaskError(NameError): [36mray::QPlexFocusTrainer.train()[39m (pid=261321, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 349, in train
+    result = self.step()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1088, in step
+    raise e
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1074, in step
+    step_attempt_results = self.step_attempt()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1155, in step_attempt
+    step_results = self._exec_plan_or_training_iteration_fn()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2174, in _exec_plan_or_training_iteration_fn
+    results = next(self.train_exec_impl)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1108, in build_union
+    item = next(it)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  [Previous line repeated 1 more time]
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 492, in base_iterator
+    yield ray.get(futures, timeout=timeout)
+ray.exceptions.RayTaskError(NameError): [36mray::RolloutWorker.par_iter_next()[39m (pid=261367, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x7dadeea80d30>)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1186, in par_iter_next
+    return next(self.local_it)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 404, in gen_rollouts
+    yield self.sample()
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 815, in sample
+    batches = [self.input_reader.next()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 116, in next
+    batches = [self.get_data()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 289, in get_data
+    item = next(self._env_runner)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 702, in _env_runner
+    eval_results = _do_policy_eval(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 1162, in _do_policy_eval
+    eval_results[policy_id] = policy.compute_actions_from_input_dict(
+  File "/home/pavt1024/vsn/mate/ray/rllib/policy/policy.py", line 325, in compute_actions_from_input_dict
+    return self.compute_actions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1866, in compute_actions
+    local_belief_bias, local_belief_bias_stats = self.loss._local_belief_action_bias(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1144, in _local_belief_action_bias
+    observed_pos, visible_mask = _local_visible_target_positions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 192, in _local_visible_target_positions
+    target_block = TARGET_STATE_DIM_PUBLIC + 1
+NameError: name 'TARGET_STATE_DIM_PUBLIC' is not defined
+
+Failure # 6 (occurred at 2026-08-25_16-32-17)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1809, in get
+    raise value.as_instanceof_cause()
+ray.exceptions.RayTaskError(NameError): [36mray::QPlexFocusTrainer.train()[39m (pid=261415, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 349, in train
+    result = self.step()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1088, in step
+    raise e
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1074, in step
+    step_attempt_results = self.step_attempt()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1155, in step_attempt
+    step_results = self._exec_plan_or_training_iteration_fn()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2174, in _exec_plan_or_training_iteration_fn
+    results = next(self.train_exec_impl)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1108, in build_union
+    item = next(it)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  [Previous line repeated 1 more time]
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 492, in base_iterator
+    yield ray.get(futures, timeout=timeout)
+ray.exceptions.RayTaskError(NameError): [36mray::RolloutWorker.par_iter_next()[39m (pid=261458, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x71c869337d30>)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1186, in par_iter_next
+    return next(self.local_it)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 404, in gen_rollouts
+    yield self.sample()
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 815, in sample
+    batches = [self.input_reader.next()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 116, in next
+    batches = [self.get_data()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 289, in get_data
+    item = next(self._env_runner)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 702, in _env_runner
+    eval_results = _do_policy_eval(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 1162, in _do_policy_eval
+    eval_results[policy_id] = policy.compute_actions_from_input_dict(
+  File "/home/pavt1024/vsn/mate/ray/rllib/policy/policy.py", line 325, in compute_actions_from_input_dict
+    return self.compute_actions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1866, in compute_actions
+    local_belief_bias, local_belief_bias_stats = self.loss._local_belief_action_bias(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1144, in _local_belief_action_bias
+    observed_pos, visible_mask = _local_visible_target_positions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 192, in _local_visible_target_positions
+    target_block = TARGET_STATE_DIM_PUBLIC + 1
+NameError: name 'TARGET_STATE_DIM_PUBLIC' is not defined
+
+Failure # 7 (occurred at 2026-08-25_16-32-39)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1809, in get
+    raise value.as_instanceof_cause()
+ray.exceptions.RayTaskError(NameError): [36mray::QPlexFocusTrainer.train()[39m (pid=261506, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 349, in train
+    result = self.step()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1088, in step
+    raise e
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1074, in step
+    step_attempt_results = self.step_attempt()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1155, in step_attempt
+    step_results = self._exec_plan_or_training_iteration_fn()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2174, in _exec_plan_or_training_iteration_fn
+    results = next(self.train_exec_impl)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1108, in build_union
+    item = next(it)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  [Previous line repeated 1 more time]
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 492, in base_iterator
+    yield ray.get(futures, timeout=timeout)
+ray.exceptions.RayTaskError(NameError): [36mray::RolloutWorker.par_iter_next()[39m (pid=261548, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x7bee6cfedd30>)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1186, in par_iter_next
+    return next(self.local_it)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 404, in gen_rollouts
+    yield self.sample()
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 815, in sample
+    batches = [self.input_reader.next()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 116, in next
+    batches = [self.get_data()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 289, in get_data
+    item = next(self._env_runner)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 702, in _env_runner
+    eval_results = _do_policy_eval(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 1162, in _do_policy_eval
+    eval_results[policy_id] = policy.compute_actions_from_input_dict(
+  File "/home/pavt1024/vsn/mate/ray/rllib/policy/policy.py", line 325, in compute_actions_from_input_dict
+    return self.compute_actions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1866, in compute_actions
+    local_belief_bias, local_belief_bias_stats = self.loss._local_belief_action_bias(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1144, in _local_belief_action_bias
+    observed_pos, visible_mask = _local_visible_target_positions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 192, in _local_visible_target_positions
+    target_block = TARGET_STATE_DIM_PUBLIC + 1
+NameError: name 'TARGET_STATE_DIM_PUBLIC' is not defined
+
+Failure # 8 (occurred at 2026-08-25_16-33-02)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1809, in get
+    raise value.as_instanceof_cause()
+ray.exceptions.RayTaskError(NameError): [36mray::QPlexFocusTrainer.train()[39m (pid=261609, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 349, in train
+    result = self.step()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1088, in step
+    raise e
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1074, in step
+    step_attempt_results = self.step_attempt()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1155, in step_attempt
+    step_results = self._exec_plan_or_training_iteration_fn()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2174, in _exec_plan_or_training_iteration_fn
+    results = next(self.train_exec_impl)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1108, in build_union
+    item = next(it)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  [Previous line repeated 1 more time]
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 492, in base_iterator
+    yield ray.get(futures, timeout=timeout)
+ray.exceptions.RayTaskError(NameError): [36mray::RolloutWorker.par_iter_next()[39m (pid=261667, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x7bbf7c87fd30>)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1186, in par_iter_next
+    return next(self.local_it)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 404, in gen_rollouts
+    yield self.sample()
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 815, in sample
+    batches = [self.input_reader.next()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 116, in next
+    batches = [self.get_data()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 289, in get_data
+    item = next(self._env_runner)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 702, in _env_runner
+    eval_results = _do_policy_eval(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 1162, in _do_policy_eval
+    eval_results[policy_id] = policy.compute_actions_from_input_dict(
+  File "/home/pavt1024/vsn/mate/ray/rllib/policy/policy.py", line 325, in compute_actions_from_input_dict
+    return self.compute_actions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1866, in compute_actions
+    local_belief_bias, local_belief_bias_stats = self.loss._local_belief_action_bias(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1144, in _local_belief_action_bias
+    observed_pos, visible_mask = _local_visible_target_positions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 192, in _local_visible_target_positions
+    target_block = TARGET_STATE_DIM_PUBLIC + 1
+NameError: name 'TARGET_STATE_DIM_PUBLIC' is not defined
+
+Failure # 9 (occurred at 2026-08-25_16-33-24)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1809, in get
+    raise value.as_instanceof_cause()
+ray.exceptions.RayTaskError(NameError): [36mray::QPlexFocusTrainer.train()[39m (pid=261713, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 349, in train
+    result = self.step()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1088, in step
+    raise e
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1074, in step
+    step_attempt_results = self.step_attempt()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1155, in step_attempt
+    step_results = self._exec_plan_or_training_iteration_fn()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2174, in _exec_plan_or_training_iteration_fn
+    results = next(self.train_exec_impl)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1108, in build_union
+    item = next(it)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  [Previous line repeated 1 more time]
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 492, in base_iterator
+    yield ray.get(futures, timeout=timeout)
+ray.exceptions.RayTaskError(NameError): [36mray::RolloutWorker.par_iter_next()[39m (pid=261760, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x7746617edd30>)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1186, in par_iter_next
+    return next(self.local_it)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 404, in gen_rollouts
+    yield self.sample()
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 815, in sample
+    batches = [self.input_reader.next()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 116, in next
+    batches = [self.get_data()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 289, in get_data
+    item = next(self._env_runner)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 702, in _env_runner
+    eval_results = _do_policy_eval(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 1162, in _do_policy_eval
+    eval_results[policy_id] = policy.compute_actions_from_input_dict(
+  File "/home/pavt1024/vsn/mate/ray/rllib/policy/policy.py", line 325, in compute_actions_from_input_dict
+    return self.compute_actions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1866, in compute_actions
+    local_belief_bias, local_belief_bias_stats = self.loss._local_belief_action_bias(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1144, in _local_belief_action_bias
+    observed_pos, visible_mask = _local_visible_target_positions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 192, in _local_visible_target_positions
+    target_block = TARGET_STATE_DIM_PUBLIC + 1
+NameError: name 'TARGET_STATE_DIM_PUBLIC' is not defined
+
+Failure # 10 (occurred at 2026-08-25_16-33-43)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1809, in get
+    raise value.as_instanceof_cause()
+ray.exceptions.RayTaskError(NameError): [36mray::QPlexFocusTrainer.train()[39m (pid=261806, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 349, in train
+    result = self.step()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1088, in step
+    raise e
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1074, in step
+    step_attempt_results = self.step_attempt()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1155, in step_attempt
+    step_results = self._exec_plan_or_training_iteration_fn()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2174, in _exec_plan_or_training_iteration_fn
+    results = next(self.train_exec_impl)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1108, in build_union
+    item = next(it)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  [Previous line repeated 1 more time]
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 492, in base_iterator
+    yield ray.get(futures, timeout=timeout)
+ray.exceptions.RayTaskError(NameError): [36mray::RolloutWorker.par_iter_next()[39m (pid=261862, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x7190ec136d30>)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1186, in par_iter_next
+    return next(self.local_it)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 404, in gen_rollouts
+    yield self.sample()
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 815, in sample
+    batches = [self.input_reader.next()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 116, in next
+    batches = [self.get_data()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 289, in get_data
+    item = next(self._env_runner)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 702, in _env_runner
+    eval_results = _do_policy_eval(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 1162, in _do_policy_eval
+    eval_results[policy_id] = policy.compute_actions_from_input_dict(
+  File "/home/pavt1024/vsn/mate/ray/rllib/policy/policy.py", line 325, in compute_actions_from_input_dict
+    return self.compute_actions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1866, in compute_actions
+    local_belief_bias, local_belief_bias_stats = self.loss._local_belief_action_bias(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1144, in _local_belief_action_bias
+    observed_pos, visible_mask = _local_visible_target_positions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 192, in _local_visible_target_positions
+    target_block = TARGET_STATE_DIM_PUBLIC + 1
+NameError: name 'TARGET_STATE_DIM_PUBLIC' is not defined
+
+Failure # 11 (occurred at 2026-08-25_16-34-05)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1809, in get
+    raise value.as_instanceof_cause()
+ray.exceptions.RayTaskError(NameError): [36mray::QPlexFocusTrainer.train()[39m (pid=261909, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 349, in train
+    result = self.step()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1088, in step
+    raise e
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1074, in step
+    step_attempt_results = self.step_attempt()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1155, in step_attempt
+    step_results = self._exec_plan_or_training_iteration_fn()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2174, in _exec_plan_or_training_iteration_fn
+    results = next(self.train_exec_impl)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1108, in build_union
+    item = next(it)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  [Previous line repeated 1 more time]
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 492, in base_iterator
+    yield ray.get(futures, timeout=timeout)
+ray.exceptions.RayTaskError(NameError): [36mray::RolloutWorker.par_iter_next()[39m (pid=261964, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x79aa93280d30>)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1186, in par_iter_next
+    return next(self.local_it)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 404, in gen_rollouts
+    yield self.sample()
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 815, in sample
+    batches = [self.input_reader.next()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 116, in next
+    batches = [self.get_data()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 289, in get_data
+    item = next(self._env_runner)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 702, in _env_runner
+    eval_results = _do_policy_eval(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 1162, in _do_policy_eval
+    eval_results[policy_id] = policy.compute_actions_from_input_dict(
+  File "/home/pavt1024/vsn/mate/ray/rllib/policy/policy.py", line 325, in compute_actions_from_input_dict
+    return self.compute_actions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1866, in compute_actions
+    local_belief_bias, local_belief_bias_stats = self.loss._local_belief_action_bias(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1144, in _local_belief_action_bias
+    observed_pos, visible_mask = _local_visible_target_positions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 192, in _local_visible_target_positions
+    target_block = TARGET_STATE_DIM_PUBLIC + 1
+NameError: name 'TARGET_STATE_DIM_PUBLIC' is not defined
+
+Failure # 12 (occurred at 2026-08-25_16-34-23)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1809, in get
+    raise value.as_instanceof_cause()
+ray.exceptions.RayTaskError(NameError): [36mray::QPlexFocusTrainer.train()[39m (pid=262010, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 349, in train
+    result = self.step()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1088, in step
+    raise e
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1074, in step
+    step_attempt_results = self.step_attempt()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1155, in step_attempt
+    step_results = self._exec_plan_or_training_iteration_fn()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2174, in _exec_plan_or_training_iteration_fn
+    results = next(self.train_exec_impl)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1108, in build_union
+    item = next(it)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  [Previous line repeated 1 more time]
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 492, in base_iterator
+    yield ray.get(futures, timeout=timeout)
+ray.exceptions.RayTaskError(NameError): [36mray::RolloutWorker.par_iter_next()[39m (pid=262068, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x70c962d37d30>)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1186, in par_iter_next
+    return next(self.local_it)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 404, in gen_rollouts
+    yield self.sample()
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 815, in sample
+    batches = [self.input_reader.next()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 116, in next
+    batches = [self.get_data()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 289, in get_data
+    item = next(self._env_runner)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 702, in _env_runner
+    eval_results = _do_policy_eval(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 1162, in _do_policy_eval
+    eval_results[policy_id] = policy.compute_actions_from_input_dict(
+  File "/home/pavt1024/vsn/mate/ray/rllib/policy/policy.py", line 325, in compute_actions_from_input_dict
+    return self.compute_actions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1866, in compute_actions
+    local_belief_bias, local_belief_bias_stats = self.loss._local_belief_action_bias(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1144, in _local_belief_action_bias
+    observed_pos, visible_mask = _local_visible_target_positions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 192, in _local_visible_target_positions
+    target_block = TARGET_STATE_DIM_PUBLIC + 1
+NameError: name 'TARGET_STATE_DIM_PUBLIC' is not defined
+
+Failure # 13 (occurred at 2026-08-25_16-34-45)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1809, in get
+    raise value.as_instanceof_cause()
+ray.exceptions.RayTaskError(NameError): [36mray::QPlexFocusTrainer.train()[39m (pid=262115, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 349, in train
+    result = self.step()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1088, in step
+    raise e
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1074, in step
+    step_attempt_results = self.step_attempt()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1155, in step_attempt
+    step_results = self._exec_plan_or_training_iteration_fn()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2174, in _exec_plan_or_training_iteration_fn
+    results = next(self.train_exec_impl)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1108, in build_union
+    item = next(it)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  [Previous line repeated 1 more time]
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 492, in base_iterator
+    yield ray.get(futures, timeout=timeout)
+ray.exceptions.RayTaskError(NameError): [36mray::RolloutWorker.par_iter_next()[39m (pid=262183, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x7f576ac81d30>)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1186, in par_iter_next
+    return next(self.local_it)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 404, in gen_rollouts
+    yield self.sample()
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 815, in sample
+    batches = [self.input_reader.next()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 116, in next
+    batches = [self.get_data()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 289, in get_data
+    item = next(self._env_runner)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 702, in _env_runner
+    eval_results = _do_policy_eval(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 1162, in _do_policy_eval
+    eval_results[policy_id] = policy.compute_actions_from_input_dict(
+  File "/home/pavt1024/vsn/mate/ray/rllib/policy/policy.py", line 325, in compute_actions_from_input_dict
+    return self.compute_actions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1866, in compute_actions
+    local_belief_bias, local_belief_bias_stats = self.loss._local_belief_action_bias(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1144, in _local_belief_action_bias
+    observed_pos, visible_mask = _local_visible_target_positions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 192, in _local_visible_target_positions
+    target_block = TARGET_STATE_DIM_PUBLIC + 1
+NameError: name 'TARGET_STATE_DIM_PUBLIC' is not defined
+
+Failure # 14 (occurred at 2026-08-25_16-35-09)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1809, in get
+    raise value.as_instanceof_cause()
+ray.exceptions.RayTaskError(NameError): [36mray::QPlexFocusTrainer.train()[39m (pid=262263, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 349, in train
+    result = self.step()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1088, in step
+    raise e
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1074, in step
+    step_attempt_results = self.step_attempt()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1155, in step_attempt
+    step_results = self._exec_plan_or_training_iteration_fn()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2174, in _exec_plan_or_training_iteration_fn
+    results = next(self.train_exec_impl)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1108, in build_union
+    item = next(it)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  [Previous line repeated 1 more time]
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 492, in base_iterator
+    yield ray.get(futures, timeout=timeout)
+ray.exceptions.RayTaskError(NameError): [36mray::RolloutWorker.par_iter_next()[39m (pid=262432, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x761ca701ed30>)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1186, in par_iter_next
+    return next(self.local_it)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 404, in gen_rollouts
+    yield self.sample()
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 815, in sample
+    batches = [self.input_reader.next()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 116, in next
+    batches = [self.get_data()]
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 289, in get_data
+    item = next(self._env_runner)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 702, in _env_runner
+    eval_results = _do_policy_eval(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/sampler.py", line 1162, in _do_policy_eval
+    eval_results[policy_id] = policy.compute_actions_from_input_dict(
+  File "/home/pavt1024/vsn/mate/ray/rllib/policy/policy.py", line 325, in compute_actions_from_input_dict
+    return self.compute_actions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1866, in compute_actions
+    local_belief_bias, local_belief_bias_stats = self.loss._local_belief_action_bias(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1144, in _local_belief_action_bias
+    observed_pos, visible_mask = _local_visible_target_positions(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 192, in _local_visible_target_positions
+    target_block = TARGET_STATE_DIM_PUBLIC + 1
+NameError: name 'TARGET_STATE_DIM_PUBLIC' is not defined
+

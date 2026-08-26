@@ -1,0 +1,58 @@
+/home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+  gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+/home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+  gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+/home/pavt1024/vsn/mate/ray/tune/callback.py:236: FutureWarning: Please update `setup` method in callback `<class 'examples.utils.callbacks.WandbLoggerCallback'>` to match the method signature in `ray.tune.callback.Callback`.
+  warnings.warn(
+2026-08-25 15:51:51,516	INFO wandb.py:171 -- Already logged into W&B.
+2026-08-25 15:51:51,893	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_36fb5_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=255034)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=255034)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=255034)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=255034)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=255034)[0m 2026-08-25 15:52:00,072	INFO simple_q.py:161 -- In multi-agent mode, policies will be optimized sequentially by the multi-GPU optimizer. Consider setting `simple_optimizer=True` if this doesn't work for you.
+[2m[36m(QPlexFocusTrainer pid=255034)[0m 2026-08-25 15:52:00,072	INFO trainer.py:864 -- Current log_level is WARN. For more information, set 'log_level': 'INFO' / 'DEBUG' or use the -v and -vv flags.
+[2m[36m(RolloutWorker pid=255077)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(RolloutWorker pid=255077)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(RolloutWorker pid=255077)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(RolloutWorker pid=255077)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=255034)[0m 2026-08-25 15:52:16,572	INFO trainable.py:152 -- Trainable.setup took 16.515 seconds. If your trainable is slow to initialize, consider setting reuse_actors=True to reduce actor creation overheads.
+[2m[36m(QPlexFocusTrainer pid=255034)[0m 2026-08-25 15:52:16,578	WARNING util.py:60 -- Install gputil for GPU system monitoring.
+[2m[36m(RolloutWorker pid=255077)[0m /home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py:2135: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at ../torch/csrc/utils/tensor_numpy.cpp:199.)
+[2m[36m(RolloutWorker pid=255077)[0m   k: torch.as_tensor(v, device=self.device) for k, v in state_dict.items()
+[2m[36m(QPlexFocusTrainer pid=255034)[0m /home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/torch/nn/functional.py:1956: UserWarning: nn.functional.tanh is deprecated. Use torch.tanh instead.
+[2m[36m(QPlexFocusTrainer pid=255034)[0m   warnings.warn("nn.functional.tanh is deprecated. Use torch.tanh instead.")
+2026-08-25 15:56:22,288	WARNING util.py:171 -- The `process_trial_result` operation took 0.561 s, which may be a performance bottleneck.
+2026-08-25 16:12:47,378	WARNING util.py:171 -- The `process_trial_save` operation took 200.194 s, which may be a performance bottleneck.
+2026-08-25 16:18:06,433	WARNING util.py:171 -- The `on_step_begin` operation took 7.904 s, which may be a performance bottleneck.
+*** SIGTERM received at time=1787650060 on cpu 2 ***
+*** SIGTERM received at time=1787650060 on cpu 7 ***
+PC: @     0x7c4c60f1bbca  (unknown)  __read
+    @     0x7c4c60e45330  (unknown)  (unknown)
+PC: @     0x7c4c60e98e51  (unknown)  (unknown)
+    @     0x7c4c60e45330  (unknown)  (unknown)
+    @     0x7c4c60e9bd6e        224  pthread_cond_timedwait
+    @           0x59f61b  (unknown)  _Py_read
+    @     0x7c4c3441ad13        144  ray::core::GetRequest::Wait()
+    @     0x7c4c3441bf07        368  ray::core::CoreWorkerMemoryStore::GetImpl()
+    @     0x7c4c3441cf9e        256  ray::core::CoreWorkerMemoryStore::Wait()
+    @     0x7c4c343953a7        368  ray::core::CoreWorker::Wait()
+    @     0x7c4c342ca283        288  __pyx_pw_3ray_7_raylet_10CoreWorker_41wait()
+    @           0x4f9896  (unknown)  method_vectorcall_VARARGS_KEYWORDS
+[2026-08-25 16:27:40,323 E 255031 254603] logging.cc:325: *** SIGTERM received at time=1787650060 on cpu 7 ***
+[2026-08-25 16:27:40,343 E 255031 254603] logging.cc:325: PC: @     0x7c4c60f1bbca  (unknown)  __read
+[2026-08-25 16:27:40,343 E 255031 254603] logging.cc:325:     @     0x7c4c60e45330  (unknown)  (unknown)
+[2026-08-25 16:27:40,343 E 255031 254603] logging.cc:325:     @           0x59f61b  (unknown)  _Py_read
+    @           0x738180  (unknown)  (unknown)
+[2026-08-25 16:27:40,346 E 254603 254603] logging.cc:325: *** SIGTERM received at time=1787650060 on cpu 2 ***
+[2026-08-25 16:27:40,359 E 254603 254603] logging.cc:325: PC: @     0x7c4c60e98e51  (unknown)  (unknown)
+[2026-08-25 16:27:40,359 E 254603 254603] logging.cc:325:     @     0x7c4c60e45330  (unknown)  (unknown)
+[2026-08-25 16:27:40,359 E 254603 254603] logging.cc:325:     @     0x7c4c60e9bd6e        224  pthread_cond_timedwait
+[2026-08-25 16:27:40,359 E 254603 254603] logging.cc:325:     @     0x7c4c3441ad13        144  ray::core::GetRequest::Wait()
+[2026-08-25 16:27:40,359 E 254603 254603] logging.cc:325:     @     0x7c4c3441bf07        368  ray::core::CoreWorkerMemoryStore::GetImpl()
+[2026-08-25 16:27:40,359 E 254603 254603] logging.cc:325:     @     0x7c4c3441cf9e        256  ray::core::CoreWorkerMemoryStore::Wait()
+[2026-08-25 16:27:40,359 E 254603 254603] logging.cc:325:     @     0x7c4c343953a7        368  ray::core::CoreWorker::Wait()
+[2026-08-25 16:27:40,359 E 254603 254603] logging.cc:325:     @     0x7c4c342ca283        288  __pyx_pw_3ray_7_raylet_10CoreWorker_41wait()
+[2026-08-25 16:27:40,359 E 254603 254603] logging.cc:325:     @           0x4f9896  (unknown)  method_vectorcall_VARARGS_KEYWORDS
+[2026-08-25 16:27:40,367 E 254603 254603] logging.cc:325:     @           0x738180  (unknown)  (unknown)

@@ -1,0 +1,825 @@
+Failure # 1 (occurred at 2026-08-25_19-30-43)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=298033, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1035, in _init
+    raise NotImplementedError
+NotImplementedError
+
+During handling of the above exception, another exception occurred:
+
+[36mray::QPlexFocusTrainer.__init__()[39m (pid=298033, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 911, in setup
+    self.workers = WorkerSet(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/worker_set.py", line 134, in __init__
+    remote_spaces = ray.get(
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::RolloutWorker.__init__()[39m (pid=298128, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x72c40b18cd30>)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 626, in __init__
+    self._build_policy_map(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 1713, in _build_policy_map
+    preprocessor = ModelCatalog.get_preprocessor_for_space(
+  File "/home/pavt1024/vsn/mate/ray/rllib/models/catalog.py", line 781, in get_preprocessor_for_space
+    raise Exception(
+Exception: Unknown config key `focus_bias_hidden_dim`, all keys: ['_use_default_native_models', '_disable_preprocessor_api', '_disable_action_flattening', 'fcnet_hiddens', 'fcnet_activation', 'conv_filters', 'conv_activation', 'post_fcnet_hiddens', 'post_fcnet_activation', 'free_log_std', 'no_final_linear', 'vf_share_layers', 'use_lstm', 'max_seq_len', 'lstm_cell_size', 'lstm_use_prev_action', 'lstm_use_prev_reward', '_time_major', 'use_attention', 'attention_num_transformer_units', 'attention_dim', 'attention_num_heads', 'attention_head_dim', 'attention_memory_inference', 'attention_memory_training', 'attention_position_wise_mlp_dim', 'attention_init_gru_gate_bias', 'attention_use_n_prev_actions', 'attention_use_n_prev_rewards', 'framestack', 'dim', 'grayscale', 'zero_mean', 'custom_model', 'custom_model_config', 'custom_action_dist', 'custom_preprocessor', 'lstm_use_prev_action_reward']
+
+Failure # 2 (occurred at 2026-08-25_19-30-54)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=298195, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1035, in _init
+    raise NotImplementedError
+NotImplementedError
+
+During handling of the above exception, another exception occurred:
+
+[36mray::QPlexFocusTrainer.__init__()[39m (pid=298195, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 911, in setup
+    self.workers = WorkerSet(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/worker_set.py", line 134, in __init__
+    remote_spaces = ray.get(
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::RolloutWorker.__init__()[39m (pid=298240, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x7996e83b5d30>)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 626, in __init__
+    self._build_policy_map(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 1713, in _build_policy_map
+    preprocessor = ModelCatalog.get_preprocessor_for_space(
+  File "/home/pavt1024/vsn/mate/ray/rllib/models/catalog.py", line 781, in get_preprocessor_for_space
+    raise Exception(
+Exception: Unknown config key `focus_bias_hidden_dim`, all keys: ['_use_default_native_models', '_disable_preprocessor_api', '_disable_action_flattening', 'fcnet_hiddens', 'fcnet_activation', 'conv_filters', 'conv_activation', 'post_fcnet_hiddens', 'post_fcnet_activation', 'free_log_std', 'no_final_linear', 'vf_share_layers', 'use_lstm', 'max_seq_len', 'lstm_cell_size', 'lstm_use_prev_action', 'lstm_use_prev_reward', '_time_major', 'use_attention', 'attention_num_transformer_units', 'attention_dim', 'attention_num_heads', 'attention_head_dim', 'attention_memory_inference', 'attention_memory_training', 'attention_position_wise_mlp_dim', 'attention_init_gru_gate_bias', 'attention_use_n_prev_actions', 'attention_use_n_prev_rewards', 'framestack', 'dim', 'grayscale', 'zero_mean', 'custom_model', 'custom_model_config', 'custom_action_dist', 'custom_preprocessor', 'lstm_use_prev_action_reward']
+
+Failure # 3 (occurred at 2026-08-25_19-31-04)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=298276, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1035, in _init
+    raise NotImplementedError
+NotImplementedError
+
+During handling of the above exception, another exception occurred:
+
+[36mray::QPlexFocusTrainer.__init__()[39m (pid=298276, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 911, in setup
+    self.workers = WorkerSet(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/worker_set.py", line 134, in __init__
+    remote_spaces = ray.get(
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::RolloutWorker.__init__()[39m (pid=298321, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x7a84cf1b6d30>)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 626, in __init__
+    self._build_policy_map(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 1713, in _build_policy_map
+    preprocessor = ModelCatalog.get_preprocessor_for_space(
+  File "/home/pavt1024/vsn/mate/ray/rllib/models/catalog.py", line 781, in get_preprocessor_for_space
+    raise Exception(
+Exception: Unknown config key `focus_bias_hidden_dim`, all keys: ['_use_default_native_models', '_disable_preprocessor_api', '_disable_action_flattening', 'fcnet_hiddens', 'fcnet_activation', 'conv_filters', 'conv_activation', 'post_fcnet_hiddens', 'post_fcnet_activation', 'free_log_std', 'no_final_linear', 'vf_share_layers', 'use_lstm', 'max_seq_len', 'lstm_cell_size', 'lstm_use_prev_action', 'lstm_use_prev_reward', '_time_major', 'use_attention', 'attention_num_transformer_units', 'attention_dim', 'attention_num_heads', 'attention_head_dim', 'attention_memory_inference', 'attention_memory_training', 'attention_position_wise_mlp_dim', 'attention_init_gru_gate_bias', 'attention_use_n_prev_actions', 'attention_use_n_prev_rewards', 'framestack', 'dim', 'grayscale', 'zero_mean', 'custom_model', 'custom_model_config', 'custom_action_dist', 'custom_preprocessor', 'lstm_use_prev_action_reward']
+
+Failure # 4 (occurred at 2026-08-25_19-31-14)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=298356, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1035, in _init
+    raise NotImplementedError
+NotImplementedError
+
+During handling of the above exception, another exception occurred:
+
+[36mray::QPlexFocusTrainer.__init__()[39m (pid=298356, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 911, in setup
+    self.workers = WorkerSet(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/worker_set.py", line 134, in __init__
+    remote_spaces = ray.get(
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::RolloutWorker.__init__()[39m (pid=298402, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x77f7c9ce9d30>)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 626, in __init__
+    self._build_policy_map(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 1713, in _build_policy_map
+    preprocessor = ModelCatalog.get_preprocessor_for_space(
+  File "/home/pavt1024/vsn/mate/ray/rllib/models/catalog.py", line 781, in get_preprocessor_for_space
+    raise Exception(
+Exception: Unknown config key `focus_bias_hidden_dim`, all keys: ['_use_default_native_models', '_disable_preprocessor_api', '_disable_action_flattening', 'fcnet_hiddens', 'fcnet_activation', 'conv_filters', 'conv_activation', 'post_fcnet_hiddens', 'post_fcnet_activation', 'free_log_std', 'no_final_linear', 'vf_share_layers', 'use_lstm', 'max_seq_len', 'lstm_cell_size', 'lstm_use_prev_action', 'lstm_use_prev_reward', '_time_major', 'use_attention', 'attention_num_transformer_units', 'attention_dim', 'attention_num_heads', 'attention_head_dim', 'attention_memory_inference', 'attention_memory_training', 'attention_position_wise_mlp_dim', 'attention_init_gru_gate_bias', 'attention_use_n_prev_actions', 'attention_use_n_prev_rewards', 'framestack', 'dim', 'grayscale', 'zero_mean', 'custom_model', 'custom_model_config', 'custom_action_dist', 'custom_preprocessor', 'lstm_use_prev_action_reward']
+
+Failure # 5 (occurred at 2026-08-25_19-31-24)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=298454, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1035, in _init
+    raise NotImplementedError
+NotImplementedError
+
+During handling of the above exception, another exception occurred:
+
+[36mray::QPlexFocusTrainer.__init__()[39m (pid=298454, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 911, in setup
+    self.workers = WorkerSet(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/worker_set.py", line 134, in __init__
+    remote_spaces = ray.get(
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::RolloutWorker.__init__()[39m (pid=298514, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x7a30934a4d30>)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 626, in __init__
+    self._build_policy_map(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 1713, in _build_policy_map
+    preprocessor = ModelCatalog.get_preprocessor_for_space(
+  File "/home/pavt1024/vsn/mate/ray/rllib/models/catalog.py", line 781, in get_preprocessor_for_space
+    raise Exception(
+Exception: Unknown config key `focus_bias_hidden_dim`, all keys: ['_use_default_native_models', '_disable_preprocessor_api', '_disable_action_flattening', 'fcnet_hiddens', 'fcnet_activation', 'conv_filters', 'conv_activation', 'post_fcnet_hiddens', 'post_fcnet_activation', 'free_log_std', 'no_final_linear', 'vf_share_layers', 'use_lstm', 'max_seq_len', 'lstm_cell_size', 'lstm_use_prev_action', 'lstm_use_prev_reward', '_time_major', 'use_attention', 'attention_num_transformer_units', 'attention_dim', 'attention_num_heads', 'attention_head_dim', 'attention_memory_inference', 'attention_memory_training', 'attention_position_wise_mlp_dim', 'attention_init_gru_gate_bias', 'attention_use_n_prev_actions', 'attention_use_n_prev_rewards', 'framestack', 'dim', 'grayscale', 'zero_mean', 'custom_model', 'custom_model_config', 'custom_action_dist', 'custom_preprocessor', 'lstm_use_prev_action_reward']
+
+Failure # 6 (occurred at 2026-08-25_19-31-34)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=298550, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1035, in _init
+    raise NotImplementedError
+NotImplementedError
+
+During handling of the above exception, another exception occurred:
+
+[36mray::QPlexFocusTrainer.__init__()[39m (pid=298550, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 911, in setup
+    self.workers = WorkerSet(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/worker_set.py", line 134, in __init__
+    remote_spaces = ray.get(
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::RolloutWorker.__init__()[39m (pid=298608, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x7f2d13080d30>)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 626, in __init__
+    self._build_policy_map(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 1713, in _build_policy_map
+    preprocessor = ModelCatalog.get_preprocessor_for_space(
+  File "/home/pavt1024/vsn/mate/ray/rllib/models/catalog.py", line 781, in get_preprocessor_for_space
+    raise Exception(
+Exception: Unknown config key `focus_bias_hidden_dim`, all keys: ['_use_default_native_models', '_disable_preprocessor_api', '_disable_action_flattening', 'fcnet_hiddens', 'fcnet_activation', 'conv_filters', 'conv_activation', 'post_fcnet_hiddens', 'post_fcnet_activation', 'free_log_std', 'no_final_linear', 'vf_share_layers', 'use_lstm', 'max_seq_len', 'lstm_cell_size', 'lstm_use_prev_action', 'lstm_use_prev_reward', '_time_major', 'use_attention', 'attention_num_transformer_units', 'attention_dim', 'attention_num_heads', 'attention_head_dim', 'attention_memory_inference', 'attention_memory_training', 'attention_position_wise_mlp_dim', 'attention_init_gru_gate_bias', 'attention_use_n_prev_actions', 'attention_use_n_prev_rewards', 'framestack', 'dim', 'grayscale', 'zero_mean', 'custom_model', 'custom_model_config', 'custom_action_dist', 'custom_preprocessor', 'lstm_use_prev_action_reward']
+
+Failure # 7 (occurred at 2026-08-25_19-31-44)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=298643, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1035, in _init
+    raise NotImplementedError
+NotImplementedError
+
+During handling of the above exception, another exception occurred:
+
+[36mray::QPlexFocusTrainer.__init__()[39m (pid=298643, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 911, in setup
+    self.workers = WorkerSet(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/worker_set.py", line 134, in __init__
+    remote_spaces = ray.get(
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::RolloutWorker.__init__()[39m (pid=298701, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x76cf17437d30>)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 626, in __init__
+    self._build_policy_map(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 1713, in _build_policy_map
+    preprocessor = ModelCatalog.get_preprocessor_for_space(
+  File "/home/pavt1024/vsn/mate/ray/rllib/models/catalog.py", line 781, in get_preprocessor_for_space
+    raise Exception(
+Exception: Unknown config key `focus_bias_hidden_dim`, all keys: ['_use_default_native_models', '_disable_preprocessor_api', '_disable_action_flattening', 'fcnet_hiddens', 'fcnet_activation', 'conv_filters', 'conv_activation', 'post_fcnet_hiddens', 'post_fcnet_activation', 'free_log_std', 'no_final_linear', 'vf_share_layers', 'use_lstm', 'max_seq_len', 'lstm_cell_size', 'lstm_use_prev_action', 'lstm_use_prev_reward', '_time_major', 'use_attention', 'attention_num_transformer_units', 'attention_dim', 'attention_num_heads', 'attention_head_dim', 'attention_memory_inference', 'attention_memory_training', 'attention_position_wise_mlp_dim', 'attention_init_gru_gate_bias', 'attention_use_n_prev_actions', 'attention_use_n_prev_rewards', 'framestack', 'dim', 'grayscale', 'zero_mean', 'custom_model', 'custom_model_config', 'custom_action_dist', 'custom_preprocessor', 'lstm_use_prev_action_reward']
+
+Failure # 8 (occurred at 2026-08-25_19-31-54)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=298736, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1035, in _init
+    raise NotImplementedError
+NotImplementedError
+
+During handling of the above exception, another exception occurred:
+
+[36mray::QPlexFocusTrainer.__init__()[39m (pid=298736, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 911, in setup
+    self.workers = WorkerSet(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/worker_set.py", line 134, in __init__
+    remote_spaces = ray.get(
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::RolloutWorker.__init__()[39m (pid=298794, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x7ff9d2ec5d30>)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 626, in __init__
+    self._build_policy_map(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 1713, in _build_policy_map
+    preprocessor = ModelCatalog.get_preprocessor_for_space(
+  File "/home/pavt1024/vsn/mate/ray/rllib/models/catalog.py", line 781, in get_preprocessor_for_space
+    raise Exception(
+Exception: Unknown config key `focus_bias_hidden_dim`, all keys: ['_use_default_native_models', '_disable_preprocessor_api', '_disable_action_flattening', 'fcnet_hiddens', 'fcnet_activation', 'conv_filters', 'conv_activation', 'post_fcnet_hiddens', 'post_fcnet_activation', 'free_log_std', 'no_final_linear', 'vf_share_layers', 'use_lstm', 'max_seq_len', 'lstm_cell_size', 'lstm_use_prev_action', 'lstm_use_prev_reward', '_time_major', 'use_attention', 'attention_num_transformer_units', 'attention_dim', 'attention_num_heads', 'attention_head_dim', 'attention_memory_inference', 'attention_memory_training', 'attention_position_wise_mlp_dim', 'attention_init_gru_gate_bias', 'attention_use_n_prev_actions', 'attention_use_n_prev_rewards', 'framestack', 'dim', 'grayscale', 'zero_mean', 'custom_model', 'custom_model_config', 'custom_action_dist', 'custom_preprocessor', 'lstm_use_prev_action_reward']
+
+Failure # 9 (occurred at 2026-08-25_19-32-04)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=298830, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1035, in _init
+    raise NotImplementedError
+NotImplementedError
+
+During handling of the above exception, another exception occurred:
+
+[36mray::QPlexFocusTrainer.__init__()[39m (pid=298830, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 911, in setup
+    self.workers = WorkerSet(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/worker_set.py", line 134, in __init__
+    remote_spaces = ray.get(
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::RolloutWorker.__init__()[39m (pid=298889, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x7ef912a5bd30>)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 626, in __init__
+    self._build_policy_map(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 1713, in _build_policy_map
+    preprocessor = ModelCatalog.get_preprocessor_for_space(
+  File "/home/pavt1024/vsn/mate/ray/rllib/models/catalog.py", line 781, in get_preprocessor_for_space
+    raise Exception(
+Exception: Unknown config key `focus_bias_hidden_dim`, all keys: ['_use_default_native_models', '_disable_preprocessor_api', '_disable_action_flattening', 'fcnet_hiddens', 'fcnet_activation', 'conv_filters', 'conv_activation', 'post_fcnet_hiddens', 'post_fcnet_activation', 'free_log_std', 'no_final_linear', 'vf_share_layers', 'use_lstm', 'max_seq_len', 'lstm_cell_size', 'lstm_use_prev_action', 'lstm_use_prev_reward', '_time_major', 'use_attention', 'attention_num_transformer_units', 'attention_dim', 'attention_num_heads', 'attention_head_dim', 'attention_memory_inference', 'attention_memory_training', 'attention_position_wise_mlp_dim', 'attention_init_gru_gate_bias', 'attention_use_n_prev_actions', 'attention_use_n_prev_rewards', 'framestack', 'dim', 'grayscale', 'zero_mean', 'custom_model', 'custom_model_config', 'custom_action_dist', 'custom_preprocessor', 'lstm_use_prev_action_reward']
+
+Failure # 10 (occurred at 2026-08-25_19-32-15)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=298924, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1035, in _init
+    raise NotImplementedError
+NotImplementedError
+
+During handling of the above exception, another exception occurred:
+
+[36mray::QPlexFocusTrainer.__init__()[39m (pid=298924, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 911, in setup
+    self.workers = WorkerSet(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/worker_set.py", line 134, in __init__
+    remote_spaces = ray.get(
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::RolloutWorker.__init__()[39m (pid=298983, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x7f15fa47fd30>)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 626, in __init__
+    self._build_policy_map(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 1713, in _build_policy_map
+    preprocessor = ModelCatalog.get_preprocessor_for_space(
+  File "/home/pavt1024/vsn/mate/ray/rllib/models/catalog.py", line 781, in get_preprocessor_for_space
+    raise Exception(
+Exception: Unknown config key `focus_bias_hidden_dim`, all keys: ['_use_default_native_models', '_disable_preprocessor_api', '_disable_action_flattening', 'fcnet_hiddens', 'fcnet_activation', 'conv_filters', 'conv_activation', 'post_fcnet_hiddens', 'post_fcnet_activation', 'free_log_std', 'no_final_linear', 'vf_share_layers', 'use_lstm', 'max_seq_len', 'lstm_cell_size', 'lstm_use_prev_action', 'lstm_use_prev_reward', '_time_major', 'use_attention', 'attention_num_transformer_units', 'attention_dim', 'attention_num_heads', 'attention_head_dim', 'attention_memory_inference', 'attention_memory_training', 'attention_position_wise_mlp_dim', 'attention_init_gru_gate_bias', 'attention_use_n_prev_actions', 'attention_use_n_prev_rewards', 'framestack', 'dim', 'grayscale', 'zero_mean', 'custom_model', 'custom_model_config', 'custom_action_dist', 'custom_preprocessor', 'lstm_use_prev_action_reward']
+
+Failure # 11 (occurred at 2026-08-25_19-32-25)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=299019, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1035, in _init
+    raise NotImplementedError
+NotImplementedError
+
+During handling of the above exception, another exception occurred:
+
+[36mray::QPlexFocusTrainer.__init__()[39m (pid=299019, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 911, in setup
+    self.workers = WorkerSet(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/worker_set.py", line 134, in __init__
+    remote_spaces = ray.get(
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::RolloutWorker.__init__()[39m (pid=299078, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x745263b37d30>)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 626, in __init__
+    self._build_policy_map(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 1713, in _build_policy_map
+    preprocessor = ModelCatalog.get_preprocessor_for_space(
+  File "/home/pavt1024/vsn/mate/ray/rllib/models/catalog.py", line 781, in get_preprocessor_for_space
+    raise Exception(
+Exception: Unknown config key `focus_bias_hidden_dim`, all keys: ['_use_default_native_models', '_disable_preprocessor_api', '_disable_action_flattening', 'fcnet_hiddens', 'fcnet_activation', 'conv_filters', 'conv_activation', 'post_fcnet_hiddens', 'post_fcnet_activation', 'free_log_std', 'no_final_linear', 'vf_share_layers', 'use_lstm', 'max_seq_len', 'lstm_cell_size', 'lstm_use_prev_action', 'lstm_use_prev_reward', '_time_major', 'use_attention', 'attention_num_transformer_units', 'attention_dim', 'attention_num_heads', 'attention_head_dim', 'attention_memory_inference', 'attention_memory_training', 'attention_position_wise_mlp_dim', 'attention_init_gru_gate_bias', 'attention_use_n_prev_actions', 'attention_use_n_prev_rewards', 'framestack', 'dim', 'grayscale', 'zero_mean', 'custom_model', 'custom_model_config', 'custom_action_dist', 'custom_preprocessor', 'lstm_use_prev_action_reward']
+
+Failure # 12 (occurred at 2026-08-25_19-32-35)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=299114, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1035, in _init
+    raise NotImplementedError
+NotImplementedError
+
+During handling of the above exception, another exception occurred:
+
+[36mray::QPlexFocusTrainer.__init__()[39m (pid=299114, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 911, in setup
+    self.workers = WorkerSet(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/worker_set.py", line 134, in __init__
+    remote_spaces = ray.get(
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::RolloutWorker.__init__()[39m (pid=299172, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x7bc613cd5d30>)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 626, in __init__
+    self._build_policy_map(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 1713, in _build_policy_map
+    preprocessor = ModelCatalog.get_preprocessor_for_space(
+  File "/home/pavt1024/vsn/mate/ray/rllib/models/catalog.py", line 781, in get_preprocessor_for_space
+    raise Exception(
+Exception: Unknown config key `focus_bias_hidden_dim`, all keys: ['_use_default_native_models', '_disable_preprocessor_api', '_disable_action_flattening', 'fcnet_hiddens', 'fcnet_activation', 'conv_filters', 'conv_activation', 'post_fcnet_hiddens', 'post_fcnet_activation', 'free_log_std', 'no_final_linear', 'vf_share_layers', 'use_lstm', 'max_seq_len', 'lstm_cell_size', 'lstm_use_prev_action', 'lstm_use_prev_reward', '_time_major', 'use_attention', 'attention_num_transformer_units', 'attention_dim', 'attention_num_heads', 'attention_head_dim', 'attention_memory_inference', 'attention_memory_training', 'attention_position_wise_mlp_dim', 'attention_init_gru_gate_bias', 'attention_use_n_prev_actions', 'attention_use_n_prev_rewards', 'framestack', 'dim', 'grayscale', 'zero_mean', 'custom_model', 'custom_model_config', 'custom_action_dist', 'custom_preprocessor', 'lstm_use_prev_action_reward']
+
+Failure # 13 (occurred at 2026-08-25_19-32-45)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=299210, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1035, in _init
+    raise NotImplementedError
+NotImplementedError
+
+During handling of the above exception, another exception occurred:
+
+[36mray::QPlexFocusTrainer.__init__()[39m (pid=299210, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 911, in setup
+    self.workers = WorkerSet(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/worker_set.py", line 134, in __init__
+    remote_spaces = ray.get(
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::RolloutWorker.__init__()[39m (pid=299266, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x7f251c0b0d30>)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 626, in __init__
+    self._build_policy_map(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 1713, in _build_policy_map
+    preprocessor = ModelCatalog.get_preprocessor_for_space(
+  File "/home/pavt1024/vsn/mate/ray/rllib/models/catalog.py", line 781, in get_preprocessor_for_space
+    raise Exception(
+Exception: Unknown config key `focus_bias_hidden_dim`, all keys: ['_use_default_native_models', '_disable_preprocessor_api', '_disable_action_flattening', 'fcnet_hiddens', 'fcnet_activation', 'conv_filters', 'conv_activation', 'post_fcnet_hiddens', 'post_fcnet_activation', 'free_log_std', 'no_final_linear', 'vf_share_layers', 'use_lstm', 'max_seq_len', 'lstm_cell_size', 'lstm_use_prev_action', 'lstm_use_prev_reward', '_time_major', 'use_attention', 'attention_num_transformer_units', 'attention_dim', 'attention_num_heads', 'attention_head_dim', 'attention_memory_inference', 'attention_memory_training', 'attention_position_wise_mlp_dim', 'attention_init_gru_gate_bias', 'attention_use_n_prev_actions', 'attention_use_n_prev_rewards', 'framestack', 'dim', 'grayscale', 'zero_mean', 'custom_model', 'custom_model_config', 'custom_action_dist', 'custom_preprocessor', 'lstm_use_prev_action_reward']
+
+Failure # 14 (occurred at 2026-08-25_19-32-55)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=299302, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1035, in _init
+    raise NotImplementedError
+NotImplementedError
+
+During handling of the above exception, another exception occurred:
+
+[36mray::QPlexFocusTrainer.__init__()[39m (pid=299302, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 911, in setup
+    self.workers = WorkerSet(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/worker_set.py", line 134, in __init__
+    remote_spaces = ray.get(
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::RolloutWorker.__init__()[39m (pid=299359, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x720c59b29d30>)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 626, in __init__
+    self._build_policy_map(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 1713, in _build_policy_map
+    preprocessor = ModelCatalog.get_preprocessor_for_space(
+  File "/home/pavt1024/vsn/mate/ray/rllib/models/catalog.py", line 781, in get_preprocessor_for_space
+    raise Exception(
+Exception: Unknown config key `focus_bias_hidden_dim`, all keys: ['_use_default_native_models', '_disable_preprocessor_api', '_disable_action_flattening', 'fcnet_hiddens', 'fcnet_activation', 'conv_filters', 'conv_activation', 'post_fcnet_hiddens', 'post_fcnet_activation', 'free_log_std', 'no_final_linear', 'vf_share_layers', 'use_lstm', 'max_seq_len', 'lstm_cell_size', 'lstm_use_prev_action', 'lstm_use_prev_reward', '_time_major', 'use_attention', 'attention_num_transformer_units', 'attention_dim', 'attention_num_heads', 'attention_head_dim', 'attention_memory_inference', 'attention_memory_training', 'attention_position_wise_mlp_dim', 'attention_init_gru_gate_bias', 'attention_use_n_prev_actions', 'attention_use_n_prev_rewards', 'framestack', 'dim', 'grayscale', 'zero_mean', 'custom_model', 'custom_model_config', 'custom_action_dist', 'custom_preprocessor', 'lstm_use_prev_action_reward']
+
+Failure # 15 (occurred at 2026-08-25_19-33-05)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=299395, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1035, in _init
+    raise NotImplementedError
+NotImplementedError
+
+During handling of the above exception, another exception occurred:
+
+[36mray::QPlexFocusTrainer.__init__()[39m (pid=299395, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 911, in setup
+    self.workers = WorkerSet(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/worker_set.py", line 134, in __init__
+    remote_spaces = ray.get(
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::RolloutWorker.__init__()[39m (pid=299454, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x7ebe4061ed30>)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 626, in __init__
+    self._build_policy_map(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 1713, in _build_policy_map
+    preprocessor = ModelCatalog.get_preprocessor_for_space(
+  File "/home/pavt1024/vsn/mate/ray/rllib/models/catalog.py", line 781, in get_preprocessor_for_space
+    raise Exception(
+Exception: Unknown config key `focus_bias_hidden_dim`, all keys: ['_use_default_native_models', '_disable_preprocessor_api', '_disable_action_flattening', 'fcnet_hiddens', 'fcnet_activation', 'conv_filters', 'conv_activation', 'post_fcnet_hiddens', 'post_fcnet_activation', 'free_log_std', 'no_final_linear', 'vf_share_layers', 'use_lstm', 'max_seq_len', 'lstm_cell_size', 'lstm_use_prev_action', 'lstm_use_prev_reward', '_time_major', 'use_attention', 'attention_num_transformer_units', 'attention_dim', 'attention_num_heads', 'attention_head_dim', 'attention_memory_inference', 'attention_memory_training', 'attention_position_wise_mlp_dim', 'attention_init_gru_gate_bias', 'attention_use_n_prev_actions', 'attention_use_n_prev_rewards', 'framestack', 'dim', 'grayscale', 'zero_mean', 'custom_model', 'custom_model_config', 'custom_action_dist', 'custom_preprocessor', 'lstm_use_prev_action_reward']
+
+Failure # 16 (occurred at 2026-08-25_19-33-15)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=299490, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1035, in _init
+    raise NotImplementedError
+NotImplementedError
+
+During handling of the above exception, another exception occurred:
+
+[36mray::QPlexFocusTrainer.__init__()[39m (pid=299490, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 911, in setup
+    self.workers = WorkerSet(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/worker_set.py", line 134, in __init__
+    remote_spaces = ray.get(
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::RolloutWorker.__init__()[39m (pid=299547, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x73b8da2f7d30>)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 626, in __init__
+    self._build_policy_map(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 1713, in _build_policy_map
+    preprocessor = ModelCatalog.get_preprocessor_for_space(
+  File "/home/pavt1024/vsn/mate/ray/rllib/models/catalog.py", line 781, in get_preprocessor_for_space
+    raise Exception(
+Exception: Unknown config key `focus_bias_hidden_dim`, all keys: ['_use_default_native_models', '_disable_preprocessor_api', '_disable_action_flattening', 'fcnet_hiddens', 'fcnet_activation', 'conv_filters', 'conv_activation', 'post_fcnet_hiddens', 'post_fcnet_activation', 'free_log_std', 'no_final_linear', 'vf_share_layers', 'use_lstm', 'max_seq_len', 'lstm_cell_size', 'lstm_use_prev_action', 'lstm_use_prev_reward', '_time_major', 'use_attention', 'attention_num_transformer_units', 'attention_dim', 'attention_num_heads', 'attention_head_dim', 'attention_memory_inference', 'attention_memory_training', 'attention_position_wise_mlp_dim', 'attention_init_gru_gate_bias', 'attention_use_n_prev_actions', 'attention_use_n_prev_rewards', 'framestack', 'dim', 'grayscale', 'zero_mean', 'custom_model', 'custom_model_config', 'custom_action_dist', 'custom_preprocessor', 'lstm_use_prev_action_reward']
+
+Failure # 17 (occurred at 2026-08-25_19-33-25)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=299583, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1035, in _init
+    raise NotImplementedError
+NotImplementedError
+
+During handling of the above exception, another exception occurred:
+
+[36mray::QPlexFocusTrainer.__init__()[39m (pid=299583, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 911, in setup
+    self.workers = WorkerSet(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/worker_set.py", line 134, in __init__
+    remote_spaces = ray.get(
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::RolloutWorker.__init__()[39m (pid=299643, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x79a71daf8d30>)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 626, in __init__
+    self._build_policy_map(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 1713, in _build_policy_map
+    preprocessor = ModelCatalog.get_preprocessor_for_space(
+  File "/home/pavt1024/vsn/mate/ray/rllib/models/catalog.py", line 781, in get_preprocessor_for_space
+    raise Exception(
+Exception: Unknown config key `focus_bias_hidden_dim`, all keys: ['_use_default_native_models', '_disable_preprocessor_api', '_disable_action_flattening', 'fcnet_hiddens', 'fcnet_activation', 'conv_filters', 'conv_activation', 'post_fcnet_hiddens', 'post_fcnet_activation', 'free_log_std', 'no_final_linear', 'vf_share_layers', 'use_lstm', 'max_seq_len', 'lstm_cell_size', 'lstm_use_prev_action', 'lstm_use_prev_reward', '_time_major', 'use_attention', 'attention_num_transformer_units', 'attention_dim', 'attention_num_heads', 'attention_head_dim', 'attention_memory_inference', 'attention_memory_training', 'attention_position_wise_mlp_dim', 'attention_init_gru_gate_bias', 'attention_use_n_prev_actions', 'attention_use_n_prev_rewards', 'framestack', 'dim', 'grayscale', 'zero_mean', 'custom_model', 'custom_model_config', 'custom_action_dist', 'custom_preprocessor', 'lstm_use_prev_action_reward']
+
+Failure # 18 (occurred at 2026-08-25_19-33-35)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=299679, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1035, in _init
+    raise NotImplementedError
+NotImplementedError
+
+During handling of the above exception, another exception occurred:
+
+[36mray::QPlexFocusTrainer.__init__()[39m (pid=299679, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 911, in setup
+    self.workers = WorkerSet(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/worker_set.py", line 134, in __init__
+    remote_spaces = ray.get(
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::RolloutWorker.__init__()[39m (pid=299737, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x798a4f438d30>)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 626, in __init__
+    self._build_policy_map(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 1713, in _build_policy_map
+    preprocessor = ModelCatalog.get_preprocessor_for_space(
+  File "/home/pavt1024/vsn/mate/ray/rllib/models/catalog.py", line 781, in get_preprocessor_for_space
+    raise Exception(
+Exception: Unknown config key `focus_bias_hidden_dim`, all keys: ['_use_default_native_models', '_disable_preprocessor_api', '_disable_action_flattening', 'fcnet_hiddens', 'fcnet_activation', 'conv_filters', 'conv_activation', 'post_fcnet_hiddens', 'post_fcnet_activation', 'free_log_std', 'no_final_linear', 'vf_share_layers', 'use_lstm', 'max_seq_len', 'lstm_cell_size', 'lstm_use_prev_action', 'lstm_use_prev_reward', '_time_major', 'use_attention', 'attention_num_transformer_units', 'attention_dim', 'attention_num_heads', 'attention_head_dim', 'attention_memory_inference', 'attention_memory_training', 'attention_position_wise_mlp_dim', 'attention_init_gru_gate_bias', 'attention_use_n_prev_actions', 'attention_use_n_prev_rewards', 'framestack', 'dim', 'grayscale', 'zero_mean', 'custom_model', 'custom_model_config', 'custom_action_dist', 'custom_preprocessor', 'lstm_use_prev_action_reward']
+
+Failure # 19 (occurred at 2026-08-25_19-33-45)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=299773, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1035, in _init
+    raise NotImplementedError
+NotImplementedError
+
+During handling of the above exception, another exception occurred:
+
+[36mray::QPlexFocusTrainer.__init__()[39m (pid=299773, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 911, in setup
+    self.workers = WorkerSet(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/worker_set.py", line 134, in __init__
+    remote_spaces = ray.get(
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::RolloutWorker.__init__()[39m (pid=299819, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x7bfabbe2bd30>)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 626, in __init__
+    self._build_policy_map(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 1713, in _build_policy_map
+    preprocessor = ModelCatalog.get_preprocessor_for_space(
+  File "/home/pavt1024/vsn/mate/ray/rllib/models/catalog.py", line 781, in get_preprocessor_for_space
+    raise Exception(
+Exception: Unknown config key `focus_bias_hidden_dim`, all keys: ['_use_default_native_models', '_disable_preprocessor_api', '_disable_action_flattening', 'fcnet_hiddens', 'fcnet_activation', 'conv_filters', 'conv_activation', 'post_fcnet_hiddens', 'post_fcnet_activation', 'free_log_std', 'no_final_linear', 'vf_share_layers', 'use_lstm', 'max_seq_len', 'lstm_cell_size', 'lstm_use_prev_action', 'lstm_use_prev_reward', '_time_major', 'use_attention', 'attention_num_transformer_units', 'attention_dim', 'attention_num_heads', 'attention_head_dim', 'attention_memory_inference', 'attention_memory_training', 'attention_position_wise_mlp_dim', 'attention_init_gru_gate_bias', 'attention_use_n_prev_actions', 'attention_use_n_prev_rewards', 'framestack', 'dim', 'grayscale', 'zero_mean', 'custom_model', 'custom_model_config', 'custom_action_dist', 'custom_preprocessor', 'lstm_use_prev_action_reward']
+
+Failure # 20 (occurred at 2026-08-25_19-33-54)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=299871, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1035, in _init
+    raise NotImplementedError
+NotImplementedError
+
+During handling of the above exception, another exception occurred:
+
+[36mray::QPlexFocusTrainer.__init__()[39m (pid=299871, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 911, in setup
+    self.workers = WorkerSet(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/worker_set.py", line 134, in __init__
+    remote_spaces = ray.get(
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::RolloutWorker.__init__()[39m (pid=299929, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x7457102d5d30>)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 626, in __init__
+    self._build_policy_map(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 1713, in _build_policy_map
+    preprocessor = ModelCatalog.get_preprocessor_for_space(
+  File "/home/pavt1024/vsn/mate/ray/rllib/models/catalog.py", line 781, in get_preprocessor_for_space
+    raise Exception(
+Exception: Unknown config key `focus_bias_hidden_dim`, all keys: ['_use_default_native_models', '_disable_preprocessor_api', '_disable_action_flattening', 'fcnet_hiddens', 'fcnet_activation', 'conv_filters', 'conv_activation', 'post_fcnet_hiddens', 'post_fcnet_activation', 'free_log_std', 'no_final_linear', 'vf_share_layers', 'use_lstm', 'max_seq_len', 'lstm_cell_size', 'lstm_use_prev_action', 'lstm_use_prev_reward', '_time_major', 'use_attention', 'attention_num_transformer_units', 'attention_dim', 'attention_num_heads', 'attention_head_dim', 'attention_memory_inference', 'attention_memory_training', 'attention_position_wise_mlp_dim', 'attention_init_gru_gate_bias', 'attention_use_n_prev_actions', 'attention_use_n_prev_rewards', 'framestack', 'dim', 'grayscale', 'zero_mean', 'custom_model', 'custom_model_config', 'custom_action_dist', 'custom_preprocessor', 'lstm_use_prev_action_reward']
+
+Failure # 21 (occurred at 2026-08-25_19-34-04)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=299964, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1035, in _init
+    raise NotImplementedError
+NotImplementedError
+
+During handling of the above exception, another exception occurred:
+
+[36mray::QPlexFocusTrainer.__init__()[39m (pid=299964, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 911, in setup
+    self.workers = WorkerSet(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/worker_set.py", line 134, in __init__
+    remote_spaces = ray.get(
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::RolloutWorker.__init__()[39m (pid=300024, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x7c97ee938d30>)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 626, in __init__
+    self._build_policy_map(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 1713, in _build_policy_map
+    preprocessor = ModelCatalog.get_preprocessor_for_space(
+  File "/home/pavt1024/vsn/mate/ray/rllib/models/catalog.py", line 781, in get_preprocessor_for_space
+    raise Exception(
+Exception: Unknown config key `focus_bias_hidden_dim`, all keys: ['_use_default_native_models', '_disable_preprocessor_api', '_disable_action_flattening', 'fcnet_hiddens', 'fcnet_activation', 'conv_filters', 'conv_activation', 'post_fcnet_hiddens', 'post_fcnet_activation', 'free_log_std', 'no_final_linear', 'vf_share_layers', 'use_lstm', 'max_seq_len', 'lstm_cell_size', 'lstm_use_prev_action', 'lstm_use_prev_reward', '_time_major', 'use_attention', 'attention_num_transformer_units', 'attention_dim', 'attention_num_heads', 'attention_head_dim', 'attention_memory_inference', 'attention_memory_training', 'attention_position_wise_mlp_dim', 'attention_init_gru_gate_bias', 'attention_use_n_prev_actions', 'attention_use_n_prev_rewards', 'framestack', 'dim', 'grayscale', 'zero_mean', 'custom_model', 'custom_model_config', 'custom_action_dist', 'custom_preprocessor', 'lstm_use_prev_action_reward']
+
+Failure # 22 (occurred at 2026-08-25_19-34-14)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=300060, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1035, in _init
+    raise NotImplementedError
+NotImplementedError
+
+During handling of the above exception, another exception occurred:
+
+[36mray::QPlexFocusTrainer.__init__()[39m (pid=300060, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 911, in setup
+    self.workers = WorkerSet(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/worker_set.py", line 134, in __init__
+    remote_spaces = ray.get(
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::RolloutWorker.__init__()[39m (pid=300120, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x706dec5d4d30>)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 626, in __init__
+    self._build_policy_map(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 1713, in _build_policy_map
+    preprocessor = ModelCatalog.get_preprocessor_for_space(
+  File "/home/pavt1024/vsn/mate/ray/rllib/models/catalog.py", line 781, in get_preprocessor_for_space
+    raise Exception(
+Exception: Unknown config key `focus_bias_hidden_dim`, all keys: ['_use_default_native_models', '_disable_preprocessor_api', '_disable_action_flattening', 'fcnet_hiddens', 'fcnet_activation', 'conv_filters', 'conv_activation', 'post_fcnet_hiddens', 'post_fcnet_activation', 'free_log_std', 'no_final_linear', 'vf_share_layers', 'use_lstm', 'max_seq_len', 'lstm_cell_size', 'lstm_use_prev_action', 'lstm_use_prev_reward', '_time_major', 'use_attention', 'attention_num_transformer_units', 'attention_dim', 'attention_num_heads', 'attention_head_dim', 'attention_memory_inference', 'attention_memory_training', 'attention_position_wise_mlp_dim', 'attention_init_gru_gate_bias', 'attention_use_n_prev_actions', 'attention_use_n_prev_rewards', 'framestack', 'dim', 'grayscale', 'zero_mean', 'custom_model', 'custom_model_config', 'custom_action_dist', 'custom_preprocessor', 'lstm_use_prev_action_reward']
+
+Failure # 23 (occurred at 2026-08-25_19-34-24)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=300155, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1035, in _init
+    raise NotImplementedError
+NotImplementedError
+
+During handling of the above exception, another exception occurred:
+
+[36mray::QPlexFocusTrainer.__init__()[39m (pid=300155, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 911, in setup
+    self.workers = WorkerSet(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/worker_set.py", line 134, in __init__
+    remote_spaces = ray.get(
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::RolloutWorker.__init__()[39m (pid=300214, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x7d12aeca6d30>)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 626, in __init__
+    self._build_policy_map(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 1713, in _build_policy_map
+    preprocessor = ModelCatalog.get_preprocessor_for_space(
+  File "/home/pavt1024/vsn/mate/ray/rllib/models/catalog.py", line 781, in get_preprocessor_for_space
+    raise Exception(
+Exception: Unknown config key `focus_bias_hidden_dim`, all keys: ['_use_default_native_models', '_disable_preprocessor_api', '_disable_action_flattening', 'fcnet_hiddens', 'fcnet_activation', 'conv_filters', 'conv_activation', 'post_fcnet_hiddens', 'post_fcnet_activation', 'free_log_std', 'no_final_linear', 'vf_share_layers', 'use_lstm', 'max_seq_len', 'lstm_cell_size', 'lstm_use_prev_action', 'lstm_use_prev_reward', '_time_major', 'use_attention', 'attention_num_transformer_units', 'attention_dim', 'attention_num_heads', 'attention_head_dim', 'attention_memory_inference', 'attention_memory_training', 'attention_position_wise_mlp_dim', 'attention_init_gru_gate_bias', 'attention_use_n_prev_actions', 'attention_use_n_prev_rewards', 'framestack', 'dim', 'grayscale', 'zero_mean', 'custom_model', 'custom_model_config', 'custom_action_dist', 'custom_preprocessor', 'lstm_use_prev_action_reward']
+
+Failure # 24 (occurred at 2026-08-25_19-34-34)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=300251, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1035, in _init
+    raise NotImplementedError
+NotImplementedError
+
+During handling of the above exception, another exception occurred:
+
+[36mray::QPlexFocusTrainer.__init__()[39m (pid=300251, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 911, in setup
+    self.workers = WorkerSet(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/worker_set.py", line 134, in __init__
+    remote_spaces = ray.get(
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::RolloutWorker.__init__()[39m (pid=300310, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x74183d129d30>)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 626, in __init__
+    self._build_policy_map(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 1713, in _build_policy_map
+    preprocessor = ModelCatalog.get_preprocessor_for_space(
+  File "/home/pavt1024/vsn/mate/ray/rllib/models/catalog.py", line 781, in get_preprocessor_for_space
+    raise Exception(
+Exception: Unknown config key `focus_bias_hidden_dim`, all keys: ['_use_default_native_models', '_disable_preprocessor_api', '_disable_action_flattening', 'fcnet_hiddens', 'fcnet_activation', 'conv_filters', 'conv_activation', 'post_fcnet_hiddens', 'post_fcnet_activation', 'free_log_std', 'no_final_linear', 'vf_share_layers', 'use_lstm', 'max_seq_len', 'lstm_cell_size', 'lstm_use_prev_action', 'lstm_use_prev_reward', '_time_major', 'use_attention', 'attention_num_transformer_units', 'attention_dim', 'attention_num_heads', 'attention_head_dim', 'attention_memory_inference', 'attention_memory_training', 'attention_position_wise_mlp_dim', 'attention_init_gru_gate_bias', 'attention_use_n_prev_actions', 'attention_use_n_prev_rewards', 'framestack', 'dim', 'grayscale', 'zero_mean', 'custom_model', 'custom_model_config', 'custom_action_dist', 'custom_preprocessor', 'lstm_use_prev_action_reward']
+
+Failure # 25 (occurred at 2026-08-25_19-34-43)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=300345, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1035, in _init
+    raise NotImplementedError
+NotImplementedError
+
+During handling of the above exception, another exception occurred:
+
+[36mray::QPlexFocusTrainer.__init__()[39m (pid=300345, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 911, in setup
+    self.workers = WorkerSet(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/worker_set.py", line 134, in __init__
+    remote_spaces = ray.get(
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::RolloutWorker.__init__()[39m (pid=300408, ip=172.27.211.168, repr=<ray.rllib.evaluation.rollout_worker.RolloutWorker object at 0x7c8c7e612d30>)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 626, in __init__
+    self._build_policy_map(
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 1713, in _build_policy_map
+    preprocessor = ModelCatalog.get_preprocessor_for_space(
+  File "/home/pavt1024/vsn/mate/ray/rllib/models/catalog.py", line 781, in get_preprocessor_for_space
+    raise Exception(
+Exception: Unknown config key `focus_bias_hidden_dim`, all keys: ['_use_default_native_models', '_disable_preprocessor_api', '_disable_action_flattening', 'fcnet_hiddens', 'fcnet_activation', 'conv_filters', 'conv_activation', 'post_fcnet_hiddens', 'post_fcnet_activation', 'free_log_std', 'no_final_linear', 'vf_share_layers', 'use_lstm', 'max_seq_len', 'lstm_cell_size', 'lstm_use_prev_action', 'lstm_use_prev_reward', '_time_major', 'use_attention', 'attention_num_transformer_units', 'attention_dim', 'attention_num_heads', 'attention_head_dim', 'attention_memory_inference', 'attention_memory_training', 'attention_position_wise_mlp_dim', 'attention_init_gru_gate_bias', 'attention_use_n_prev_actions', 'attention_use_n_prev_rewards', 'framestack', 'dim', 'grayscale', 'zero_mean', 'custom_model', 'custom_model_config', 'custom_action_dist', 'custom_preprocessor', 'lstm_use_prev_action_reward']
+

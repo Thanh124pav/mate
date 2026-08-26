@@ -1,0 +1,20 @@
+{
+  "eval_type": "decentralized_policy_only",
+  "checkpoint_iteration": 38,
+  "checkpoint_path": "/home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_guarded_v2_4v8_9_200k_5120/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_a1112_00000_0_2026-08-25_00-52-53/checkpoint_000038/checkpoint-38",
+  "episodes": 5,
+  "seed": 0,
+  "decentralized_execution": true,
+  "decentralized_fallback_mode": "off",
+  "mean_coverage_rate": 0.38762,
+  "mean_coverage_rate_percent": 38.762,
+  "mean_transport_rate": 0.55612,
+  "mean_transport_rate_percent": 55.612,
+  "target_episode_reward": 7118.40,
+  "normalized_target_episode_reward": 0.55612,
+  "step_per_cargo": 19.2,
+  "video": "/home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_guarded_v2_4v8_9_200k_5120/videos/decentralized_policy_only_iter38_seed0_5ep_pathfix.mp4",
+  "video_duration_seconds": 19.733333,
+  "video_resolution": "800x800",
+  "video_fps": 60
+}

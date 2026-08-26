@@ -1,0 +1,31 @@
+/home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+  gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+/home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+  gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+/home/pavt1024/vsn/mate/ray/tune/callback.py:236: FutureWarning: Please update `setup` method in callback `<class 'examples.utils.callbacks.WandbLoggerCallback'>` to match the method signature in `ray.tune.callback.Callback`.
+  warnings.warn(
+2026-08-25 22:35:20,348	INFO wandb.py:171 -- Already logged into W&B.
+2026-08-25 22:35:21,273	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_947bd_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=356643)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=356643)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=356643)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=356643)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=356643)[0m 2026-08-25 22:35:26,211	INFO simple_q.py:161 -- In multi-agent mode, policies will be optimized sequentially by the multi-GPU optimizer. Consider setting `simple_optimizer=True` if this doesn't work for you.
+[2m[36m(QPlexFocusTrainer pid=356643)[0m 2026-08-25 22:35:26,212	INFO trainer.py:864 -- Current log_level is WARN. For more information, set 'log_level': 'INFO' / 'DEBUG' or use the -v and -vv flags.
+[2m[36m(RolloutWorker pid=356705)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(RolloutWorker pid=356705)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(RolloutWorker pid=356705)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(RolloutWorker pid=356705)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=356643)[0m 2026-08-25 22:35:41,620	INFO trainable.py:152 -- Trainable.setup took 15.424 seconds. If your trainable is slow to initialize, consider setting reuse_actors=True to reduce actor creation overheads.
+[2m[36m(QPlexFocusTrainer pid=356643)[0m 2026-08-25 22:35:41,627	WARNING util.py:60 -- Install gputil for GPU system monitoring.
+[2m[36m(RolloutWorker pid=356705)[0m /home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py:2283: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at ../torch/csrc/utils/tensor_numpy.cpp:199.)
+[2m[36m(RolloutWorker pid=356705)[0m   k: torch.as_tensor(v, device=self.device) for k, v in state_dict.items()
+[2m[36m(QPlexFocusTrainer pid=356643)[0m /home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/torch/nn/functional.py:1956: UserWarning: nn.functional.tanh is deprecated. Use torch.tanh instead.
+[2m[36m(QPlexFocusTrainer pid=356643)[0m   warnings.warn("nn.functional.tanh is deprecated. Use torch.tanh instead.")
+2026-08-25 22:54:43,149	WARNING util.py:171 -- The `process_trial_save` operation took 217.918 s, which may be a performance bottleneck.
+2026-08-25 23:13:34,032	WARNING util.py:171 -- The `process_trial_save` operation took 223.034 s, which may be a performance bottleneck.
+2026-08-25 23:32:12,996	WARNING util.py:171 -- The `process_trial_save` operation took 192.141 s, which may be a performance bottleneck.
+2026-08-25 23:50:40,579	WARNING util.py:171 -- The `process_trial_save` operation took 186.118 s, which may be a performance bottleneck.
+2026-08-26 00:09:54,904	WARNING util.py:171 -- The `process_trial_save` operation took 219.038 s, which may be a performance bottleneck.
+2026-08-26 00:11:58,751	WARNING util.py:171 -- The `on_step_begin` operation took 4.657 s, which may be a performance bottleneck.

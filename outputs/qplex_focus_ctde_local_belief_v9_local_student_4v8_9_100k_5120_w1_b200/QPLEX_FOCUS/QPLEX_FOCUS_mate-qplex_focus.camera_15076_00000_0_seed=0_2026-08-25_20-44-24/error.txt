@@ -1,0 +1,253 @@
+Failure # 1 (occurred at 2026-08-25_20-44-30)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=318254, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 844, in setup
+    self.config = self.merge_trainer_configs(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2221, in merge_trainer_configs
+    return deep_update(
+  File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 69, in deep_update
+    deep_update(original[k], value, new_keys_allowed)
+  File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 52, in deep_update
+    raise Exception("Unknown config parameter `{}` ".format(k))
+Exception: Unknown config parameter `local_belief_visible_nll_coeff`
+
+Failure # 2 (occurred at 2026-08-25_20-44-35)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=318307, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 844, in setup
+    self.config = self.merge_trainer_configs(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2221, in merge_trainer_configs
+    return deep_update(
+  File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 69, in deep_update
+    deep_update(original[k], value, new_keys_allowed)
+  File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 52, in deep_update
+    raise Exception("Unknown config parameter `{}` ".format(k))
+Exception: Unknown config parameter `local_belief_visible_nll_coeff`
+
+Failure # 3 (occurred at 2026-08-25_20-44-40)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=318343, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 844, in setup
+    self.config = self.merge_trainer_configs(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2221, in merge_trainer_configs
+    return deep_update(
+  File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 69, in deep_update
+    deep_update(original[k], value, new_keys_allowed)
+  File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 52, in deep_update
+    raise Exception("Unknown config parameter `{}` ".format(k))
+Exception: Unknown config parameter `local_belief_visible_nll_coeff`
+
+Failure # 4 (occurred at 2026-08-25_20-44-45)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=318379, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 844, in setup
+    self.config = self.merge_trainer_configs(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2221, in merge_trainer_configs
+    return deep_update(
+  File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 69, in deep_update
+    deep_update(original[k], value, new_keys_allowed)
+  File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 52, in deep_update
+    raise Exception("Unknown config parameter `{}` ".format(k))
+Exception: Unknown config parameter `local_belief_visible_nll_coeff`
+
+Failure # 5 (occurred at 2026-08-25_20-44-50)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=318417, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 844, in setup
+    self.config = self.merge_trainer_configs(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2221, in merge_trainer_configs
+    return deep_update(
+  File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 69, in deep_update
+    deep_update(original[k], value, new_keys_allowed)
+  File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 52, in deep_update
+    raise Exception("Unknown config parameter `{}` ".format(k))
+Exception: Unknown config parameter `local_belief_visible_nll_coeff`
+
+Failure # 6 (occurred at 2026-08-25_20-44-54)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=318469, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 844, in setup
+    self.config = self.merge_trainer_configs(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2221, in merge_trainer_configs
+    return deep_update(
+  File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 69, in deep_update
+    deep_update(original[k], value, new_keys_allowed)
+  File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 52, in deep_update
+    raise Exception("Unknown config parameter `{}` ".format(k))
+Exception: Unknown config parameter `local_belief_visible_nll_coeff`
+
+Failure # 7 (occurred at 2026-08-25_20-45-00)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=318505, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 844, in setup
+    self.config = self.merge_trainer_configs(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2221, in merge_trainer_configs
+    return deep_update(
+  File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 69, in deep_update
+    deep_update(original[k], value, new_keys_allowed)
+  File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 52, in deep_update
+    raise Exception("Unknown config parameter `{}` ".format(k))
+Exception: Unknown config parameter `local_belief_visible_nll_coeff`
+
+Failure # 8 (occurred at 2026-08-25_20-45-06)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=318729, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 844, in setup
+    self.config = self.merge_trainer_configs(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2221, in merge_trainer_configs
+    return deep_update(
+  File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 69, in deep_update
+    deep_update(original[k], value, new_keys_allowed)
+  File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 52, in deep_update
+    raise Exception("Unknown config parameter `{}` ".format(k))
+Exception: Unknown config parameter `local_belief_visible_nll_coeff`
+
+Failure # 9 (occurred at 2026-08-25_20-45-12)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=318883, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 844, in setup
+    self.config = self.merge_trainer_configs(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2221, in merge_trainer_configs
+    return deep_update(
+  File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 69, in deep_update
+    deep_update(original[k], value, new_keys_allowed)
+  File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 52, in deep_update
+    raise Exception("Unknown config parameter `{}` ".format(k))
+Exception: Unknown config parameter `local_belief_visible_nll_coeff`
+
+Failure # 10 (occurred at 2026-08-25_20-45-17)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=318951, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 844, in setup
+    self.config = self.merge_trainer_configs(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2221, in merge_trainer_configs
+    return deep_update(
+  File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 69, in deep_update
+    deep_update(original[k], value, new_keys_allowed)
+  File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 52, in deep_update
+    raise Exception("Unknown config parameter `{}` ".format(k))
+Exception: Unknown config parameter `local_belief_visible_nll_coeff`
+
+Failure # 11 (occurred at 2026-08-25_20-45-23)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=318987, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 844, in setup
+    self.config = self.merge_trainer_configs(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2221, in merge_trainer_configs
+    return deep_update(
+  File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 69, in deep_update
+    deep_update(original[k], value, new_keys_allowed)
+  File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 52, in deep_update
+    raise Exception("Unknown config parameter `{}` ".format(k))
+Exception: Unknown config parameter `local_belief_visible_nll_coeff`
+

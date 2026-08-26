@@ -1,0 +1,10 @@
+Environment:  <OrderEnforcing<MultiTarget(opponent=examples.qplex_focus.camera.agent.QPLEXFocusCameraAgent)<MultiAgentTracking<MultiAgentTracking-v0>>(4 cameras, 8 targets, 9 obstacles)>>
+Camera agent: examples.qplex_focus.camera.agent.QPLEXFocusCameraAgent(checkpoint_path='/home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v4_visible_fix_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_78427_00000_0_seed=0_2026-08-25_16-36-38/checkpoint_000005/checkpoint-5', decentralized_execution=True, decentralized_fallback_mode='off', decentralized_local_belief_guide=True, local_belief_guide_eta=5.0, seed=0)
+Target agent: mate.agents.greedy.GreedyTargetAgent(seed=0)
+|                           Metric |         Mean |
+| -------------------------------: | -----------: |
+|[35m                     Step / Cargo [0m|[35m         19.8 [0m|
+|[34;1m            Target Episode Reward [0m|[34;1m     +9032.67 [0m|
+|[36;1m              Mean Transport Rate [0m|[36;1m      70.568% [0m|
+|[31;1m               Mean Coverage Rate [0m|[31;1m      23.219% [0m|
+|[32;1m Normalized Target Episode Reward [0m|[32;1m     +0.70568 [0m|

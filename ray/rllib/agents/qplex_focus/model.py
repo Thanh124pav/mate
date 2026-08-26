@@ -20,6 +20,26 @@ class RNNModel(TorchModelV2, nn.Module):
         self.fc1 = nn.Linear(self.obs_size, self.rnn_hidden_dim)
         self.rnn = nn.GRUCell(self.rnn_hidden_dim, self.rnn_hidden_dim)
         self.fc2 = nn.Linear(self.rnn_hidden_dim, num_outputs)
+        custom_model_config = model_config.get("custom_model_config", {}) or {}
+        focus_bias_hidden_dim = int(
+            custom_model_config.get("focus_bias_hidden_dim", self.rnn_hidden_dim)
+        )
+        focus_bias_num_layers = max(
+            int(custom_model_config.get("focus_bias_num_layers", 2)), 1
+        )
+        focus_layers = []
+        in_dim = self.rnn_hidden_dim
+        for _ in range(focus_bias_num_layers):
+            focus_layers.extend(
+                [
+                    nn.Linear(in_dim, focus_bias_hidden_dim),
+                    nn.LayerNorm(focus_bias_hidden_dim),
+                    nn.ReLU(),
+                ]
+            )
+            in_dim = focus_bias_hidden_dim
+        focus_layers.append(nn.Linear(in_dim, num_outputs))
+        self.focus_bias_head = nn.Sequential(*focus_layers)
         self.n_agents = model_config["n_agents"]
 
     @override(ModelV2)
@@ -36,6 +56,9 @@ class RNNModel(TorchModelV2, nn.Module):
         h = self.rnn(x, h_in)
         q = self.fc2(h)
         return q, [h]
+
+    def focus_bias(self, hidden_features):
+        return self.focus_bias_head(hidden_features)
 
 
 def _get_size(obs_space):

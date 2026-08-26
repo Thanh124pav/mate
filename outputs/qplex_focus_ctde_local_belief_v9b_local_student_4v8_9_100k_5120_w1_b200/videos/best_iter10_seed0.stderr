@@ -1,0 +1,24 @@
+/home/pavt1024/vsn/mate/mate/evaluate.py:18: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import parse_version
+/home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+  gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+/home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+  gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+Traceback (most recent call last):
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/pavt1024/vsn/mate/mate/evaluate.py", line 792, in <module>
+    main()
+  File "/home/pavt1024/vsn/mate/mate/evaluate.py", line 721, in main
+    status = evaluate(
+  File "/home/pavt1024/vsn/mate/mate/evaluate.py", line 376, in evaluate
+    recorder.capture_frame()
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/gym/wrappers/monitoring/video_recorder.py", line 151, in capture_frame
+    self._encode_image_frame(frame)
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/gym/wrappers/monitoring/video_recorder.py", line 208, in _encode_image_frame
+    self.encoder = ImageEncoder(
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/gym/wrappers/monitoring/video_recorder.py", line 336, in __init__
+    raise error.DependencyNotInstalled(
+gym.error.DependencyNotInstalled: Found neither the ffmpeg nor avconv executables. On OS X, you can install ffmpeg via `brew install ffmpeg`. On most Ubuntu variants, `sudo apt-get install ffmpeg` should do it. On Ubuntu 14.04, however, you'll need to install avconv with `sudo apt-get install libav-tools`. Alternatively, please install imageio-ffmpeg with `pip install imageio-ffmpeg`

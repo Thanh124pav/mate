@@ -1,0 +1,392 @@
+/home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+  gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+/home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+  gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+/home/pavt1024/vsn/mate/ray/tune/callback.py:236: FutureWarning: Please update `setup` method in callback `<class 'examples.utils.callbacks.WandbLoggerCallback'>` to match the method signature in `ray.tune.callback.Callback`.
+  warnings.warn(
+2026-08-25 20:44:24,172	INFO wandb.py:171 -- Already logged into W&B.
+2026-08-25 20:44:24,744	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=318254)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=318254)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=318254)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=318254)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+2026-08-25 20:44:30,052	ERROR trial_runner.py:876 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000: Error processing event.
+NoneType: None
+2026-08-25 20:44:30,055	INFO trial_runner.py:1239 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000: Attempting to restore trial state from last checkpoint.
+[2m[36m(QPlexFocusTrainer pid=318254)[0m 2026-08-25 20:44:30,038	ERROR worker.py:449 -- Exception raised in creation task: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=318254, ip=172.27.211.168, repr=QPlexFocusTrainer)
+[2m[36m(QPlexFocusTrainer pid=318254)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+[2m[36m(QPlexFocusTrainer pid=318254)[0m     super().__init__(
+[2m[36m(QPlexFocusTrainer pid=318254)[0m   File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+[2m[36m(QPlexFocusTrainer pid=318254)[0m     self.setup(copy.deepcopy(self.config))
+[2m[36m(QPlexFocusTrainer pid=318254)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 844, in setup
+[2m[36m(QPlexFocusTrainer pid=318254)[0m     self.config = self.merge_trainer_configs(
+2026-08-25 20:44:30,072	ERROR ray_trial_executor.py:102 -- An exception occurred when trying to stop the Ray actor:Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 93, in post_stop_cleanup
+    ray.get(future, timeout=0)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=318254, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+    super().__init__(
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+    self.setup(copy.deepcopy(self.config))
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 844, in setup
+    self.config = self.merge_trainer_configs(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2221, in merge_trainer_configs
+    return deep_update(
+  File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 69, in deep_update
+    deep_update(original[k], value, new_keys_allowed)
+  File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 52, in deep_update
+    raise Exception("Unknown config parameter `{}` ".format(k))
+Exception: Unknown config parameter `local_belief_visible_nll_coeff`
+
+[2m[36m(QPlexFocusTrainer pid=318254)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2221, in merge_trainer_configs
+[2m[36m(QPlexFocusTrainer pid=318254)[0m     return deep_update(
+[2m[36m(QPlexFocusTrainer pid=318254)[0m   File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 69, in deep_update
+[2m[36m(QPlexFocusTrainer pid=318254)[0m     deep_update(original[k], value, new_keys_allowed)
+[2m[36m(QPlexFocusTrainer pid=318254)[0m   File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 52, in deep_update
+[2m[36m(QPlexFocusTrainer pid=318254)[0m     raise Exception("Unknown config parameter `{}` ".format(k))
+[2m[36m(QPlexFocusTrainer pid=318254)[0m Exception: Unknown config parameter `local_belief_visible_nll_coeff`
+2026-08-25 20:44:30,770	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=318307)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=318307)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=318307)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=318307)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+2026-08-25 20:44:35,140	ERROR trial_runner.py:876 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000: Error processing event.
+NoneType: None
+[2m[36m(QPlexFocusTrainer pid=318307)[0m 2026-08-25 20:44:35,128	ERROR worker.py:449 -- Exception raised in creation task: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=318307, ip=172.27.211.168, repr=QPlexFocusTrainer)
+[2m[36m(QPlexFocusTrainer pid=318307)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+[2m[36m(QPlexFocusTrainer pid=318307)[0m     super().__init__(
+[2m[36m(QPlexFocusTrainer pid=318307)[0m   File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+[2m[36m(QPlexFocusTrainer pid=318307)[0m     self.setup(copy.deepcopy(self.config))
+[2m[36m(QPlexFocusTrainer pid=318307)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 844, in setup
+[2m[36m(QPlexFocusTrainer pid=318307)[0m     self.config = self.merge_trainer_configs(
+[2m[36m(QPlexFocusTrainer pid=318307)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2221, in merge_trainer_configs
+[2m[36m(QPlexFocusTrainer pid=318307)[0m     return deep_update(
+[2m[36m(QPlexFocusTrainer pid=318307)[0m   File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 69, in deep_update
+[2m[36m(QPlexFocusTrainer pid=318307)[0m     deep_update(original[k], value, new_keys_allowed)
+[2m[36m(QPlexFocusTrainer pid=318307)[0m   File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 52, in deep_update
+[2m[36m(QPlexFocusTrainer pid=318307)[0m     raise Exception("Unknown config parameter `{}` ".format(k))
+[2m[36m(QPlexFocusTrainer pid=318307)[0m Exception: Unknown config parameter `local_belief_visible_nll_coeff`
+2026-08-25 20:44:35,146	INFO trial_runner.py:1239 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000: Attempting to restore trial state from last checkpoint.
+2026-08-25 20:44:35,771	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=318343)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=318343)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=318343)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=318343)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+2026-08-25 20:44:40,135	ERROR trial_runner.py:876 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000: Error processing event.
+NoneType: None
+2026-08-25 20:44:40,137	INFO trial_runner.py:1239 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000: Attempting to restore trial state from last checkpoint.
+[2m[36m(QPlexFocusTrainer pid=318343)[0m 2026-08-25 20:44:40,126	ERROR worker.py:449 -- Exception raised in creation task: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=318343, ip=172.27.211.168, repr=QPlexFocusTrainer)
+[2m[36m(QPlexFocusTrainer pid=318343)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+[2m[36m(QPlexFocusTrainer pid=318343)[0m     super().__init__(
+[2m[36m(QPlexFocusTrainer pid=318343)[0m   File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+[2m[36m(QPlexFocusTrainer pid=318343)[0m     self.setup(copy.deepcopy(self.config))
+[2m[36m(QPlexFocusTrainer pid=318343)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 844, in setup
+[2m[36m(QPlexFocusTrainer pid=318343)[0m     self.config = self.merge_trainer_configs(
+[2m[36m(QPlexFocusTrainer pid=318343)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2221, in merge_trainer_configs
+[2m[36m(QPlexFocusTrainer pid=318343)[0m     return deep_update(
+[2m[36m(QPlexFocusTrainer pid=318343)[0m   File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 69, in deep_update
+[2m[36m(QPlexFocusTrainer pid=318343)[0m     deep_update(original[k], value, new_keys_allowed)
+[2m[36m(QPlexFocusTrainer pid=318343)[0m   File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 52, in deep_update
+[2m[36m(QPlexFocusTrainer pid=318343)[0m     raise Exception("Unknown config parameter `{}` ".format(k))
+[2m[36m(QPlexFocusTrainer pid=318343)[0m Exception: Unknown config parameter `local_belief_visible_nll_coeff`
+2026-08-25 20:44:40,775	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=318379)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=318379)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=318379)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=318379)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+2026-08-25 20:44:45,125	ERROR trial_runner.py:876 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000: Error processing event.
+NoneType: None
+2026-08-25 20:44:45,128	INFO trial_runner.py:1239 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000: Attempting to restore trial state from last checkpoint.
+[2m[36m(QPlexFocusTrainer pid=318379)[0m 2026-08-25 20:44:45,108	ERROR worker.py:449 -- Exception raised in creation task: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=318379, ip=172.27.211.168, repr=QPlexFocusTrainer)
+[2m[36m(QPlexFocusTrainer pid=318379)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+[2m[36m(QPlexFocusTrainer pid=318379)[0m     super().__init__(
+[2m[36m(QPlexFocusTrainer pid=318379)[0m   File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+[2m[36m(QPlexFocusTrainer pid=318379)[0m     self.setup(copy.deepcopy(self.config))
+[2m[36m(QPlexFocusTrainer pid=318379)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 844, in setup
+[2m[36m(QPlexFocusTrainer pid=318379)[0m     self.config = self.merge_trainer_configs(
+[2m[36m(QPlexFocusTrainer pid=318379)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2221, in merge_trainer_configs
+[2m[36m(QPlexFocusTrainer pid=318379)[0m     return deep_update(
+[2m[36m(QPlexFocusTrainer pid=318379)[0m   File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 69, in deep_update
+[2m[36m(QPlexFocusTrainer pid=318379)[0m     deep_update(original[k], value, new_keys_allowed)
+[2m[36m(QPlexFocusTrainer pid=318379)[0m   File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 52, in deep_update
+[2m[36m(QPlexFocusTrainer pid=318379)[0m     raise Exception("Unknown config parameter `{}` ".format(k))
+[2m[36m(QPlexFocusTrainer pid=318379)[0m Exception: Unknown config parameter `local_belief_visible_nll_coeff`
+2026-08-25 20:44:45,775	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=318417)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=318417)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=318417)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=318417)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+2026-08-25 20:44:50,267	ERROR trial_runner.py:876 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000: Error processing event.
+NoneType: None
+2026-08-25 20:44:50,269	INFO trial_runner.py:1239 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000: Attempting to restore trial state from last checkpoint.
+[2m[36m(QPlexFocusTrainer pid=318417)[0m 2026-08-25 20:44:50,260	ERROR worker.py:449 -- Exception raised in creation task: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=318417, ip=172.27.211.168, repr=QPlexFocusTrainer)
+[2m[36m(QPlexFocusTrainer pid=318417)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+[2m[36m(QPlexFocusTrainer pid=318417)[0m     super().__init__(
+[2m[36m(QPlexFocusTrainer pid=318417)[0m   File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+[2m[36m(QPlexFocusTrainer pid=318417)[0m     self.setup(copy.deepcopy(self.config))
+[2m[36m(QPlexFocusTrainer pid=318417)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 844, in setup
+[2m[36m(QPlexFocusTrainer pid=318417)[0m     self.config = self.merge_trainer_configs(
+[2m[36m(QPlexFocusTrainer pid=318417)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2221, in merge_trainer_configs
+[2m[36m(QPlexFocusTrainer pid=318417)[0m     return deep_update(
+[2m[36m(QPlexFocusTrainer pid=318417)[0m   File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 69, in deep_update
+[2m[36m(QPlexFocusTrainer pid=318417)[0m     deep_update(original[k], value, new_keys_allowed)
+[2m[36m(QPlexFocusTrainer pid=318417)[0m   File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 52, in deep_update
+[2m[36m(QPlexFocusTrainer pid=318417)[0m     raise Exception("Unknown config parameter `{}` ".format(k))
+[2m[36m(QPlexFocusTrainer pid=318417)[0m Exception: Unknown config parameter `local_belief_visible_nll_coeff`
+2026-08-25 20:44:50,777	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=318469)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=318469)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=318469)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=318469)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+2026-08-25 20:44:54,898	ERROR trial_runner.py:876 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000: Error processing event.
+NoneType: None
+2026-08-25 20:44:54,901	INFO trial_runner.py:1239 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000: Attempting to restore trial state from last checkpoint.
+[2m[36m(QPlexFocusTrainer pid=318469)[0m 2026-08-25 20:44:54,892	ERROR worker.py:449 -- Exception raised in creation task: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=318469, ip=172.27.211.168, repr=QPlexFocusTrainer)
+[2m[36m(QPlexFocusTrainer pid=318469)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+[2m[36m(QPlexFocusTrainer pid=318469)[0m     super().__init__(
+[2m[36m(QPlexFocusTrainer pid=318469)[0m   File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+[2m[36m(QPlexFocusTrainer pid=318469)[0m     self.setup(copy.deepcopy(self.config))
+[2m[36m(QPlexFocusTrainer pid=318469)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 844, in setup
+[2m[36m(QPlexFocusTrainer pid=318469)[0m     self.config = self.merge_trainer_configs(
+[2m[36m(QPlexFocusTrainer pid=318469)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2221, in merge_trainer_configs
+[2m[36m(QPlexFocusTrainer pid=318469)[0m     return deep_update(
+[2m[36m(QPlexFocusTrainer pid=318469)[0m   File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 69, in deep_update
+[2m[36m(QPlexFocusTrainer pid=318469)[0m     deep_update(original[k], value, new_keys_allowed)
+[2m[36m(QPlexFocusTrainer pid=318469)[0m   File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 52, in deep_update
+[2m[36m(QPlexFocusTrainer pid=318469)[0m     raise Exception("Unknown config parameter `{}` ".format(k))
+[2m[36m(QPlexFocusTrainer pid=318469)[0m Exception: Unknown config parameter `local_belief_visible_nll_coeff`
+2026-08-25 20:44:55,778	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=318505)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=318505)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=318505)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=318505)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+2026-08-25 20:45:00,963	ERROR trial_runner.py:876 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000: Error processing event.
+NoneType: None
+2026-08-25 20:45:00,965	INFO trial_runner.py:1239 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000: Attempting to restore trial state from last checkpoint.
+[2m[36m(QPlexFocusTrainer pid=318505)[0m 2026-08-25 20:45:00,947	ERROR worker.py:449 -- Exception raised in creation task: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=318505, ip=172.27.211.168, repr=QPlexFocusTrainer)
+[2m[36m(QPlexFocusTrainer pid=318505)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+[2m[36m(QPlexFocusTrainer pid=318505)[0m     super().__init__(
+[2m[36m(QPlexFocusTrainer pid=318505)[0m   File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+[2m[36m(QPlexFocusTrainer pid=318505)[0m     self.setup(copy.deepcopy(self.config))
+[2m[36m(QPlexFocusTrainer pid=318505)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 844, in setup
+[2m[36m(QPlexFocusTrainer pid=318505)[0m     self.config = self.merge_trainer_configs(
+[2m[36m(QPlexFocusTrainer pid=318505)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2221, in merge_trainer_configs
+[2m[36m(QPlexFocusTrainer pid=318505)[0m     return deep_update(
+[2m[36m(QPlexFocusTrainer pid=318505)[0m   File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 69, in deep_update
+[2m[36m(QPlexFocusTrainer pid=318505)[0m     deep_update(original[k], value, new_keys_allowed)
+[2m[36m(QPlexFocusTrainer pid=318505)[0m   File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 52, in deep_update
+[2m[36m(QPlexFocusTrainer pid=318505)[0m     raise Exception("Unknown config parameter `{}` ".format(k))
+[2m[36m(QPlexFocusTrainer pid=318505)[0m Exception: Unknown config parameter `local_belief_visible_nll_coeff`
+2026-08-25 20:45:01,787	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=318729)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=318729)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=318729)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=318729)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+2026-08-25 20:45:06,824	ERROR trial_runner.py:876 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000: Error processing event.
+NoneType: None
+2026-08-25 20:45:06,826	INFO trial_runner.py:1239 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000: Attempting to restore trial state from last checkpoint.
+[2m[36m(QPlexFocusTrainer pid=318729)[0m 2026-08-25 20:45:06,813	ERROR worker.py:449 -- Exception raised in creation task: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=318729, ip=172.27.211.168, repr=QPlexFocusTrainer)
+[2m[36m(QPlexFocusTrainer pid=318729)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+[2m[36m(QPlexFocusTrainer pid=318729)[0m     super().__init__(
+[2m[36m(QPlexFocusTrainer pid=318729)[0m   File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+[2m[36m(QPlexFocusTrainer pid=318729)[0m     self.setup(copy.deepcopy(self.config))
+[2m[36m(QPlexFocusTrainer pid=318729)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 844, in setup
+[2m[36m(QPlexFocusTrainer pid=318729)[0m     self.config = self.merge_trainer_configs(
+[2m[36m(QPlexFocusTrainer pid=318729)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2221, in merge_trainer_configs
+[2m[36m(QPlexFocusTrainer pid=318729)[0m     return deep_update(
+[2m[36m(QPlexFocusTrainer pid=318729)[0m   File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 69, in deep_update
+[2m[36m(QPlexFocusTrainer pid=318729)[0m     deep_update(original[k], value, new_keys_allowed)
+[2m[36m(QPlexFocusTrainer pid=318729)[0m   File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 52, in deep_update
+[2m[36m(QPlexFocusTrainer pid=318729)[0m     raise Exception("Unknown config parameter `{}` ".format(k))
+[2m[36m(QPlexFocusTrainer pid=318729)[0m Exception: Unknown config parameter `local_belief_visible_nll_coeff`
+2026-08-25 20:45:07,785	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=318883)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=318883)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=318883)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=318883)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+2026-08-25 20:45:12,253	ERROR trial_runner.py:876 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000: Error processing event.
+NoneType: None
+2026-08-25 20:45:12,258	INFO trial_runner.py:1239 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000: Attempting to restore trial state from last checkpoint.
+[2m[36m(QPlexFocusTrainer pid=318883)[0m 2026-08-25 20:45:12,239	ERROR worker.py:449 -- Exception raised in creation task: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=318883, ip=172.27.211.168, repr=QPlexFocusTrainer)
+[2m[36m(QPlexFocusTrainer pid=318883)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+[2m[36m(QPlexFocusTrainer pid=318883)[0m     super().__init__(
+[2m[36m(QPlexFocusTrainer pid=318883)[0m   File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+[2m[36m(QPlexFocusTrainer pid=318883)[0m     self.setup(copy.deepcopy(self.config))
+[2m[36m(QPlexFocusTrainer pid=318883)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 844, in setup
+[2m[36m(QPlexFocusTrainer pid=318883)[0m     self.config = self.merge_trainer_configs(
+[2m[36m(QPlexFocusTrainer pid=318883)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2221, in merge_trainer_configs
+[2m[36m(QPlexFocusTrainer pid=318883)[0m     return deep_update(
+[2m[36m(QPlexFocusTrainer pid=318883)[0m   File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 69, in deep_update
+[2m[36m(QPlexFocusTrainer pid=318883)[0m     deep_update(original[k], value, new_keys_allowed)
+[2m[36m(QPlexFocusTrainer pid=318883)[0m   File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 52, in deep_update
+[2m[36m(QPlexFocusTrainer pid=318883)[0m     raise Exception("Unknown config parameter `{}` ".format(k))
+[2m[36m(QPlexFocusTrainer pid=318883)[0m Exception: Unknown config parameter `local_belief_visible_nll_coeff`
+2026-08-25 20:45:12,785	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=318951)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=318951)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=318951)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=318951)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+2026-08-25 20:45:17,047	ERROR trial_runner.py:876 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000: Error processing event.
+NoneType: None
+2026-08-25 20:45:17,050	INFO trial_runner.py:1239 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000: Attempting to restore trial state from last checkpoint.
+[2m[36m(QPlexFocusTrainer pid=318951)[0m 2026-08-25 20:45:17,038	ERROR worker.py:449 -- Exception raised in creation task: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=318951, ip=172.27.211.168, repr=QPlexFocusTrainer)
+[2m[36m(QPlexFocusTrainer pid=318951)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+[2m[36m(QPlexFocusTrainer pid=318951)[0m     super().__init__(
+[2m[36m(QPlexFocusTrainer pid=318951)[0m   File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+[2m[36m(QPlexFocusTrainer pid=318951)[0m     self.setup(copy.deepcopy(self.config))
+[2m[36m(QPlexFocusTrainer pid=318951)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 844, in setup
+[2m[36m(QPlexFocusTrainer pid=318951)[0m     self.config = self.merge_trainer_configs(
+[2m[36m(QPlexFocusTrainer pid=318951)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2221, in merge_trainer_configs
+[2m[36m(QPlexFocusTrainer pid=318951)[0m     return deep_update(
+[2m[36m(QPlexFocusTrainer pid=318951)[0m   File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 69, in deep_update
+[2m[36m(QPlexFocusTrainer pid=318951)[0m     deep_update(original[k], value, new_keys_allowed)
+[2m[36m(QPlexFocusTrainer pid=318951)[0m   File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 52, in deep_update
+[2m[36m(QPlexFocusTrainer pid=318951)[0m     raise Exception("Unknown config parameter `{}` ".format(k))
+[2m[36m(QPlexFocusTrainer pid=318951)[0m Exception: Unknown config parameter `local_belief_visible_nll_coeff`
+2026-08-25 20:45:17,786	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=318987)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=318987)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=318987)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=318987)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+2026-08-25 20:45:23,059	ERROR trial_runner.py:876 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000: Error processing event.
+NoneType: None
+[2m[36m(QPlexFocusTrainer pid=318987)[0m 2026-08-25 20:45:23,045	ERROR worker.py:449 -- Exception raised in creation task: The actor died because of an error raised in its creation task, [36mray::QPlexFocusTrainer.__init__()[39m (pid=318987, ip=172.27.211.168, repr=QPlexFocusTrainer)
+[2m[36m(QPlexFocusTrainer pid=318987)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 830, in __init__
+[2m[36m(QPlexFocusTrainer pid=318987)[0m     super().__init__(
+[2m[36m(QPlexFocusTrainer pid=318987)[0m   File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 149, in __init__
+2026-08-25 20:45:23,062	INFO trial_runner.py:1239 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_15076_00000: Attempting to restore trial state from last checkpoint.
+[2m[36m(QPlexFocusTrainer pid=318987)[0m     self.setup(copy.deepcopy(self.config))
+[2m[36m(QPlexFocusTrainer pid=318987)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 844, in setup
+[2m[36m(QPlexFocusTrainer pid=318987)[0m     self.config = self.merge_trainer_configs(
+[2m[36m(QPlexFocusTrainer pid=318987)[0m   File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2221, in merge_trainer_configs
+[2m[36m(QPlexFocusTrainer pid=318987)[0m     return deep_update(
+[2m[36m(QPlexFocusTrainer pid=318987)[0m   File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 69, in deep_update
+[2m[36m(QPlexFocusTrainer pid=318987)[0m     deep_update(original[k], value, new_keys_allowed)
+[2m[36m(QPlexFocusTrainer pid=318987)[0m   File "/home/pavt1024/vsn/mate/ray/util/ml_utils/dict.py", line 52, in deep_update
+[2m[36m(QPlexFocusTrainer pid=318987)[0m     raise Exception("Unknown config parameter `{}` ".format(k))
+[2m[36m(QPlexFocusTrainer pid=318987)[0m Exception: Unknown config parameter `local_belief_visible_nll_coeff`
+*** SIGTERM received at time=1787665523 on cpu 6 ***
+*** SIGTERM received at time=1787665523 on cpu 1 ***
+*** SIGTERM received at time=1787665523 on cpu 4 ***
+*** SIGTERM received at time=1787665523 on cpu 2 ***
+*** SIGTERM received at time=1787665523 on cpu 5 ***
+*** SIGTERM received at time=1787665523 on cpu 3 ***
+*** SIGTERM received at time=1787665523 on cpu 2 ***
+*** SIGTERM received at time=1787665523 on cpu 0 ***
+*** SIGTERM received at time=1787665523 on cpu 2 ***
+*** SIGTERM received at time=1787665523 on cpu 7 ***
+PC: @     0x7b11d891bbca  (unknown)  __read
+    @     0x7b11d8845330  (unknown)  (unknown)
+PC: @     0x7b11d891bbca  (unknown)  __read
+    @           0x59f61b  (unknown)  _Py_read
+    @     0x7b11d8845330  (unknown)  (unknown)
+PC: @     0x7b11d891bbca  (unknown)  __read
+[2026-08-25 20:45:23,282 E 318952 317674] logging.cc:325: *** SIGTERM received at time=1787665523 on cpu 6 ***
+[2026-08-25 20:45:23,283 E 318952 317674] logging.cc:325: PC: @     0x7b11d891bbca  (unknown)  __read
+    @     0x7b11d8845330  (unknown)  (unknown)
+PC: @     0x7b11d891bbca  (unknown)  __read
+[2026-08-25 20:45:23,283 E 318952 317674] logging.cc:325:     @     0x7b11d8845330  (unknown)  (unknown)
+[2026-08-25 20:45:23,283 E 318952 317674] logging.cc:325:     @           0x59f61b  (unknown)  _Py_read
+    @     0x7b11d8845330  (unknown)  (unknown)
+PC: @     0x7b11d891bbca  (unknown)  __read
+    @     0x7b11d8845330  (unknown)  (unknown)
+    @           0x59f61b  (unknown)  _Py_read
+    @           0x59f61b  (unknown)  _Py_read
+*** SIGTERM received at time=1787665523 on cpu 7 ***
+[2026-08-25 20:45:23,284 E 318418 317674] logging.cc:325: *** SIGTERM received at time=1787665523 on cpu 0 ***
+[2026-08-25 20:45:23,284 E 318988 317674] logging.cc:325: *** SIGTERM received at time=1787665523 on cpu 1 ***
+[2026-08-25 20:45:23,284 E 318418 317674] logging.cc:325: PC: @     0x7b11d891bbca  (unknown)  __read
+[2026-08-25 20:45:23,284 E 318988 317674] logging.cc:325: PC: @     0x7b11d891bbca  (unknown)  __read
+    @           0x59f61b  (unknown)  _Py_read
+[2026-08-25 20:45:23,284 E 318988 317674] logging.cc:325:     @     0x7b11d8845330  (unknown)  (unknown)
+[2026-08-25 20:45:23,284 E 318988 317674] logging.cc:325:     @           0x59f61b  (unknown)  _Py_read
+[2026-08-25 20:45:23,284 E 318418 317674] logging.cc:325:     @     0x7b11d8845330  (unknown)  (unknown)
+[2026-08-25 20:45:23,284 E 318418 317674] logging.cc:325:     @           0x59f61b  (unknown)  _Py_read
+[2026-08-25 20:45:23,284 E 318884 317674] logging.cc:325: *** SIGTERM received at time=1787665523 on cpu 4 ***
+[2026-08-25 20:45:23,285 E 318884 317674] logging.cc:325: PC: @     0x7b11d891bbca  (unknown)  __read
+[2026-08-25 20:45:23,285 E 318884 317674] logging.cc:325:     @     0x7b11d8845330  (unknown)  (unknown)
+[2026-08-25 20:45:23,285 E 318884 317674] logging.cc:325:     @           0x59f61b  (unknown)  _Py_read
+    @           0x59f61b  (unknown)  _Py_read
+[2026-08-25 20:45:23,286 E 318506 317674] logging.cc:325: *** SIGTERM received at time=1787665523 on cpu 5 ***
+[2026-08-25 20:45:23,286 E 318506 317674] logging.cc:325: PC: @     0x7b11d891bbca  (unknown)  __read
+[2026-08-25 20:45:23,286 E 318506 317674] logging.cc:325:     @     0x7b11d8845330  (unknown)  (unknown)
+[2026-08-25 20:45:23,286 E 318506 317674] logging.cc:325:     @           0x59f61b  (unknown)  _Py_read
+*** SIGTERM received at time=1787665523 on cpu 2 ***
+PC: @     0x7b11d891bbca  (unknown)  __read
+    @     0x7b11d8845330  (unknown)  (unknown)
+PC: @     0x7b11d891bbca  (unknown)  __read
+    @     0x7b11d8845330  (unknown)  (unknown)
+PC: @     0x7b11d891bbca  (unknown)  __read
+    @     0x7b11d8845330  (unknown)  (unknown)
+    @           0x59f61b  (unknown)  _Py_read
+[2026-08-25 20:45:23,297 E 318344 317674] logging.cc:325: *** SIGTERM received at time=1787665523 on cpu 3 ***
+[2026-08-25 20:45:23,297 E 318344 317674] logging.cc:325: PC: @     0x7b11d891bbca  (unknown)  __read
+[2026-08-25 20:45:23,297 E 318344 317674] logging.cc:325:     @     0x7b11d8845330  (unknown)  (unknown)
+[2026-08-25 20:45:23,297 E 318344 317674] logging.cc:325:     @           0x59f61b  (unknown)  _Py_read
+    @           0x59f61b  (unknown)  _Py_read
+[2026-08-25 20:45:23,298 E 318255 317674] logging.cc:325: *** SIGTERM received at time=1787665523 on cpu 7 ***
+PC: @     0x7b11d891bbca  (unknown)  __read
+[2026-08-25 20:45:23,298 E 318255 317674] logging.cc:325: PC: @     0x7b11d891bbca  (unknown)  __read
+[2026-08-25 20:45:23,299 E 318255 317674] logging.cc:325:     @     0x7b11d8845330  (unknown)  (unknown)
+[2026-08-25 20:45:23,299 E 318255 317674] logging.cc:325:     @           0x59f61b  (unknown)  _Py_read
+    @     0x7b11d8845330  (unknown)  (unknown)
+PC: @     0x7b11d891bbca  (unknown)  __read
+    @     0x7b11d8845330  (unknown)  (unknown)
+    @           0x59f61b  (unknown)  _Py_read
+[2026-08-25 20:45:23,310 E 318380 317674] logging.cc:325: *** SIGTERM received at time=1787665523 on cpu 7 ***
+[2026-08-25 20:45:23,310 E 318380 317674] logging.cc:325: PC: @     0x7b11d891bbca  (unknown)  __read
+[2026-08-25 20:45:23,310 E 318380 317674] logging.cc:325:     @     0x7b11d8845330  (unknown)  (unknown)
+[2026-08-25 20:45:23,310 E 318380 317674] logging.cc:325:     @           0x59f61b  (unknown)  _Py_read
+PC: @     0x7b11d891bbca  (unknown)  __read
+    @     0x7b11d8845330  (unknown)  (unknown)
+PC: @     0x7b11d8898e51  (unknown)  (unknown)
+    @     0x7b11d8845330  (unknown)  (unknown)
+    @     0x7b11d889bd6e        224  pthread_cond_timedwait
+    @           0x59f61b  (unknown)  _Py_read
+[2026-08-25 20:45:23,321 E 318470 317674] logging.cc:325: *** SIGTERM received at time=1787665523 on cpu 2 ***
+[2026-08-25 20:45:23,322 E 318470 317674] logging.cc:325: PC: @     0x7b11d891bbca  (unknown)  __read
+[2026-08-25 20:45:23,322 E 318470 317674] logging.cc:325:     @     0x7b11d8845330  (unknown)  (unknown)
+[2026-08-25 20:45:23,322 E 318470 317674] logging.cc:325:     @           0x59f61b  (unknown)  _Py_read
+    @           0x59f61b  (unknown)  _Py_read
+[2026-08-25 20:45:23,330 E 318308 317674] logging.cc:325: *** SIGTERM received at time=1787665523 on cpu 2 ***
+[2026-08-25 20:45:23,330 E 318308 317674] logging.cc:325: PC: @     0x7b11d891bbca  (unknown)  __read
+[2026-08-25 20:45:23,330 E 318308 317674] logging.cc:325:     @     0x7b11d8845330  (unknown)  (unknown)
+[2026-08-25 20:45:23,330 E 318308 317674] logging.cc:325:     @           0x59f61b  (unknown)  _Py_read
+    @           0x59f61b  (unknown)  _Py_read
+[2026-08-25 20:45:23,332 E 318730 317674] logging.cc:325: *** SIGTERM received at time=1787665523 on cpu 2 ***
+[2026-08-25 20:45:23,333 E 318730 317674] logging.cc:325: PC: @     0x7b11d891bbca  (unknown)  __read
+[2026-08-25 20:45:23,333 E 318730 317674] logging.cc:325:     @     0x7b11d8845330  (unknown)  (unknown)
+[2026-08-25 20:45:23,333 E 318730 317674] logging.cc:325:     @           0x59f61b  (unknown)  _Py_read
+    @     0x7b11abc1ad13        144  ray::core::GetRequest::Wait()
+    @     0x7b11abc1bf07        368  ray::core::CoreWorkerMemoryStore::GetImpl()
+    @     0x7b11abc1cf9e        256  ray::core::CoreWorkerMemoryStore::Wait()
+    @     0x7b11abb953a7        368  ray::core::CoreWorker::Wait()
+    @     0x7b11abaca283        288  __pyx_pw_3ray_7_raylet_10CoreWorker_41wait()
+    @           0x4f9896  (unknown)  method_vectorcall_VARARGS_KEYWORDS
+    @           0x738180  (unknown)  (unknown)
+[2026-08-25 20:45:23,389 E 317674 317674] logging.cc:325: *** SIGTERM received at time=1787665523 on cpu 2 ***
+[2026-08-25 20:45:23,396 E 317674 317674] logging.cc:325: PC: @     0x7b11d8898e51  (unknown)  (unknown)
+[2026-08-25 20:45:23,396 E 317674 317674] logging.cc:325:     @     0x7b11d8845330  (unknown)  (unknown)
+[2026-08-25 20:45:23,396 E 317674 317674] logging.cc:325:     @     0x7b11d889bd6e        224  pthread_cond_timedwait
+[2026-08-25 20:45:23,396 E 317674 317674] logging.cc:325:     @     0x7b11abc1ad13        144  ray::core::GetRequest::Wait()
+[2026-08-25 20:45:23,396 E 317674 317674] logging.cc:325:     @     0x7b11abc1bf07        368  ray::core::CoreWorkerMemoryStore::GetImpl()
+[2026-08-25 20:45:23,396 E 317674 317674] logging.cc:325:     @     0x7b11abc1cf9e        256  ray::core::CoreWorkerMemoryStore::Wait()
+[2026-08-25 20:45:23,396 E 317674 317674] logging.cc:325:     @     0x7b11abb953a7        368  ray::core::CoreWorker::Wait()
+[2026-08-25 20:45:23,396 E 317674 317674] logging.cc:325:     @     0x7b11abaca283        288  __pyx_pw_3ray_7_raylet_10CoreWorker_41wait()
+[2026-08-25 20:45:23,396 E 317674 317674] logging.cc:325:     @           0x4f9896  (unknown)  method_vectorcall_VARARGS_KEYWORDS
+[2026-08-25 20:45:23,403 E 317674 317674] logging.cc:325:     @           0x738180  (unknown)  (unknown)

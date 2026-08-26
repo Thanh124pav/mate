@@ -1,0 +1,17 @@
+{
+  "checkpoint_iteration": 38,
+  "checkpoint_path": "/home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_guarded_v2_4v8_9_200k_5120/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_a1112_00000_0_2026-08-25_00-52-53/checkpoint_000038/checkpoint-38",
+  "env_config": "MATE-4v8-9.yaml",
+  "episodes": 5,
+  "seed": 0,
+  "strict_decentralized": true,
+  "centralized_action_bias_eta": 0.0,
+  "fallback_mode": "off",
+  "note": "local guide uses model.focus_bias(hidden_features) from local observation/RNN hidden state; occupancy_model itself still consumes global state and is not used online",
+  "results": [
+    {"decentralized_local_belief_guide": false, "local_belief_guide_eta": 0.0, "mean_coverage_rate_percent": 39.024, "mean_transport_rate_percent": 56.284, "target_episode_reward": 7204.40, "normalized_target_episode_reward": 0.56284, "step_per_cargo": 19.8},
+    {"decentralized_local_belief_guide": true, "local_belief_guide_eta": 0.5, "mean_coverage_rate_percent": 38.762, "mean_transport_rate_percent": 55.612, "target_episode_reward": 7118.40, "normalized_target_episode_reward": 0.55612, "step_per_cargo": 19.2},
+    {"decentralized_local_belief_guide": true, "local_belief_guide_eta": 1.0, "mean_coverage_rate_percent": 39.008, "mean_transport_rate_percent": 55.259, "target_episode_reward": 7073.20, "normalized_target_episode_reward": 0.55259, "step_per_cargo": 19.0},
+    {"decentralized_local_belief_guide": true, "local_belief_guide_eta": 2.0, "mean_coverage_rate_percent": 37.003, "mean_transport_rate_percent": 58.250, "target_episode_reward": 7456.00, "normalized_target_episode_reward": 0.58250, "step_per_cargo": 18.7}
+  ]
+}

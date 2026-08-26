@@ -57,6 +57,23 @@ def loss_confidence(per_step_loss, valid, focus_config):
     return torch.sigmoid((threshold - loss) / temperature).detach()
 
 
+def belief_std_confidence(std, focus_config):
+    """Return per-step confidence from belief predictive uncertainty.
+
+    This is usable at action-selection time because it only needs the belief
+    model's predicted std, not the future state. The output has the same
+    leading [B, T] shape as the belief prediction.
+    """
+    eps = focus_config.get("eps", 1e-8)
+    std_mean = std.detach().mean(dim=tuple(range(2, std.dim())))
+    threshold = float(focus_config.get("action_bias_confidence_std_threshold", 80.0))
+    temperature = max(float(focus_config.get("action_bias_confidence_std_temperature", 40.0)), eps)
+    confidence = torch.sigmoid((threshold - std_mean) / temperature)
+    min_conf = float(focus_config.get("action_bias_confidence_min", 0.0))
+    max_conf = float(focus_config.get("action_bias_confidence_max", 1.0))
+    return confidence.clamp(min_conf, max_conf), std_mean
+
+
 def resolve_confidence(
     focus_config,
     valid,
@@ -145,7 +162,14 @@ def _extract_focus_target_positions(state, n_agents, n_targets):
     return torch.stack(positions, dim=-2)
 
 
-def focus_action_q_bias(q_values, state, focus_config, n_agents, n_actions):
+def focus_action_q_bias(
+    q_values,
+    state,
+    focus_config,
+    n_agents,
+    n_actions,
+    require_eta=True,
+):
     """Return a geometry prior over camera discrete actions for CTDE training.
 
     The helper uses centralized normalized MATE state, so callers should only add
@@ -155,7 +179,7 @@ def focus_action_q_bias(q_values, state, focus_config, n_agents, n_actions):
     if state is None or q_values is None or not focus_config:
         return None
     eta = float(focus_config.get("action_bias_eta", 0.0))
-    if eta <= 0.0:
+    if require_eta and eta <= 0.0:
         return None
     n_agents = int(n_agents)
     n_actions = int(n_actions)

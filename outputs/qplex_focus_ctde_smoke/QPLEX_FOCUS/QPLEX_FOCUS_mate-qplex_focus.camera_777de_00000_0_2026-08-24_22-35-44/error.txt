@@ -1,0 +1,48 @@
+Failure # 1 (occurred at 2026-08-24_22-35-50)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died unexpectedly before finishing this task.
+	class_name: QPlexFocusTrainer
+	actor_id: 42422226df1b6d2698d4618e01000000
+	pid: 111597
+	namespace: 27390cd5-36c3-4e39-9fe4-6f57e8eba430
+	ip: 172.27.211.168
+The actor is dead because its worker process has died. Worker exit type: SYSTEM_ERROR_EXIT
+
+Failure # 2 (occurred at 2026-08-24_22-35-55)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died unexpectedly before finishing this task.
+	class_name: QPlexFocusTrainer
+	actor_id: d43cf6a6ecf27c894d96389101000000
+	pid: 111687
+	namespace: 27390cd5-36c3-4e39-9fe4-6f57e8eba430
+	ip: 172.27.211.168
+The actor is dead because its worker process has died. Worker exit type: SYSTEM_ERROR_EXIT
+
+Failure # 3 (occurred at 2026-08-24_22-36-01)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1811, in get
+    raise value
+ray.exceptions.RayActorError: The actor died unexpectedly before finishing this task.
+	class_name: QPlexFocusTrainer
+	actor_id: a66989d44dc56098238f38dd01000000
+	pid: 111726
+	namespace: 27390cd5-36c3-4e39-9fe4-6f57e8eba430
+	ip: 172.27.211.168
+The actor is dead because its worker process has died. Worker exit type: SYSTEM_ERROR_EXIT
+

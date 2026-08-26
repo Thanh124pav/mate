@@ -35,19 +35,47 @@ _CHECKPOINT_CACHE_LOCK = threading.RLock()
 _CHECKPOINT_CACHE = {}
 
 
+def _find_params_path(checkpoint_path):
+    candidates = []
+    if len(checkpoint_path.parents) >= 2:
+        candidates.append(checkpoint_path.parent.parent)
+    candidates.extend(checkpoint_path.parents)
+
+    seen = set()
+    for parent in candidates:
+        if parent in seen:
+            continue
+        seen.add(parent)
+        params_path = parent / 'params.pkl'
+        if params_path.exists():
+            return params_path
+
+    raise FileNotFoundError(
+        f'Could not find params.pkl for checkpoint "{checkpoint_path}". '
+        'Expected it in the checkpoint run directory or one of its parents.'
+    )
+
+
 def load_checkpoint(path):
     if path is not None:
         path = Path(path).absolute()
         try:
-            path = path.readlink()
+            link = path.readlink()
         except OSError:
             pass
+        else:
+            if link.is_absolute():
+                path = link
+            else:
+                candidates = [path.parent / link, Path.cwd() / link]
+                path = next((candidate for candidate in candidates if candidate.exists()), candidates[0])
+            path = path.resolve()
 
         with _CHECKPOINT_CACHE_LOCK:
             try:
                 params, worker = _CHECKPOINT_CACHE[path]
             except KeyError:
-                with (path.parent.parent / 'params.pkl').open(mode='rb') as file:
+                with _find_params_path(path).open(mode='rb') as file:
                     params = pkl.load(file)
                 with path.open(mode='rb') as file:
                     checkpoint = pkl.load(file)

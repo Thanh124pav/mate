@@ -1,0 +1,96 @@
+[
+  {
+    "kwargs": {
+      "checkpoint_path": "/home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_policy_kl_qplus_4v8_9_100k_5120_w2_b300/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_45e71_00000_0_seed=0_2026-08-25_14-04-54/checkpoint_000019/checkpoint-19",
+      "decentralized_execution": true,
+      "decentralized_fallback_mode": "off",
+      "decentralized_local_belief_guide": false
+    },
+    "mean_coverage_rate": 0.39994999999999997,
+    "mean_transport_rate": 0.54809,
+    "name": "guide_off",
+    "normalized_target_episode_reward": 0.54809,
+    "returncode": 0,
+    "seconds": 66.701575756073,
+    "stderr_log": "/home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_policy_kl_qplus_4v8_9_100k_5120_w2_b300/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_45e71_00000_0_seed=0_2026-08-25_14-04-54/manual_final_eval_sweep/guide_off.stderr.log",
+    "stdout_log": "/home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_policy_kl_qplus_4v8_9_100k_5120_w2_b300/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_45e71_00000_0_seed=0_2026-08-25_14-04-54/manual_final_eval_sweep/guide_off.stdout.log",
+    "step_per_cargo": 19.1,
+    "target_episode_reward": 7015.6
+  },
+  {
+    "kwargs": {
+      "checkpoint_path": "/home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_policy_kl_qplus_4v8_9_100k_5120_w2_b300/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_45e71_00000_0_seed=0_2026-08-25_14-04-54/checkpoint_000019/checkpoint-19",
+      "decentralized_execution": true,
+      "decentralized_fallback_mode": "off",
+      "decentralized_local_belief_guide": true,
+      "local_belief_guide_eta": 0.25
+    },
+    "mean_coverage_rate": 0.37914000000000003,
+    "mean_transport_rate": 0.56953,
+    "name": "guide_eta_0_25",
+    "normalized_target_episode_reward": 0.56953,
+    "returncode": 0,
+    "seconds": 60.53312301635742,
+    "stderr_log": "/home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_policy_kl_qplus_4v8_9_100k_5120_w2_b300/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_45e71_00000_0_seed=0_2026-08-25_14-04-54/manual_final_eval_sweep/guide_eta_0_25.stderr.log",
+    "stdout_log": "/home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_policy_kl_qplus_4v8_9_100k_5120_w2_b300/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_45e71_00000_0_seed=0_2026-08-25_14-04-54/manual_final_eval_sweep/guide_eta_0_25.stdout.log",
+    "step_per_cargo": 20.0,
+    "target_episode_reward": 7290.0
+  },
+  {
+    "kwargs": {
+      "checkpoint_path": "/home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_policy_kl_qplus_4v8_9_100k_5120_w2_b300/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_45e71_00000_0_seed=0_2026-08-25_14-04-54/checkpoint_000019/checkpoint-19",
+      "decentralized_execution": true,
+      "decentralized_fallback_mode": "off",
+      "decentralized_local_belief_guide": true,
+      "local_belief_guide_eta": 0.5
+    },
+    "mean_coverage_rate": 0.39994999999999997,
+    "mean_transport_rate": 0.54809,
+    "name": "guide_eta_0_5",
+    "normalized_target_episode_reward": 0.54809,
+    "returncode": 0,
+    "seconds": 64.89049077033997,
+    "stderr_log": "/home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_policy_kl_qplus_4v8_9_100k_5120_w2_b300/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_45e71_00000_0_seed=0_2026-08-25_14-04-54/manual_final_eval_sweep/guide_eta_0_5.stderr.log",
+    "stdout_log": "/home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_policy_kl_qplus_4v8_9_100k_5120_w2_b300/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_45e71_00000_0_seed=0_2026-08-25_14-04-54/manual_final_eval_sweep/guide_eta_0_5.stdout.log",
+    "step_per_cargo": 19.1,
+    "target_episode_reward": 7015.6
+  },
+  {
+    "kwargs": {
+      "checkpoint_path": "/home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_policy_kl_qplus_4v8_9_100k_5120_w2_b300/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_45e71_00000_0_seed=0_2026-08-25_14-04-54/checkpoint_000019/checkpoint-19",
+      "decentralized_execution": true,
+      "decentralized_fallback_mode": "off",
+      "decentralized_local_belief_guide": true,
+      "local_belief_guide_eta": 1.0
+    },
+    "mean_coverage_rate": 0.42143,
+    "mean_transport_rate": 0.5215,
+    "name": "guide_eta_1_0",
+    "normalized_target_episode_reward": 0.5215,
+    "returncode": 0,
+    "seconds": 64.2091109752655,
+    "stderr_log": "/home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_policy_kl_qplus_4v8_9_100k_5120_w2_b300/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_45e71_00000_0_seed=0_2026-08-25_14-04-54/manual_final_eval_sweep/guide_eta_1_0.stderr.log",
+    "stdout_log": "/home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_policy_kl_qplus_4v8_9_100k_5120_w2_b300/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_45e71_00000_0_seed=0_2026-08-25_14-04-54/manual_final_eval_sweep/guide_eta_1_0.stdout.log",
+    "step_per_cargo": 19.3,
+    "target_episode_reward": 6675.2
+  },
+  {
+    "kwargs": {
+      "checkpoint_path": "/home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_policy_kl_qplus_4v8_9_100k_5120_w2_b300/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_45e71_00000_0_seed=0_2026-08-25_14-04-54/checkpoint_000019/checkpoint-19",
+      "decentralized_execution": true,
+      "decentralized_fallback_mode": "off",
+      "decentralized_local_belief_guide": true,
+      "local_belief_guide_eta": 2.0
+    },
+    "mean_coverage_rate": 0.40005,
+    "mean_transport_rate": 0.57769,
+    "name": "guide_eta_2_0",
+    "normalized_target_episode_reward": 0.57769,
+    "returncode": 0,
+    "seconds": 61.33002996444702,
+    "stderr_log": "/home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_policy_kl_qplus_4v8_9_100k_5120_w2_b300/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_45e71_00000_0_seed=0_2026-08-25_14-04-54/manual_final_eval_sweep/guide_eta_2_0.stderr.log",
+    "stdout_log": "/home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_policy_kl_qplus_4v8_9_100k_5120_w2_b300/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_45e71_00000_0_seed=0_2026-08-25_14-04-54/manual_final_eval_sweep/guide_eta_2_0.stdout.log",
+    "step_per_cargo": 18.5,
+    "target_episode_reward": 7394.4
+  }
+]

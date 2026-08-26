@@ -1,0 +1,48 @@
+{
+  "best_camera_coverage_eval": {
+    "checkpoint": null,
+    "decentralized_eval/mean_coverage_rate": 0.17437000000000002,
+    "decentralized_eval/mean_transport_rate": 0.7960299999999999,
+    "decentralized_eval/normalized_target_episode_reward": 0.79603,
+    "decentralized_eval/target_episode_reward": 10189.2,
+    "episode_reward_mean": 2457.02,
+    "timesteps_total": 53395,
+    "training_iteration": 10
+  },
+  "best_camera_target_suppression_eval": {
+    "checkpoint": null,
+    "decentralized_eval/mean_coverage_rate": 0.17437000000000002,
+    "decentralized_eval/mean_transport_rate": 0.7960299999999999,
+    "decentralized_eval/normalized_target_episode_reward": 0.79603,
+    "decentralized_eval/target_episode_reward": 10189.2,
+    "episode_reward_mean": 2457.02,
+    "timesteps_total": 53395,
+    "training_iteration": 10
+  },
+  "events_file": "/home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_real_4v8_9_200k_5120/monitor/iteration5_events.jsonl",
+  "joined_eval_count": 2,
+  "latest_training": {
+    "done": false,
+    "episode_len_mean": 245.76,
+    "episode_reward_mean": 2457.02,
+    "episodes_total": 220,
+    "focus_action_distill_loss": 0.36898696422576904,
+    "focus_belief_loss": 28.540122985839844,
+    "focus_belief_loss_h1": 22.928504943847656,
+    "focus_belief_loss_h2": 27.291780471801758,
+    "focus_belief_loss_h3": 36.8550910949707,
+    "focus_belief_pos_error_h1": 179.62771606445312,
+    "focus_belief_pos_error_h2": 198.95333862304688,
+    "focus_belief_pos_error_h3": 237.11952209472656,
+    "focus_belief_pred_std_h1": 38.747337341308594,
+    "focus_belief_pred_std_h2": 38.71854019165039,
+    "focus_belief_pred_std_h3": 37.8780632019043,
+    "focus_confidence_mean": 0.6036280393600464,
+    "focus_teacher_student_kl": 0.3536927402019501,
+    "focus_valid_ratio": 0.935943067073822,
+    "loss": 77.81539154052734,
+    "td_loss": 77.51154327392578,
+    "timesteps_total": 53395,
+    "training_iteration": 10
+  }
+}

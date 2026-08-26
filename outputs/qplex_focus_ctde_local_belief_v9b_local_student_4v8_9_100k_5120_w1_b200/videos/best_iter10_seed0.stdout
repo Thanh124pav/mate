@@ -1,0 +1,6 @@
+Environment:  <OrderEnforcing<MultiTarget(opponent=examples.qplex_focus.camera.agent.QPLEXFocusCameraAgent)<MultiAgentTracking<MultiAgentTracking-v0>>(4 cameras, 8 targets, 9 obstacles)>>
+Camera agent: examples.qplex_focus.camera.agent.QPLEXFocusCameraAgent(checkpoint_path='/home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v9b_local_student_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_57e52_00000_0_seed=0_2026-08-25_20-46-16/checkpoint_000010/checkpoint-10', decentralized_execution=True, decentralized_fallback_mode='off', decentralized_local_belief_guide=True, local_belief_action_eta=10.0, student_action_bias_eta=0.0, seed=0)
+Target agent: mate.agents.greedy.GreedyTargetAgent(seed=0)
+
+Rollout video will be saved to "/home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v9b_local_student_4v8_9_100k_5120_w1_b200/videos/best_iter10_seed0.mp4".
+

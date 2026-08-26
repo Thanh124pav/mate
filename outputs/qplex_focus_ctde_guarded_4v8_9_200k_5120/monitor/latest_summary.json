@@ -1,0 +1,8 @@
+{
+  "best_camera_coverage_eval": null,
+  "best_camera_target_suppression_eval": null,
+  "events_file": "/home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_guarded_4v8_9_200k_5120/monitor/events.jsonl",
+  "joined_eval_count": 0,
+  "latest_training": null,
+  "trial_dir": "/home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_guarded_4v8_9_200k_5120/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_72f05_00000_0_2026-08-25_00-44-27"
+}

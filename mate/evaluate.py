@@ -291,8 +291,68 @@ class FocusBeliefRenderer:
         unwrapped.viewer.onetime_geoms[:0] = geoms
 
 
+
+BELIEF_METRIC_TITLES = OrderedDict(
+    [
+        ('belief_local_pos_error', 'Belief Local Pos Error'),
+        ('belief_local_visible_pos_error', 'Belief Local Visible Pos Error'),
+        ('belief_local_invisible_pos_error', 'Belief Local Invisible Pos Error'),
+        ('belief_visible_obs_pos_error', 'Belief Visible Obs Pos Error'),
+        ('belief_local_std_world', 'Belief Local Std World'),
+        ('belief_visible_target_ratio', 'Belief Visible Target Ratio'),
+        ('belief_visible_step_ratio', 'Belief Visible Step Ratio'),
+    ]
+)
+
+
+def _normalized_global_state(env):
+    unwrapped = env.unwrapped
+    state = unwrapped.state()
+    return mate.normalize_observation(state, unwrapped.state_space)
+
+
+def _append_belief_diagnostics(values, diagnostics):
+    for key, value in diagnostics.items():
+        if value is None or not np.isfinite(value):
+            continue
+        values.setdefault(key, []).append(float(value))
+
+
+def _collect_belief_diagnostics(env):
+    try:
+        normalized_state = _normalized_global_state(env)
+    except Exception:  # pragma: no cover - diagnostic best effort
+        return {}
+
+    joint_observation = getattr(env, 'opponent_joint_observation', None)
+    diagnostics = {}
+    agents = getattr(env, 'opponent_agents_ordered', None)
+    if agents is None:
+        agents = getattr(env, 'opponent_agents', None)
+    if agents is not None and joint_observation is not None:
+        for agent, observation in zip(agents, joint_observation):
+            if not hasattr(agent, 'belief_diagnostics'):
+                continue
+            try:
+                _append_belief_diagnostics(
+                    diagnostics, agent.belief_diagnostics(observation, normalized_state)
+                )
+            except Exception:  # pragma: no cover - diagnostic best effort
+                continue
+        if diagnostics:
+            return {key: float(np.mean(value)) for key, value in diagnostics.items() if value}
+
+    grouped_agent = getattr(env, 'opponent_agent', None)
+    if grouped_agent is not None and hasattr(grouped_agent, 'belief_diagnostics'):
+        try:
+            return grouped_agent.belief_diagnostics(joint_observation, normalized_state)
+        except Exception:  # pragma: no cover - diagnostic best effort
+            return {}
+
+    return diagnostics
+
 def evaluate(
-    env, target_agents, render=False, video_path=None
+    env, target_agents, render=False, video_path=None, belief_diagnostics_stride=1
 ):  # pylint: disable=missing-function-docstring,too-many-locals,too-many-branches,too-many-statements
     status = {}
     if render and video_path is not None:
@@ -323,6 +383,7 @@ def evaluate(
     target_team_episode_reward = 0.0
     time_start = time.perf_counter()
     coverage_rates = []
+    belief_diagnostics = {}
     while env.episode_step < env.max_episode_steps:
         target_joint_action = mate.group_step(
             env, target_agents, target_joint_observation, target_infos
@@ -332,6 +393,8 @@ def evaluate(
             target_joint_action
         )
         coverage_rates.append(env.coverage_rate)
+        if belief_diagnostics_stride > 0 and env.episode_step % belief_diagnostics_stride == 0:
+            _append_belief_diagnostics(belief_diagnostics, _collect_belief_diagnostics(env))
 
         num_cargoes = env.num_delivered_cargoes
         target_team_episode_reward += target_team_reward
@@ -366,6 +429,11 @@ def evaluate(
 
         if done:
             break
+
+    if belief_diagnostics:
+        for key, values in belief_diagnostics.items():
+            if values:
+                status[BELIEF_METRIC_TITLES.get(key, key)] = float(np.mean(values))
 
     if render:
         if recorder is not None:
@@ -547,6 +615,13 @@ def parse_arguments():  # pylint: disable=missing-function-docstring
         default=argparse.SUPPRESS,
         help='Save the render video (default: "video.mp4")',
     )
+    rendering_parser.add_argument(
+        '--belief-diagnostics-stride',
+        type=int,
+        default=1,
+        metavar='STEP',
+        help='Collect belief diagnostics every STEP environment steps; 0 disables it. (default: %(default)d)',
+    )
 
     args = parser.parse_args()
 
@@ -643,12 +718,19 @@ def main():  # pylint: disable=missing-function-docstring,too-many-branches,too-
     if not args.no_render:
         print()
         try:
-            status = evaluate(env, target_agents, render=True, video_path=args.save_video)
+            status = evaluate(
+                env,
+                target_agents,
+                render=True,
+                video_path=args.save_video,
+                belief_diagnostics_stride=args.belief_diagnostics_stride,
+            )
         except KeyboardInterrupt:
             pass
         else:
-            for key in keys:
-                statuses[key].append(status[key])
+            for key, value in status.items():
+                if key in keys or key.startswith('Belief '):
+                    statuses.setdefault(key, []).append(value)
             initial = 1
             postfix = OrderedDict([
                 ('MeanCoverageRate', f'{100.0 * np.mean(statuses["Mean Coverage Rate"]):.1f}%'),
@@ -672,9 +754,15 @@ def main():  # pylint: disable=missing-function-docstring,too-many-branches,too-
             postfix=postfix,
         ) as pbar:
             for _ in pbar:
-                status = evaluate(env, target_agents, render=False)
-                for key in keys:
-                    statuses[key].append(status[key])
+                status = evaluate(
+                    env,
+                    target_agents,
+                    render=False,
+                    belief_diagnostics_stride=args.belief_diagnostics_stride,
+                )
+                for key, value in status.items():
+                    if key in keys or key.startswith('Belief '):
+                        statuses.setdefault(key, []).append(value)
                 pbar.set_postfix(OrderedDict([
                     ('MeanCoverageRate', f'{100.0 * np.mean(statuses["Mean Coverage Rate"]):.1f}%'),
                     ('MeanTransportRate', f'{100.0 * np.mean(statuses["Mean Transport Rate"]):.1f}%'),
@@ -689,11 +777,14 @@ def main():  # pylint: disable=missing-function-docstring,too-many-branches,too-
         print('| {:>32} | {:>12} |'.format('Metric', 'Mean'))
         print('| {:->32} | {:->12} |'.format(':', ':'))
         for key, values in statuses.items():
-            print(
-                '|{}|{}|'.format(
-                    COLUMNS[key].title(width=32), COLUMNS[key].format(np.mean(values), width=12)
+            if key in COLUMNS:
+                print(
+                    '|{}|{}|'.format(
+                        COLUMNS[key].title(width=32), COLUMNS[key].format(np.mean(values), width=12)
+                    )
                 )
-            )
+            else:
+                print('| {:>32} | {:>12.6f} |'.format(key, np.mean(values)))
         # pylint: disable-enable=consider-using-f-string
 
 

@@ -1,0 +1,462 @@
+NUM_GPUS_FOR_TRAINER: 1
+Resume checkpoint: False
+Num ray gpus: 1.0
+[2m[36m(RolloutWorker pid=260945)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+[2m[36m(QPlexFocusTrainer pid=260831)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+== Status ==
+Current time: 2026-08-25 16:29:39 (running for 00:00:48.49)
+Memory usage on this node: 2.8/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 2.0/8 CPUs, 1.0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 RUNNING)
+
+
+== Status ==
+Current time: 2026-08-25 16:29:42 (running for 00:00:52.35)
+Memory usage on this node: 2.8/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 0/8 CPUs, 0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 PENDING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |            1 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+[2m[36m(RolloutWorker pid=261077)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+[2m[36m(QPlexFocusTrainer pid=261032)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+== Status ==
+Current time: 2026-08-25 16:30:13 (running for 00:01:23.25)
+Memory usage on this node: 2.8/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 2.0/8 CPUs, 1.0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 RUNNING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |            1 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+== Status ==
+Current time: 2026-08-25 16:30:18 (running for 00:01:27.55)
+Memory usage on this node: 2.8/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 0/8 CPUs, 0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 PENDING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |            2 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+[2m[36m(RolloutWorker pid=261170)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+[2m[36m(QPlexFocusTrainer pid=261125)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+== Status ==
+Current time: 2026-08-25 16:30:46 (running for 00:01:55.66)
+Memory usage on this node: 2.8/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 2.0/8 CPUs, 1.0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 RUNNING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |            2 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+== Status ==
+Current time: 2026-08-25 16:30:50 (running for 00:01:59.78)
+Memory usage on this node: 2.8/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 0/8 CPUs, 0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 PENDING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |            3 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+[2m[36m(RolloutWorker pid=261276)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+[2m[36m(QPlexFocusTrainer pid=261217)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+== Status ==
+Current time: 2026-08-25 16:31:18 (running for 00:02:27.50)
+Memory usage on this node: 2.8/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 2.0/8 CPUs, 1.0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 RUNNING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |            3 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+== Status ==
+Current time: 2026-08-25 16:31:22 (running for 00:02:32.18)
+Memory usage on this node: 2.9/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 0/8 CPUs, 0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 PENDING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |            4 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+[2m[36m(RolloutWorker pid=261367)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+[2m[36m(QPlexFocusTrainer pid=261321)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+== Status ==
+Current time: 2026-08-25 16:31:43 (running for 00:02:53.00)
+Memory usage on this node: 2.9/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 2.0/8 CPUs, 1.0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 RUNNING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |            4 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+== Status ==
+Current time: 2026-08-25 16:31:48 (running for 00:02:58.03)
+Memory usage on this node: 1.4/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 0/8 CPUs, 0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 PENDING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |            5 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+[2m[36m(RolloutWorker pid=261458)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+[2m[36m(QPlexFocusTrainer pid=261415)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+== Status ==
+Current time: 2026-08-25 16:32:13 (running for 00:03:22.70)
+Memory usage on this node: 2.9/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 2.0/8 CPUs, 1.0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 RUNNING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |            5 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+== Status ==
+Current time: 2026-08-25 16:32:18 (running for 00:03:27.96)
+Memory usage on this node: 1.4/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 0/8 CPUs, 0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 PENDING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |            6 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+[2m[36m(RolloutWorker pid=261548)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+[2m[36m(QPlexFocusTrainer pid=261506)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+== Status ==
+Current time: 2026-08-25 16:32:35 (running for 00:03:44.98)
+Memory usage on this node: 2.9/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 2.0/8 CPUs, 1.0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 RUNNING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |            6 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+== Status ==
+Current time: 2026-08-25 16:32:39 (running for 00:03:48.49)
+Memory usage on this node: 2.9/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 0/8 CPUs, 0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 PENDING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |            7 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+[2m[36m(RolloutWorker pid=261667)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+[2m[36m(QPlexFocusTrainer pid=261609)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+== Status ==
+Current time: 2026-08-25 16:32:58 (running for 00:04:07.84)
+Memory usage on this node: 2.9/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 2.0/8 CPUs, 1.0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 RUNNING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |            7 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+== Status ==
+Current time: 2026-08-25 16:33:02 (running for 00:04:11.52)
+Memory usage on this node: 2.9/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 0/8 CPUs, 0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 PENDING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |            8 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+[2m[36m(RolloutWorker pid=261760)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+[2m[36m(QPlexFocusTrainer pid=261713)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+== Status ==
+Current time: 2026-08-25 16:33:20 (running for 00:04:30.34)
+Memory usage on this node: 3.0/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 2.0/8 CPUs, 1.0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 RUNNING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |            8 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+== Status ==
+Current time: 2026-08-25 16:33:24 (running for 00:04:34.36)
+Memory usage on this node: 1.5/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 0/8 CPUs, 0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 PENDING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |            9 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+[2m[36m(RolloutWorker pid=261862)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+[2m[36m(QPlexFocusTrainer pid=261806)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+== Status ==
+Current time: 2026-08-25 16:33:40 (running for 00:04:49.96)
+Memory usage on this node: 3.0/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 2.0/8 CPUs, 1.0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 RUNNING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |            9 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+== Status ==
+Current time: 2026-08-25 16:33:44 (running for 00:04:53.81)
+Memory usage on this node: 1.6/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 0/8 CPUs, 0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 PENDING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |           10 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+[2m[36m(RolloutWorker pid=261964)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+[2m[36m(QPlexFocusTrainer pid=261909)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+== Status ==
+Current time: 2026-08-25 16:34:02 (running for 00:05:11.77)
+Memory usage on this node: 3.0/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 2.0/8 CPUs, 1.0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 RUNNING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |           10 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+== Status ==
+Current time: 2026-08-25 16:34:05 (running for 00:05:15.12)
+Memory usage on this node: 3.0/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 0/8 CPUs, 0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 PENDING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |           11 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+[2m[36m(RolloutWorker pid=262068)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+[2m[36m(QPlexFocusTrainer pid=262010)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+== Status ==
+Current time: 2026-08-25 16:34:20 (running for 00:05:29.53)
+Memory usage on this node: 3.0/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 2.0/8 CPUs, 1.0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 RUNNING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |           11 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+== Status ==
+Current time: 2026-08-25 16:34:24 (running for 00:05:33.49)
+Memory usage on this node: 1.6/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 0/8 CPUs, 0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 PENDING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |           12 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+[2m[36m(RolloutWorker pid=262183)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+[2m[36m(QPlexFocusTrainer pid=262115)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+== Status ==
+Current time: 2026-08-25 16:34:42 (running for 00:05:51.51)
+Memory usage on this node: 3.0/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 2.0/8 CPUs, 1.0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 RUNNING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |           12 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+== Status ==
+Current time: 2026-08-25 16:34:45 (running for 00:05:55.16)
+Memory usage on this node: 3.0/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 0/8 CPUs, 0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 PENDING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |           13 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+[2m[36m(RolloutWorker pid=262432)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+[2m[36m(QPlexFocusTrainer pid=262263)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+== Status ==
+Current time: 2026-08-25 16:35:05 (running for 00:06:15.20)
+Memory usage on this node: 3.1/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 2.0/8 CPUs, 1.0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 RUNNING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |           13 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+== Status ==
+Current time: 2026-08-25 16:35:10 (running for 00:06:20.14)
+Memory usage on this node: 1.7/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 0/8 CPUs, 0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 PENDING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |           14 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+[2m[36m(RolloutWorker pid=262700)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+[2m[36m(QPlexFocusTrainer pid=262575)[0m <class 'ray.rllib.agents.qplex_focus.qplex_policy.QPLEXFocusTorchPolicy'>
+== Status ==
+Current time: 2026-08-25 16:35:27 (running for 00:06:36.97)
+Memory usage on this node: 3.1/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 2.0/8 CPUs, 1.0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 RUNNING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |           14 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+== Status ==
+Current time: 2026-08-25 16:35:32 (running for 00:06:42.01)
+Memory usage on this node: 3.1/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 2.0/8 CPUs, 1.0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 RUNNING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |           14 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+== Status ==
+Current time: 2026-08-25 16:35:40 (running for 00:06:50.00)
+Memory usage on this node: 3.1/5.8 GiB
+Using FIFO scheduling algorithm.
+Resources requested: 2.0/8 CPUs, 1.0/1 GPUs, 0.0/3.03 GiB heap, 0.0/1.51 GiB objects
+Result logdir: /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS
+Number of trials: 1/1 (1 RUNNING)
+Number of errored trials: 1
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Trial name                                      |   # failures | error file                                                                                                                                                                                          |
+|-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000 |           14 | /home/pavt1024/vsn/mate/outputs/qplex_focus_ctde_local_belief_v3_visible_4v8_9_100k_5120_w1_b200/QPLEX_FOCUS/QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000_0_seed=0_2026-08-25_16-28-50/error.txt |
++-------------------------------------------------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+

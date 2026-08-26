@@ -1,0 +1,443 @@
+/home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+  gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+/home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+  gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+/home/pavt1024/vsn/mate/ray/tune/callback.py:236: FutureWarning: Please update `setup` method in callback `<class 'examples.utils.callbacks.WandbLoggerCallback'>` to match the method signature in `ray.tune.callback.Callback`.
+  warnings.warn(
+2026-08-25 16:28:50,158	INFO wandb.py:171 -- Already logged into W&B.
+2026-08-25 16:28:50,894	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=260831)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=260831)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=260831)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=260831)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=260831)[0m 2026-08-25 16:28:56,882	INFO simple_q.py:161 -- In multi-agent mode, policies will be optimized sequentially by the multi-GPU optimizer. Consider setting `simple_optimizer=True` if this doesn't work for you.
+[2m[36m(QPlexFocusTrainer pid=260831)[0m 2026-08-25 16:28:56,883	INFO trainer.py:864 -- Current log_level is WARN. For more information, set 'log_level': 'INFO' / 'DEBUG' or use the -v and -vv flags.
+[2m[36m(RolloutWorker pid=260945)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(RolloutWorker pid=260945)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(RolloutWorker pid=260945)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(RolloutWorker pid=260945)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=260831)[0m 2026-08-25 16:29:38,963	INFO trainable.py:152 -- Trainable.setup took 42.094 seconds. If your trainable is slow to initialize, consider setting reuse_actors=True to reduce actor creation overheads.
+[2m[36m(QPlexFocusTrainer pid=260831)[0m 2026-08-25 16:29:38,966	WARNING util.py:60 -- Install gputil for GPU system monitoring.
+[2m[36m(RolloutWorker pid=260945)[0m /home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py:2164: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at ../torch/csrc/utils/tensor_numpy.cpp:199.)
+[2m[36m(RolloutWorker pid=260945)[0m   k: torch.as_tensor(v, device=self.device) for k, v in state_dict.items()
+2026-08-25 16:29:42,855	ERROR trial_runner.py:876 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Error processing event.
+NoneType: None
+2026-08-25 16:29:42,867	INFO trial_runner.py:1239 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Attempting to restore trial state from last checkpoint.
+[2m[36m(QPlexFocusTrainer pid=260831)[0m 2026-08-25 16:29:42,828	WARNING trainer.py:1083 -- Worker crashed during call to `step_attempt()`. To try to continue training without the failed worker, set `ignore_worker_failures=True`.
+2026-08-25 16:29:43,994	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=261032)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=261032)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261032)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=261032)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261032)[0m 2026-08-25 16:29:54,527	INFO simple_q.py:161 -- In multi-agent mode, policies will be optimized sequentially by the multi-GPU optimizer. Consider setting `simple_optimizer=True` if this doesn't work for you.
+[2m[36m(QPlexFocusTrainer pid=261032)[0m 2026-08-25 16:29:54,527	INFO trainer.py:864 -- Current log_level is WARN. For more information, set 'log_level': 'INFO' / 'DEBUG' or use the -v and -vv flags.
+[2m[36m(RolloutWorker pid=261077)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(RolloutWorker pid=261077)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(RolloutWorker pid=261077)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(RolloutWorker pid=261077)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261032)[0m 2026-08-25 16:30:13,783	INFO trainable.py:152 -- Trainable.setup took 19.265 seconds. If your trainable is slow to initialize, consider setting reuse_actors=True to reduce actor creation overheads.
+[2m[36m(QPlexFocusTrainer pid=261032)[0m 2026-08-25 16:30:13,784	WARNING util.py:60 -- Install gputil for GPU system monitoring.
+[2m[36m(RolloutWorker pid=261077)[0m /home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py:2164: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at ../torch/csrc/utils/tensor_numpy.cpp:199.)
+[2m[36m(RolloutWorker pid=261077)[0m   k: torch.as_tensor(v, device=self.device) for k, v in state_dict.items()
+2026-08-25 16:30:18,061	ERROR trial_runner.py:876 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Error processing event.
+NoneType: None
+2026-08-25 16:30:18,067	INFO trial_runner.py:1239 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Attempting to restore trial state from last checkpoint.
+[2m[36m(QPlexFocusTrainer pid=261032)[0m 2026-08-25 16:30:18,042	WARNING trainer.py:1083 -- Worker crashed during call to `step_attempt()`. To try to continue training without the failed worker, set `ignore_worker_failures=True`.
+2026-08-25 16:30:19,687	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=261125)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=261125)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261125)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=261125)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261125)[0m 2026-08-25 16:30:28,867	INFO simple_q.py:161 -- In multi-agent mode, policies will be optimized sequentially by the multi-GPU optimizer. Consider setting `simple_optimizer=True` if this doesn't work for you.
+[2m[36m(QPlexFocusTrainer pid=261125)[0m 2026-08-25 16:30:28,867	INFO trainer.py:864 -- Current log_level is WARN. For more information, set 'log_level': 'INFO' / 'DEBUG' or use the -v and -vv flags.
+[2m[36m(RolloutWorker pid=261170)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(RolloutWorker pid=261170)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(RolloutWorker pid=261170)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(RolloutWorker pid=261170)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261125)[0m 2026-08-25 16:30:46,158	INFO trainable.py:152 -- Trainable.setup took 17.298 seconds. If your trainable is slow to initialize, consider setting reuse_actors=True to reduce actor creation overheads.
+[2m[36m(QPlexFocusTrainer pid=261125)[0m 2026-08-25 16:30:46,159	WARNING util.py:60 -- Install gputil for GPU system monitoring.
+[2m[36m(RolloutWorker pid=261170)[0m /home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py:2164: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at ../torch/csrc/utils/tensor_numpy.cpp:199.)
+[2m[36m(RolloutWorker pid=261170)[0m   k: torch.as_tensor(v, device=self.device) for k, v in state_dict.items()
+2026-08-25 16:30:50,302	ERROR trial_runner.py:876 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Error processing event.
+NoneType: None
+2026-08-25 16:30:50,309	INFO trial_runner.py:1239 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Attempting to restore trial state from last checkpoint.
+[2m[36m(QPlexFocusTrainer pid=261125)[0m 2026-08-25 16:30:50,288	WARNING trainer.py:1083 -- Worker crashed during call to `step_attempt()`. To try to continue training without the failed worker, set `ignore_worker_failures=True`.
+2026-08-25 16:30:50,963	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=261217)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=261217)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261217)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=261217)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261217)[0m 2026-08-25 16:31:04,252	INFO simple_q.py:161 -- In multi-agent mode, policies will be optimized sequentially by the multi-GPU optimizer. Consider setting `simple_optimizer=True` if this doesn't work for you.
+[2m[36m(QPlexFocusTrainer pid=261217)[0m 2026-08-25 16:31:04,256	INFO trainer.py:864 -- Current log_level is WARN. For more information, set 'log_level': 'INFO' / 'DEBUG' or use the -v and -vv flags.
+[2m[36m(RolloutWorker pid=261276)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(RolloutWorker pid=261276)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(RolloutWorker pid=261276)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(RolloutWorker pid=261276)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261217)[0m 2026-08-25 16:31:18,022	INFO trainable.py:152 -- Trainable.setup took 13.788 seconds. If your trainable is slow to initialize, consider setting reuse_actors=True to reduce actor creation overheads.
+[2m[36m(QPlexFocusTrainer pid=261217)[0m 2026-08-25 16:31:18,023	WARNING util.py:60 -- Install gputil for GPU system monitoring.
+[2m[36m(RolloutWorker pid=261276)[0m /home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py:2164: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at ../torch/csrc/utils/tensor_numpy.cpp:199.)
+[2m[36m(RolloutWorker pid=261276)[0m   k: torch.as_tensor(v, device=self.device) for k, v in state_dict.items()
+[2m[36m(QPlexFocusTrainer pid=261217)[0m 2026-08-25 16:31:22,284	WARNING trainer.py:1083 -- Worker crashed during call to `step_attempt()`. To try to continue training without the failed worker, set `ignore_worker_failures=True`.
+2026-08-25 16:31:22,491	ERROR trial_runner.py:876 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Error processing event.
+NoneType: None
+2026-08-25 16:31:22,494	INFO trial_runner.py:1239 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Attempting to restore trial state from last checkpoint.
+2026-08-25 16:31:24,112	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=261321)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=261321)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261321)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=261321)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261321)[0m 2026-08-25 16:31:29,543	INFO simple_q.py:161 -- In multi-agent mode, policies will be optimized sequentially by the multi-GPU optimizer. Consider setting `simple_optimizer=True` if this doesn't work for you.
+[2m[36m(QPlexFocusTrainer pid=261321)[0m 2026-08-25 16:31:29,543	INFO trainer.py:864 -- Current log_level is WARN. For more information, set 'log_level': 'INFO' / 'DEBUG' or use the -v and -vv flags.
+[2m[36m(RolloutWorker pid=261367)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(RolloutWorker pid=261367)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(RolloutWorker pid=261367)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(RolloutWorker pid=261367)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261321)[0m 2026-08-25 16:31:43,526	INFO trainable.py:152 -- Trainable.setup took 13.991 seconds. If your trainable is slow to initialize, consider setting reuse_actors=True to reduce actor creation overheads.
+[2m[36m(QPlexFocusTrainer pid=261321)[0m 2026-08-25 16:31:43,526	WARNING util.py:60 -- Install gputil for GPU system monitoring.
+[2m[36m(RolloutWorker pid=261367)[0m /home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py:2164: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at ../torch/csrc/utils/tensor_numpy.cpp:199.)
+[2m[36m(RolloutWorker pid=261367)[0m   k: torch.as_tensor(v, device=self.device) for k, v in state_dict.items()
+2026-08-25 16:31:47,527	ERROR trial_runner.py:876 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Error processing event.
+NoneType: None
+2026-08-25 16:31:47,686	INFO trial_runner.py:1239 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Attempting to restore trial state from last checkpoint.
+[2m[36m(QPlexFocusTrainer pid=261321)[0m 2026-08-25 16:31:47,321	WARNING trainer.py:1083 -- Worker crashed during call to `step_attempt()`. To try to continue training without the failed worker, set `ignore_worker_failures=True`.
+2026-08-25 16:31:50,567	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=261415)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=261415)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261415)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=261415)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261415)[0m 2026-08-25 16:31:59,426	INFO simple_q.py:161 -- In multi-agent mode, policies will be optimized sequentially by the multi-GPU optimizer. Consider setting `simple_optimizer=True` if this doesn't work for you.
+[2m[36m(QPlexFocusTrainer pid=261415)[0m 2026-08-25 16:31:59,426	INFO trainer.py:864 -- Current log_level is WARN. For more information, set 'log_level': 'INFO' / 'DEBUG' or use the -v and -vv flags.
+[2m[36m(RolloutWorker pid=261458)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(RolloutWorker pid=261458)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(RolloutWorker pid=261458)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(RolloutWorker pid=261458)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261415)[0m 2026-08-25 16:32:13,222	INFO trainable.py:152 -- Trainable.setup took 13.799 seconds. If your trainable is slow to initialize, consider setting reuse_actors=True to reduce actor creation overheads.
+[2m[36m(QPlexFocusTrainer pid=261415)[0m 2026-08-25 16:32:13,222	WARNING util.py:60 -- Install gputil for GPU system monitoring.
+[2m[36m(RolloutWorker pid=261458)[0m /home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py:2164: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at ../torch/csrc/utils/tensor_numpy.cpp:199.)
+[2m[36m(RolloutWorker pid=261458)[0m   k: torch.as_tensor(v, device=self.device) for k, v in state_dict.items()
+2026-08-25 16:32:17,214	ERROR trial_runner.py:876 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Error processing event.
+NoneType: None
+[2m[36m(QPlexFocusTrainer pid=261415)[0m 2026-08-25 16:32:16,862	WARNING trainer.py:1083 -- Worker crashed during call to `step_attempt()`. To try to continue training without the failed worker, set `ignore_worker_failures=True`.
+2026-08-25 16:32:17,459	INFO trial_runner.py:1239 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Attempting to restore trial state from last checkpoint.
+2026-08-25 16:32:18,486	WARNING util.py:171 -- The `on_step_end` operation took 0.858 s, which may be a performance bottleneck.
+2026-08-25 16:32:19,182	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=261506)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=261506)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261506)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=261506)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261506)[0m 2026-08-25 16:32:25,346	INFO simple_q.py:161 -- In multi-agent mode, policies will be optimized sequentially by the multi-GPU optimizer. Consider setting `simple_optimizer=True` if this doesn't work for you.
+[2m[36m(QPlexFocusTrainer pid=261506)[0m 2026-08-25 16:32:25,346	INFO trainer.py:864 -- Current log_level is WARN. For more information, set 'log_level': 'INFO' / 'DEBUG' or use the -v and -vv flags.
+[2m[36m(RolloutWorker pid=261548)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(RolloutWorker pid=261548)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(RolloutWorker pid=261548)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(RolloutWorker pid=261548)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261506)[0m 2026-08-25 16:32:35,512	INFO trainable.py:152 -- Trainable.setup took 10.169 seconds. If your trainable is slow to initialize, consider setting reuse_actors=True to reduce actor creation overheads.
+[2m[36m(QPlexFocusTrainer pid=261506)[0m 2026-08-25 16:32:35,513	WARNING util.py:60 -- Install gputil for GPU system monitoring.
+[2m[36m(RolloutWorker pid=261548)[0m /home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py:2164: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at ../torch/csrc/utils/tensor_numpy.cpp:199.)
+[2m[36m(RolloutWorker pid=261548)[0m   k: torch.as_tensor(v, device=self.device) for k, v in state_dict.items()
+2026-08-25 16:32:39,022	ERROR trial_runner.py:876 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Error processing event.
+NoneType: None
+2026-08-25 16:32:39,025	INFO trial_runner.py:1239 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Attempting to restore trial state from last checkpoint.
+[2m[36m(QPlexFocusTrainer pid=261506)[0m 2026-08-25 16:32:39,017	WARNING trainer.py:1083 -- Worker crashed during call to `step_attempt()`. To try to continue training without the failed worker, set `ignore_worker_failures=True`.
+2026-08-25 16:32:40,113	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=261609)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=261609)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261609)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=261609)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261609)[0m 2026-08-25 16:32:48,338	INFO simple_q.py:161 -- In multi-agent mode, policies will be optimized sequentially by the multi-GPU optimizer. Consider setting `simple_optimizer=True` if this doesn't work for you.
+[2m[36m(QPlexFocusTrainer pid=261609)[0m 2026-08-25 16:32:48,339	INFO trainer.py:864 -- Current log_level is WARN. For more information, set 'log_level': 'INFO' / 'DEBUG' or use the -v and -vv flags.
+[2m[36m(RolloutWorker pid=261667)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(RolloutWorker pid=261667)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(RolloutWorker pid=261667)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(RolloutWorker pid=261667)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261609)[0m 2026-08-25 16:32:58,370	INFO trainable.py:152 -- Trainable.setup took 10.039 seconds. If your trainable is slow to initialize, consider setting reuse_actors=True to reduce actor creation overheads.
+[2m[36m(QPlexFocusTrainer pid=261609)[0m 2026-08-25 16:32:58,372	WARNING util.py:60 -- Install gputil for GPU system monitoring.
+[2m[36m(RolloutWorker pid=261667)[0m /home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py:2164: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at ../torch/csrc/utils/tensor_numpy.cpp:199.)
+[2m[36m(RolloutWorker pid=261667)[0m   k: torch.as_tensor(v, device=self.device) for k, v in state_dict.items()
+2026-08-25 16:33:02,031	ERROR trial_runner.py:876 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Error processing event.
+NoneType: None
+2026-08-25 16:33:02,033	INFO trial_runner.py:1239 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Attempting to restore trial state from last checkpoint.
+[2m[36m(QPlexFocusTrainer pid=261609)[0m 2026-08-25 16:33:02,026	WARNING trainer.py:1083 -- Worker crashed during call to `step_attempt()`. To try to continue training without the failed worker, set `ignore_worker_failures=True`.
+2026-08-25 16:33:03,143	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=261713)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=261713)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261713)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=261713)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261713)[0m 2026-08-25 16:33:08,770	INFO simple_q.py:161 -- In multi-agent mode, policies will be optimized sequentially by the multi-GPU optimizer. Consider setting `simple_optimizer=True` if this doesn't work for you.
+[2m[36m(QPlexFocusTrainer pid=261713)[0m 2026-08-25 16:33:08,770	INFO trainer.py:864 -- Current log_level is WARN. For more information, set 'log_level': 'INFO' / 'DEBUG' or use the -v and -vv flags.
+[2m[36m(RolloutWorker pid=261760)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(RolloutWorker pid=261760)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(RolloutWorker pid=261760)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(RolloutWorker pid=261760)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261713)[0m 2026-08-25 16:33:20,877	INFO trainable.py:152 -- Trainable.setup took 12.111 seconds. If your trainable is slow to initialize, consider setting reuse_actors=True to reduce actor creation overheads.
+[2m[36m(QPlexFocusTrainer pid=261713)[0m 2026-08-25 16:33:20,878	WARNING util.py:60 -- Install gputil for GPU system monitoring.
+[2m[36m(RolloutWorker pid=261760)[0m /home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py:2164: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at ../torch/csrc/utils/tensor_numpy.cpp:199.)
+[2m[36m(RolloutWorker pid=261760)[0m   k: torch.as_tensor(v, device=self.device) for k, v in state_dict.items()
+2026-08-25 16:33:24,361	ERROR trial_runner.py:876 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Error processing event.
+NoneType: None
+2026-08-25 16:33:24,363	INFO trial_runner.py:1239 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Attempting to restore trial state from last checkpoint.
+[2m[36m(QPlexFocusTrainer pid=261713)[0m 2026-08-25 16:33:24,355	WARNING trainer.py:1083 -- Worker crashed during call to `step_attempt()`. To try to continue training without the failed worker, set `ignore_worker_failures=True`.
+2026-08-25 16:33:26,742	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=261806)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=261806)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261806)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=261806)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261806)[0m 2026-08-25 16:33:31,646	INFO simple_q.py:161 -- In multi-agent mode, policies will be optimized sequentially by the multi-GPU optimizer. Consider setting `simple_optimizer=True` if this doesn't work for you.
+[2m[36m(QPlexFocusTrainer pid=261806)[0m 2026-08-25 16:33:31,646	INFO trainer.py:864 -- Current log_level is WARN. For more information, set 'log_level': 'INFO' / 'DEBUG' or use the -v and -vv flags.
+[2m[36m(RolloutWorker pid=261862)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(RolloutWorker pid=261862)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(RolloutWorker pid=261862)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(RolloutWorker pid=261862)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261806)[0m 2026-08-25 16:33:40,493	WARNING util.py:60 -- Install gputil for GPU system monitoring.
+[2m[36m(RolloutWorker pid=261862)[0m /home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py:2164: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at ../torch/csrc/utils/tensor_numpy.cpp:199.)
+[2m[36m(RolloutWorker pid=261862)[0m   k: torch.as_tensor(v, device=self.device) for k, v in state_dict.items()
+2026-08-25 16:33:43,992	ERROR trial_runner.py:876 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Error processing event.
+NoneType: None
+2026-08-25 16:33:43,993	INFO trial_runner.py:1239 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Attempting to restore trial state from last checkpoint.
+[2m[36m(QPlexFocusTrainer pid=261806)[0m 2026-08-25 16:33:43,987	WARNING trainer.py:1083 -- Worker crashed during call to `step_attempt()`. To try to continue training without the failed worker, set `ignore_worker_failures=True`.
+2026-08-25 16:33:44,637	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000
+2026-08-25 16:33:45,224	WARNING util.py:171 -- The `start_trial` operation took 0.586 s, which may be a performance bottleneck.
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=261909)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=261909)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261909)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=261909)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261909)[0m 2026-08-25 16:33:50,017	INFO simple_q.py:161 -- In multi-agent mode, policies will be optimized sequentially by the multi-GPU optimizer. Consider setting `simple_optimizer=True` if this doesn't work for you.
+[2m[36m(QPlexFocusTrainer pid=261909)[0m 2026-08-25 16:33:50,018	INFO trainer.py:864 -- Current log_level is WARN. For more information, set 'log_level': 'INFO' / 'DEBUG' or use the -v and -vv flags.
+[2m[36m(RolloutWorker pid=261964)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(RolloutWorker pid=261964)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(RolloutWorker pid=261964)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(RolloutWorker pid=261964)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=261909)[0m 2026-08-25 16:34:02,306	INFO trainable.py:152 -- Trainable.setup took 12.305 seconds. If your trainable is slow to initialize, consider setting reuse_actors=True to reduce actor creation overheads.
+[2m[36m(QPlexFocusTrainer pid=261909)[0m 2026-08-25 16:34:02,307	WARNING util.py:60 -- Install gputil for GPU system monitoring.
+[2m[36m(RolloutWorker pid=261964)[0m /home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py:2164: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at ../torch/csrc/utils/tensor_numpy.cpp:199.)
+[2m[36m(RolloutWorker pid=261964)[0m   k: torch.as_tensor(v, device=self.device) for k, v in state_dict.items()
+2026-08-25 16:34:05,653	ERROR trial_runner.py:876 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Error processing event.
+NoneType: None
+2026-08-25 16:34:05,656	INFO trial_runner.py:1239 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Attempting to restore trial state from last checkpoint.
+[2m[36m(QPlexFocusTrainer pid=261909)[0m 2026-08-25 16:34:05,648	WARNING trainer.py:1083 -- Worker crashed during call to `step_attempt()`. To try to continue training without the failed worker, set `ignore_worker_failures=True`.
+2026-08-25 16:34:06,552	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=262010)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=262010)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=262010)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=262010)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=262010)[0m 2026-08-25 16:34:11,342	INFO simple_q.py:161 -- In multi-agent mode, policies will be optimized sequentially by the multi-GPU optimizer. Consider setting `simple_optimizer=True` if this doesn't work for you.
+[2m[36m(QPlexFocusTrainer pid=262010)[0m 2026-08-25 16:34:11,342	INFO trainer.py:864 -- Current log_level is WARN. For more information, set 'log_level': 'INFO' / 'DEBUG' or use the -v and -vv flags.
+[2m[36m(RolloutWorker pid=262068)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(RolloutWorker pid=262068)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(RolloutWorker pid=262068)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(RolloutWorker pid=262068)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=262010)[0m 2026-08-25 16:34:20,064	WARNING util.py:60 -- Install gputil for GPU system monitoring.
+[2m[36m(RolloutWorker pid=262068)[0m /home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py:2164: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at ../torch/csrc/utils/tensor_numpy.cpp:199.)
+[2m[36m(RolloutWorker pid=262068)[0m   k: torch.as_tensor(v, device=self.device) for k, v in state_dict.items()
+2026-08-25 16:34:23,532	ERROR trial_runner.py:876 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Error processing event.
+NoneType: None
+2026-08-25 16:34:23,534	INFO trial_runner.py:1239 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Attempting to restore trial state from last checkpoint.
+[2m[36m(QPlexFocusTrainer pid=262010)[0m 2026-08-25 16:34:23,528	WARNING trainer.py:1083 -- Worker crashed during call to `step_attempt()`. To try to continue training without the failed worker, set `ignore_worker_failures=True`.
+2026-08-25 16:34:24,815	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+2026-08-25 16:34:25,417	WARNING util.py:171 -- The `start_trial` operation took 0.601 s, which may be a performance bottleneck.
+[2m[36m(QPlexFocusTrainer pid=262115)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=262115)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=262115)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=262115)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=262115)[0m 2026-08-25 16:34:33,163	INFO simple_q.py:161 -- In multi-agent mode, policies will be optimized sequentially by the multi-GPU optimizer. Consider setting `simple_optimizer=True` if this doesn't work for you.
+[2m[36m(QPlexFocusTrainer pid=262115)[0m 2026-08-25 16:34:33,163	INFO trainer.py:864 -- Current log_level is WARN. For more information, set 'log_level': 'INFO' / 'DEBUG' or use the -v and -vv flags.
+[2m[36m(RolloutWorker pid=262183)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(RolloutWorker pid=262183)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(RolloutWorker pid=262183)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(RolloutWorker pid=262183)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=262115)[0m 2026-08-25 16:34:42,047	WARNING util.py:60 -- Install gputil for GPU system monitoring.
+[2m[36m(RolloutWorker pid=262183)[0m /home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py:2164: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at ../torch/csrc/utils/tensor_numpy.cpp:199.)
+[2m[36m(RolloutWorker pid=262183)[0m   k: torch.as_tensor(v, device=self.device) for k, v in state_dict.items()
+2026-08-25 16:34:45,694	ERROR trial_runner.py:876 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Error processing event.
+NoneType: None
+2026-08-25 16:34:45,697	INFO trial_runner.py:1239 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Attempting to restore trial state from last checkpoint.
+[2m[36m(QPlexFocusTrainer pid=262115)[0m 2026-08-25 16:34:45,689	WARNING trainer.py:1083 -- Worker crashed during call to `step_attempt()`. To try to continue training without the failed worker, set `ignore_worker_failures=True`.
+2026-08-25 16:34:46,683	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=262263)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=262263)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=262263)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=262263)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=262263)[0m 2026-08-25 16:34:51,105	INFO simple_q.py:161 -- In multi-agent mode, policies will be optimized sequentially by the multi-GPU optimizer. Consider setting `simple_optimizer=True` if this doesn't work for you.
+[2m[36m(QPlexFocusTrainer pid=262263)[0m 2026-08-25 16:34:51,105	INFO trainer.py:864 -- Current log_level is WARN. For more information, set 'log_level': 'INFO' / 'DEBUG' or use the -v and -vv flags.
+[2m[36m(RolloutWorker pid=262432)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(RolloutWorker pid=262432)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(RolloutWorker pid=262432)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(RolloutWorker pid=262432)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=262263)[0m 2026-08-25 16:35:05,364	INFO trainable.py:152 -- Trainable.setup took 14.266 seconds. If your trainable is slow to initialize, consider setting reuse_actors=True to reduce actor creation overheads.
+[2m[36m(QPlexFocusTrainer pid=262263)[0m 2026-08-25 16:35:05,366	WARNING util.py:60 -- Install gputil for GPU system monitoring.
+[2m[36m(RolloutWorker pid=262432)[0m /home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py:2164: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at ../torch/csrc/utils/tensor_numpy.cpp:199.)
+[2m[36m(RolloutWorker pid=262432)[0m   k: torch.as_tensor(v, device=self.device) for k, v in state_dict.items()
+2026-08-25 16:35:09,846	ERROR trial_runner.py:876 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Error processing event.
+NoneType: None
+2026-08-25 16:35:09,853	INFO trial_runner.py:1239 -- Trial QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000: Attempting to restore trial state from last checkpoint.
+[2m[36m(QPlexFocusTrainer pid=262263)[0m 2026-08-25 16:35:09,839	WARNING trainer.py:1083 -- Worker crashed during call to `step_attempt()`. To try to continue training without the failed worker, set `ignore_worker_failures=True`.
+2026-08-25 16:35:10,692	WARNING util.py:171 -- The `on_step_end` operation took 0.579 s, which may be a performance bottleneck.
+2026-08-25 16:35:11,349	INFO trial_runner.py:803 -- starting QPLEX_FOCUS_mate-qplex_focus.camera_609c8_00000
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+[2m[36m(QPlexFocusTrainer pid=262575)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(QPlexFocusTrainer pid=262575)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=262575)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(QPlexFocusTrainer pid=262575)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=262575)[0m 2026-08-25 16:35:18,095	INFO simple_q.py:161 -- In multi-agent mode, policies will be optimized sequentially by the multi-GPU optimizer. Consider setting `simple_optimizer=True` if this doesn't work for you.
+[2m[36m(QPlexFocusTrainer pid=262575)[0m 2026-08-25 16:35:18,096	INFO trainer.py:864 -- Current log_level is WARN. For more information, set 'log_level': 'INFO' / 'DEBUG' or use the -v and -vv flags.
+[2m[36m(RolloutWorker pid=262700)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "reward_type" with `'dense'`.[0m
+[2m[36m(RolloutWorker pid=262700)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(RolloutWorker pid=262700)[0m /home/pavt1024/vsn/mate/mate/environment.py:105: UserWarning: [33mWARN: Override configuration "shuffle_entities" with `False`.[0m
+[2m[36m(RolloutWorker pid=262700)[0m   gym.logger.warn(f'Override configuration "{prefix}{key}" with `{value!r}`.')
+[2m[36m(QPlexFocusTrainer pid=262575)[0m 2026-08-25 16:35:27,501	WARNING util.py:60 -- Install gputil for GPU system monitoring.
+[2m[36m(RolloutWorker pid=262700)[0m /home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py:2165: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at ../torch/csrc/utils/tensor_numpy.cpp:199.)
+[2m[36m(RolloutWorker pid=262700)[0m   k: torch.as_tensor(v, device=self.device) for k, v in state_dict.items()
+*** SIGTERM received at time=1787650543 on cpu 4 ***
+*** SIGTERM received at time=1787650543 on cpu 6 ***
+*** SIGTERM received at time=1787650543 on cpu 7 ***
+*** SIGTERM received at time=1787650543 on cpu 3 ***
+*** SIGTERM received at time=1787650543 on cpu 0 ***
+*** SIGTERM received at time=1787650543 on cpu 6 ***
+*** SIGTERM received at time=1787650543 on cpu 2 ***
+*** SIGTERM received at time=1787650543 on cpu 3 ***
+PC: @     0x74b901d1bbca  (unknown)  __read
+    @     0x74b901c45330  1634349888  (unknown)
+*** SIGTERM received at time=1787650543 on cpu 7 ***
+PC: @     0x74b901c98e51  (unknown)  (unknown)
+PC: @     0x74b901d1bbca  (unknown)  __read
+*** SIGTERM received at time=1787650543 on cpu 4 ***
+    @     0x74b901c45330  1634356768  (unknown)
+    @     0x74b901c45330  1634349888  (unknown)
+    @     0x74b901c9bd6e        224  pthread_cond_timedwait
+*** SIGTERM received at time=1787650543 on cpu 5 ***
+PC: @     0x74b901d1bbca  (unknown)  __read
+    @     0x74b901c45330  1634349888  (unknown)
+*** SIGTERM received at time=1787650543 on cpu 1 ***
+PC: @     0x74b901d1bbca  (unknown)  __read
+PC: @     0x74b901d2738d  (unknown)  syscall
+    @     0x74b901c45330  (unknown)  (unknown)
+    @     0x74b901c45330  1634349888  (unknown)
+*** SIGTERM received at time=1787650543 on cpu 5 ***
+[2026-08-25 16:35:43,530 E 261805 260400] logging.cc:325: *** SIGTERM received at time=1787650543 on cpu 3 ***
+[2026-08-25 16:35:43,531 E 261805 260400] logging.cc:325: PC: @     0x74b901d2738d  (unknown)  syscall
+[2026-08-25 16:35:43,532 E 261805 260400] logging.cc:325:     @     0x74b901c45330  (unknown)  (unknown)
+*** SIGTERM received at time=1787650543 on cpu 6 ***
+*** SIGTERM received at time=1787650543 on cpu 5 ***
+PC: @     0x74b901d1bbca  (unknown)  __read
+    @     0x74b901c45330  1634349888  (unknown)
+PC: @     0x74b901d1bbca  (unknown)  __read
+    @     0x74b901c45330  1634349888  (unknown)
+PC: @     0x74b901d1bbca  (unknown)  __read
+    @     0x74b901c45330  1634349888  (unknown)
+PC: @     0x74b901d1bbca  (unknown)  __read
+    @     0x74b901c45330  1634349888  (unknown)
+*** SIGTERM received at time=1787650543 on cpu 6 ***
+    @           0x59f61b  (unknown)  _Py_read
+    @           0x59f61b  (unknown)  _Py_read
+    @           0x59f61b  (unknown)  _Py_read
+    @           0x59f61b  (unknown)  _Py_read
+[2026-08-25 16:35:43,547 E 262576 260400] logging.cc:325: *** SIGTERM received at time=1787650543 on cpu 4 ***
+[2026-08-25 16:35:43,547 E 262576 260400] logging.cc:325: PC: @     0x74b901d1bbca  (unknown)  __read
+[2026-08-25 16:35:43,547 E 262576 260400] logging.cc:325:     @     0x74b901c45330  1634349888  (unknown)
+[2026-08-25 16:35:43,547 E 262576 260400] logging.cc:325:     @           0x59f61b  (unknown)  _Py_read
+PC: @     0x74b901d1bbca  (unknown)  __read
+    @     0x74b901c45330  1634349888  (unknown)
+    @           0x59f61b  (unknown)  _Py_read
+    @           0x59f61b  (unknown)  _Py_read
+[2026-08-25 16:35:43,550 E 261714 260400] logging.cc:325: *** SIGTERM received at time=1787650543 on cpu 1 ***
+[2026-08-25 16:35:43,551 E 261714 260400] logging.cc:325: PC: @     0x74b901d1bbca  (unknown)  __read
+[2026-08-25 16:35:43,551 E 261714 260400] logging.cc:325:     @     0x74b901c45330  1634349888  (unknown)
+[2026-08-25 16:35:43,551 E 261714 260400] logging.cc:325:     @           0x59f61b  (unknown)  _Py_read
+[2026-08-25 16:35:43,547 E 262011 260400] logging.cc:325: *** SIGTERM received at time=1787650543 on cpu 0 ***
+PC: @     0x74b901d1bbca  (unknown)  __read
+    @           0x59f61b  (unknown)  _Py_read
+    @     0x74b901c45330  1634349888  (unknown)
+[2026-08-25 16:35:43,553 E 262011 260400] logging.cc:325: PC: @     0x74b901d1bbca  (unknown)  __read
+[2026-08-25 16:35:43,553 E 262011 260400] logging.cc:325:     @     0x74b901c45330  1634349888  (unknown)
+[2026-08-25 16:35:43,553 E 262011 260400] logging.cc:325:     @           0x59f61b  (unknown)  _Py_read
+[2026-08-25 16:35:43,547 E 262112 260400] logging.cc:325: *** SIGTERM received at time=1787650543 on cpu 7 ***
+[2026-08-25 16:35:43,553 E 262112 260400] logging.cc:325: PC: @     0x74b901d1bbca  (unknown)  __read
+[2026-08-25 16:35:43,553 E 262112 260400] logging.cc:325:     @     0x74b901c45330  1634349888  (unknown)
+[2026-08-25 16:35:43,553 E 262112 260400] logging.cc:325:     @           0x59f61b  (unknown)  _Py_read
+    @           0x59f61b  (unknown)  _Py_read
+PC: @     0x74b901d1bbca  (unknown)  __read
+    @     0x74b901c45330  1634349888  (unknown)
+[2026-08-25 16:35:43,552 E 261033 260400] logging.cc:325: *** SIGTERM received at time=1787650543 on cpu 2 ***
+[2026-08-25 16:35:43,555 E 261033 260400] logging.cc:325: PC: @     0x74b901d1bbca  (unknown)  __read
+[2026-08-25 16:35:43,556 E 261033 260400] logging.cc:325:     @     0x74b901c45330  1634349888  (unknown)
+[2026-08-25 16:35:43,556 E 261033 260400] logging.cc:325:     @           0x59f61b  (unknown)  _Py_read
+[2026-08-25 16:35:43,556 E 261503 260400] logging.cc:325: *** SIGTERM received at time=1787650543 on cpu 7 ***
+PC: @     0x74b901d1bbca  (unknown)  __read
+[2026-08-25 16:35:43,559 E 261503 260400] logging.cc:325: PC: @     0x74b901d1bbca  (unknown)  __read
+    @     0x74b901c45330  1634349888  (unknown)
+[2026-08-25 16:35:43,559 E 261503 260400] logging.cc:325:     @     0x74b901c45330  1634349888  (unknown)
+[2026-08-25 16:35:43,559 E 261503 260400] logging.cc:325:     @           0x59f61b  (unknown)  _Py_read
+    @           0x59f61b  (unknown)  _Py_read
+[2026-08-25 16:35:43,561 E 262264 260400] logging.cc:325: *** SIGTERM received at time=1787650543 on cpu 6 ***
+[2026-08-25 16:35:43,561 E 262264 260400] logging.cc:325: PC: @     0x74b901d1bbca  (unknown)  __read
+    @           0x59f61b  (unknown)  _Py_read
+[2026-08-25 16:35:43,562 E 262264 260400] logging.cc:325:     @     0x74b901c45330  1634349888  (unknown)
+[2026-08-25 16:35:43,562 E 262264 260400] logging.cc:325:     @           0x59f61b  (unknown)  _Py_read
+[2026-08-25 16:35:43,563 E 261906 260400] logging.cc:325: *** SIGTERM received at time=1787650543 on cpu 5 ***
+[2026-08-25 16:35:43,563 E 261906 260400] logging.cc:325: PC: @     0x74b901d1bbca  (unknown)  __read
+[2026-08-25 16:35:43,564 E 261610 260400] logging.cc:325: *** SIGTERM received at time=1787650543 on cpu 6 ***
+[2026-08-25 16:35:43,566 E 261610 260400] logging.cc:325: PC: @     0x74b901d1bbca  (unknown)  __read
+[2026-08-25 16:35:43,566 E 261610 260400] logging.cc:325:     @     0x74b901c45330  1634349888  (unknown)
+[2026-08-25 16:35:43,566 E 261610 260400] logging.cc:325:     @           0x59f61b  (unknown)  _Py_read
+    @           0x59f61b  (unknown)  _Py_read
+[2026-08-25 16:35:43,569 E 261906 260400] logging.cc:325:     @     0x74b901c45330  1634349888  (unknown)
+[2026-08-25 16:35:43,569 E 261906 260400] logging.cc:325:     @           0x59f61b  (unknown)  _Py_read
+    @           0x59f61b  (unknown)  _Py_read
+PC: @     0x74b901d1bbca  (unknown)  __read
+    @     0x74b901c45330  1634349888  (unknown)
+    @           0x59f61b  (unknown)  _Py_read
+[2026-08-25 16:35:43,569 E 261322 260400] logging.cc:325: *** SIGTERM received at time=1787650543 on cpu 4 ***
+[2026-08-25 16:35:43,588 E 261322 260400] logging.cc:325: PC: @     0x74b901d1bbca  (unknown)  __read
+[2026-08-25 16:35:43,589 E 261322 260400] logging.cc:325:     @     0x74b901c45330  1634349888  (unknown)
+[2026-08-25 16:35:43,589 E 261322 260400] logging.cc:325:     @           0x59f61b  (unknown)  _Py_read
+PC: @     0x74b901d1bbca  (unknown)  __read
+    @     0x74b901c45330  1634349888  (unknown)
+    @           0x59f61b  (unknown)  _Py_read
+[2026-08-25 16:35:43,593 E 261218 260400] logging.cc:325: *** SIGTERM received at time=1787650543 on cpu 6 ***
+[2026-08-25 16:35:43,596 E 261218 260400] logging.cc:325: PC: @     0x74b901d1bbca  (unknown)  __read
+[2026-08-25 16:35:43,597 E 261218 260400] logging.cc:325:     @     0x74b901c45330  1634349888  (unknown)
+[2026-08-25 16:35:43,597 E 261218 260400] logging.cc:325:     @           0x59f61b  (unknown)  _Py_read
+[2026-08-25 16:35:43,586 E 260832 260400] logging.cc:325: *** SIGTERM received at time=1787650543 on cpu 5 ***
+[2026-08-25 16:35:43,603 E 260832 260400] logging.cc:325: PC: @     0x74b901d1bbca  (unknown)  __read
+[2026-08-25 16:35:43,603 E 260832 260400] logging.cc:325:     @     0x74b901c45330  1634349888  (unknown)
+[2026-08-25 16:35:43,603 E 260832 260400] logging.cc:325:     @           0x59f61b  (unknown)  _Py_read
+[2026-08-25 16:35:43,598 E 261412 260400] logging.cc:325: *** SIGTERM received at time=1787650543 on cpu 5 ***
+[2026-08-25 16:35:43,618 E 261412 260400] logging.cc:325: PC: @     0x74b901d1bbca  (unknown)  __read
+[2026-08-25 16:35:43,618 E 261412 260400] logging.cc:325:     @     0x74b901c45330  1634349888  (unknown)
+[2026-08-25 16:35:43,618 E 261412 260400] logging.cc:325:     @           0x59f61b  (unknown)  _Py_read
+[2026-08-25 16:35:43,620 E 261126 260400] logging.cc:325: *** SIGTERM received at time=1787650543 on cpu 6 ***
+[2026-08-25 16:35:43,628 E 261126 260400] logging.cc:325: PC: @     0x74b901d1bbca  (unknown)  __read
+[2026-08-25 16:35:43,628 E 261126 260400] logging.cc:325:     @     0x74b901c45330  1634349888  (unknown)
+[2026-08-25 16:35:43,628 E 261126 260400] logging.cc:325:     @           0x59f61b  (unknown)  _Py_read
+    @     0x74b8d521ad13        144  ray::core::GetRequest::Wait()
+    @     0x74b8d521bf07        368  ray::core::CoreWorkerMemoryStore::GetImpl()
+    @     0x74b8d521cf9e        256  ray::core::CoreWorkerMemoryStore::Wait()
+    @     0x74b8d51953a7        368  ray::core::CoreWorker::Wait()
+    @     0x74b8d50ca283        288  __pyx_pw_3ray_7_raylet_10CoreWorker_41wait()
+    @           0x4f9896  (unknown)  method_vectorcall_VARARGS_KEYWORDS
+    @           0x738180  (unknown)  (unknown)
+[2026-08-25 16:35:43,702 E 260400 260400] logging.cc:325: *** SIGTERM received at time=1787650543 on cpu 3 ***
+[2026-08-25 16:35:43,717 E 260400 260400] logging.cc:325: PC: @     0x74b901c98e51  (unknown)  (unknown)
+[2026-08-25 16:35:43,717 E 260400 260400] logging.cc:325:     @     0x74b901c45330  1634356768  (unknown)
+[2026-08-25 16:35:43,717 E 260400 260400] logging.cc:325:     @     0x74b901c9bd6e        224  pthread_cond_timedwait
+[2026-08-25 16:35:43,717 E 260400 260400] logging.cc:325:     @     0x74b8d521ad13        144  ray::core::GetRequest::Wait()
+[2026-08-25 16:35:43,717 E 260400 260400] logging.cc:325:     @     0x74b8d521bf07        368  ray::core::CoreWorkerMemoryStore::GetImpl()
+[2026-08-25 16:35:43,717 E 260400 260400] logging.cc:325:     @     0x74b8d521cf9e        256  ray::core::CoreWorkerMemoryStore::Wait()
+[2026-08-25 16:35:43,717 E 260400 260400] logging.cc:325:     @     0x74b8d51953a7        368  ray::core::CoreWorker::Wait()
+[2026-08-25 16:35:43,717 E 260400 260400] logging.cc:325:     @     0x74b8d50ca283        288  __pyx_pw_3ray_7_raylet_10CoreWorker_41wait()
+[2026-08-25 16:35:43,717 E 260400 260400] logging.cc:325:     @           0x4f9896  (unknown)  method_vectorcall_VARARGS_KEYWORDS
+[2026-08-25 16:35:43,726 E 260400 260400] logging.cc:325:     @           0x738180  (unknown)  (unknown)

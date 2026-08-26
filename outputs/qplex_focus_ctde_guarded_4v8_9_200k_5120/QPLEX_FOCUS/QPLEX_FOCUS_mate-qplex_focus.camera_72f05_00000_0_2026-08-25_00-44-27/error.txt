@@ -1,0 +1,399 @@
+Failure # 1 (occurred at 2026-08-25_00-45-21)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1809, in get
+    raise value.as_instanceof_cause()
+ray.exceptions.RayTaskError(NameError): [36mray::QPlexFocusTrainer.train()[39m (pid=137584, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 349, in train
+    result = self.step()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1093, in step
+    raise e
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1074, in step
+    step_attempt_results = self.step_attempt()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1155, in step_attempt
+    step_results = self._exec_plan_or_training_iteration_fn()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2174, in _exec_plan_or_training_iteration_fn
+    results = next(self.train_exec_impl)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1108, in build_union
+    item = next(it)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 815, in apply_foreach
+    result = fn(item)
+  File "/home/pavt1024/vsn/mate/ray/rllib/execution/train_ops.py", line 215, in __call__
+    learner_info = lw.learn_on_batch(batch)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 922, in learn_on_batch
+    DEFAULT_POLICY_ID: self.policy_map[
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1636, in learn_on_batch
+    loss_out, mask, masked_td_error, chosen_action_qvals, targets = self.loss(
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1194, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1170, in forward
+    rho, valid, total_g, belief_loss, confidence, confidence_mode = self._focus_credit_target(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 739, in _focus_credit_target
+    per_horizon_losses, per_horizon_valid, mean, std, diagnostics = self.occupancy_model.nll(state, next_state)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 263, in nll
+    baseline_pos = current_pos[:, :valid_t, :, :]
+NameError: name 'current_pos' is not defined
+
+Failure # 2 (occurred at 2026-08-25_00-46-08)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1809, in get
+    raise value.as_instanceof_cause()
+ray.exceptions.RayTaskError(NameError): [36mray::QPlexFocusTrainer.train()[39m (pid=138068, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 349, in train
+    result = self.step()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1093, in step
+    raise e
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1074, in step
+    step_attempt_results = self.step_attempt()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1155, in step_attempt
+    step_results = self._exec_plan_or_training_iteration_fn()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2174, in _exec_plan_or_training_iteration_fn
+    results = next(self.train_exec_impl)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1108, in build_union
+    item = next(it)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 815, in apply_foreach
+    result = fn(item)
+  File "/home/pavt1024/vsn/mate/ray/rllib/execution/train_ops.py", line 215, in __call__
+    learner_info = lw.learn_on_batch(batch)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 922, in learn_on_batch
+    DEFAULT_POLICY_ID: self.policy_map[
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1636, in learn_on_batch
+    loss_out, mask, masked_td_error, chosen_action_qvals, targets = self.loss(
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1194, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1170, in forward
+    rho, valid, total_g, belief_loss, confidence, confidence_mode = self._focus_credit_target(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 739, in _focus_credit_target
+    per_horizon_losses, per_horizon_valid, mean, std, diagnostics = self.occupancy_model.nll(state, next_state)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 263, in nll
+    baseline_pos = current_pos[:, :valid_t, :, :]
+NameError: name 'current_pos' is not defined
+
+Failure # 3 (occurred at 2026-08-25_00-46-50)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1809, in get
+    raise value.as_instanceof_cause()
+ray.exceptions.RayTaskError(NameError): [36mray::QPlexFocusTrainer.train()[39m (pid=138396, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 349, in train
+    result = self.step()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1093, in step
+    raise e
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1074, in step
+    step_attempt_results = self.step_attempt()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1155, in step_attempt
+    step_results = self._exec_plan_or_training_iteration_fn()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2174, in _exec_plan_or_training_iteration_fn
+    results = next(self.train_exec_impl)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1108, in build_union
+    item = next(it)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 815, in apply_foreach
+    result = fn(item)
+  File "/home/pavt1024/vsn/mate/ray/rllib/execution/train_ops.py", line 215, in __call__
+    learner_info = lw.learn_on_batch(batch)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 922, in learn_on_batch
+    DEFAULT_POLICY_ID: self.policy_map[
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1636, in learn_on_batch
+    loss_out, mask, masked_td_error, chosen_action_qvals, targets = self.loss(
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1194, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1170, in forward
+    rho, valid, total_g, belief_loss, confidence, confidence_mode = self._focus_credit_target(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 739, in _focus_credit_target
+    per_horizon_losses, per_horizon_valid, mean, std, diagnostics = self.occupancy_model.nll(state, next_state)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 263, in nll
+    baseline_pos = current_pos[:, :valid_t, :, :]
+NameError: name 'current_pos' is not defined
+
+Failure # 4 (occurred at 2026-08-25_00-47-33)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1809, in get
+    raise value.as_instanceof_cause()
+ray.exceptions.RayTaskError(NameError): [36mray::QPlexFocusTrainer.train()[39m (pid=138643, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 349, in train
+    result = self.step()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1093, in step
+    raise e
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1074, in step
+    step_attempt_results = self.step_attempt()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1155, in step_attempt
+    step_results = self._exec_plan_or_training_iteration_fn()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2174, in _exec_plan_or_training_iteration_fn
+    results = next(self.train_exec_impl)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1108, in build_union
+    item = next(it)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 815, in apply_foreach
+    result = fn(item)
+  File "/home/pavt1024/vsn/mate/ray/rllib/execution/train_ops.py", line 215, in __call__
+    learner_info = lw.learn_on_batch(batch)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 922, in learn_on_batch
+    DEFAULT_POLICY_ID: self.policy_map[
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1636, in learn_on_batch
+    loss_out, mask, masked_td_error, chosen_action_qvals, targets = self.loss(
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1194, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1170, in forward
+    rho, valid, total_g, belief_loss, confidence, confidence_mode = self._focus_credit_target(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 739, in _focus_credit_target
+    per_horizon_losses, per_horizon_valid, mean, std, diagnostics = self.occupancy_model.nll(state, next_state)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 263, in nll
+    baseline_pos = current_pos[:, :valid_t, :, :]
+NameError: name 'current_pos' is not defined
+
+Failure # 5 (occurred at 2026-08-25_00-48-11)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1809, in get
+    raise value.as_instanceof_cause()
+ray.exceptions.RayTaskError(NameError): [36mray::QPlexFocusTrainer.train()[39m (pid=138817, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 349, in train
+    result = self.step()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1093, in step
+    raise e
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1074, in step
+    step_attempt_results = self.step_attempt()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1155, in step_attempt
+    step_results = self._exec_plan_or_training_iteration_fn()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2174, in _exec_plan_or_training_iteration_fn
+    results = next(self.train_exec_impl)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1108, in build_union
+    item = next(it)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 815, in apply_foreach
+    result = fn(item)
+  File "/home/pavt1024/vsn/mate/ray/rllib/execution/train_ops.py", line 215, in __call__
+    learner_info = lw.learn_on_batch(batch)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 922, in learn_on_batch
+    DEFAULT_POLICY_ID: self.policy_map[
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1636, in learn_on_batch
+    loss_out, mask, masked_td_error, chosen_action_qvals, targets = self.loss(
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1194, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1170, in forward
+    rho, valid, total_g, belief_loss, confidence, confidence_mode = self._focus_credit_target(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 739, in _focus_credit_target
+    per_horizon_losses, per_horizon_valid, mean, std, diagnostics = self.occupancy_model.nll(state, next_state)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 263, in nll
+    baseline_pos = current_pos[:, :valid_t, :, :]
+NameError: name 'current_pos' is not defined
+
+Failure # 6 (occurred at 2026-08-25_00-48-51)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1809, in get
+    raise value.as_instanceof_cause()
+ray.exceptions.RayTaskError(NameError): [36mray::QPlexFocusTrainer.train()[39m (pid=139017, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 349, in train
+    result = self.step()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1093, in step
+    raise e
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1074, in step
+    step_attempt_results = self.step_attempt()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1155, in step_attempt
+    step_results = self._exec_plan_or_training_iteration_fn()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2174, in _exec_plan_or_training_iteration_fn
+    results = next(self.train_exec_impl)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1108, in build_union
+    item = next(it)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 815, in apply_foreach
+    result = fn(item)
+  File "/home/pavt1024/vsn/mate/ray/rllib/execution/train_ops.py", line 215, in __call__
+    learner_info = lw.learn_on_batch(batch)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 922, in learn_on_batch
+    DEFAULT_POLICY_ID: self.policy_map[
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1636, in learn_on_batch
+    loss_out, mask, masked_td_error, chosen_action_qvals, targets = self.loss(
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1194, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1170, in forward
+    rho, valid, total_g, belief_loss, confidence, confidence_mode = self._focus_credit_target(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 739, in _focus_credit_target
+    per_horizon_losses, per_horizon_valid, mean, std, diagnostics = self.occupancy_model.nll(state, next_state)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 263, in nll
+    baseline_pos = current_pos[:, :valid_t, :, :]
+NameError: name 'current_pos' is not defined
+
+Failure # 7 (occurred at 2026-08-25_00-49-32)
+Traceback (most recent call last):
+  File "/home/pavt1024/vsn/mate/ray/tune/ray_trial_executor.py", line 901, in get_next_executor_event
+    future_result = ray.get(ready_future)
+  File "/home/pavt1024/vsn/mate/ray/_private/client_mode_hook.py", line 105, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/worker.py", line 1809, in get
+    raise value.as_instanceof_cause()
+ray.exceptions.RayTaskError(NameError): [36mray::QPlexFocusTrainer.train()[39m (pid=139527, ip=172.27.211.168, repr=QPlexFocusTrainer)
+  File "/home/pavt1024/vsn/mate/ray/tune/trainable.py", line 349, in train
+    result = self.step()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1093, in step
+    raise e
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1074, in step
+    step_attempt_results = self.step_attempt()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 1155, in step_attempt
+    step_results = self._exec_plan_or_training_iteration_fn()
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/trainer.py", line 2174, in _exec_plan_or_training_iteration_fn
+    results = next(self.train_exec_impl)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 869, in apply_filter
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 1108, in build_union
+    item = next(it)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 779, in __next__
+    return next(self.built_iterator)
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 807, in apply_foreach
+    for item in it:
+  File "/home/pavt1024/vsn/mate/ray/util/iter.py", line 815, in apply_foreach
+    result = fn(item)
+  File "/home/pavt1024/vsn/mate/ray/rllib/execution/train_ops.py", line 215, in __call__
+    learner_info = lw.learn_on_batch(batch)
+  File "/home/pavt1024/vsn/mate/ray/rllib/evaluation/rollout_worker.py", line 922, in learn_on_batch
+    DEFAULT_POLICY_ID: self.policy_map[
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1636, in learn_on_batch
+    loss_out, mask, masked_td_error, chosen_action_qvals, targets = self.loss(
+  File "/home/pavt1024/miniconda3/envs/mate/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1194, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 1170, in forward
+    rho, valid, total_g, belief_loss, confidence, confidence_mode = self._focus_credit_target(
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 739, in _focus_credit_target
+    per_horizon_losses, per_horizon_valid, mean, std, diagnostics = self.occupancy_model.nll(state, next_state)
+  File "/home/pavt1024/vsn/mate/ray/rllib/agents/qplex_focus/qplex_policy.py", line 263, in nll
+    baseline_pos = current_pos[:, :valid_t, :, :]
+NameError: name 'current_pos' is not defined
+
