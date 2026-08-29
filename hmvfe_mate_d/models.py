@@ -181,22 +181,32 @@ class HMVFECoordinator(nn.Module):
         prob = torch.sigmoid(z)
         return prob.reshape(self.num_cameras, self.num_targets), self._value(z, pooled)
 
-    def act(self, obs: torch.Tensor, deterministic: bool = False):
+    def act(
+        self,
+        obs: torch.Tensor,
+        deterministic: bool = False,
+        return_per_camera_log_prob: bool = False,
+    ):
         """Returns ``(action[N_cam,N_tgt], log_prob, entropy, value)``."""
 
         z, pooled = self._scores_and_pool(obs)
         prob = torch.sigmoid(z).clamp(1e-6, 1.0 - 1e-6)
         dist = torch.distributions.Bernoulli(probs=prob)
         action = (prob > 0.5).float() if deterministic else dist.sample()
-        log_prob = dist.log_prob(action).sum()
+        pair_log_prob = dist.log_prob(action).reshape(self.num_cameras, self.num_targets)
+        camera_log_prob = pair_log_prob.sum(dim=-1)
+        log_prob = camera_log_prob.sum(dim=-1)
         entropy = dist.entropy().sum()
         value = self._value(z, pooled)
-        return (
+        result = (
             action.reshape(self.num_cameras, self.num_targets).long(),
             log_prob,
             entropy,
             value,
         )
+        if return_per_camera_log_prob:
+            return (*result, camera_log_prob)
+        return result
 
     def value_only(self, obs: torch.Tensor) -> torch.Tensor:
         z, pooled = self._scores_and_pool(obs)

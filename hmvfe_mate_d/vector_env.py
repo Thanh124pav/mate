@@ -51,6 +51,7 @@ class SyncVectorCoordinatorEnv:
         self._stagger = bool(stagger)
         self._episode_macro = max(1, int(config.horizon) // int(config.frame_skip))
         self._rng = np.random.RandomState(self.base_seed)
+        self.last_next_global_state = None
 
     def reset(self) -> np.ndarray:
         obs = [env.reset() for env in self.envs]
@@ -67,18 +68,24 @@ class SyncVectorCoordinatorEnv:
         """``actions``: sequence of ``num_envs`` arrays shaped ``[N_cam, N_tgt]``."""
 
         obs_list: List[np.ndarray] = []
+        next_states: List[np.ndarray] = []
         rewards = np.zeros(self.num_envs, dtype=np.float64)
         dones = np.zeros(self.num_envs, dtype=bool)
         infos = []
         for i, env in enumerate(self.envs):
             o, r, d, info = env.step(actions[i])
+            next_states.append(env.global_state())
             if d:
                 o = env.reset()  # auto-reset; info still describes the finished episode
             obs_list.append(o)
             rewards[i] = r
             dones[i] = bool(d)
             infos.append(info)
+        self.last_next_global_state = np.stack(next_states, axis=0)
         return np.stack(obs_list, axis=0), rewards, dones, infos
+
+    def global_state(self) -> np.ndarray:
+        return np.stack([env.global_state() for env in self.envs], axis=0)
 
     def seed(self, seed: int) -> None:
         for i, env in enumerate(self.envs):

@@ -71,8 +71,12 @@ def parse_args(prog: str = 'python -m hmvfe_mate_d') -> argparse.Namespace:
 
     # training
     p.add_argument('--total-env-steps', dest='total_env_steps', type=int)
+    p.add_argument('--timesteps-total', dest='total_env_steps', type=int,
+                   help='Alias for --total-env-steps, matching Ray-based examples.')
     p.add_argument('--num-envs', dest='num_envs', type=int,
                    help='Synchronous parallel envs (bigger, decorrelated A2C batch).')
+    p.add_argument('--num-envs-per-worker', dest='num_envs', type=int,
+                   help='Alias for --num-envs in the ray-free HMVFE trainer.')
     p.add_argument('--rollout-length', dest='rollout_length', type=int)
     p.add_argument('--gamma', type=float)
     p.add_argument('--gae-lambda', dest='gae_lambda', type=float)
@@ -84,15 +88,41 @@ def parse_args(prog: str = 'python -m hmvfe_mate_d') -> argparse.Namespace:
     p.add_argument('--max-grad-norm', dest='max_grad_norm', type=float)
     p.add_argument('--device', type=str, help='cpu | cuda | mps')
 
+    # FOCUS
+    p.add_argument('--focus-enabled', dest='focus_enabled', action='store_true', default=None,
+                   help='Enable FOCUS camera-wise actor weighting.')
+    p.add_argument('--focus-strict', dest='focus_strict', action='store_true', default=None,
+                   help='Fail instead of silently falling back to vanilla HMVFE when FOCUS is enabled.')
+    p.add_argument('--focus-eta', dest='focus_eta', type=float)
+    p.add_argument('--focus-weight-min', dest='focus_weight_min', type=float,
+                   help='Minimum per-camera actor weight after FOCUS reweighting.')
+    p.add_argument('--focus-weight-max', dest='focus_weight_max', type=float,
+                   help='Maximum per-camera actor weight after FOCUS reweighting.')
+    p.add_argument('--focus-use-confidence', dest='focus_use_confidence', action='store_true', default=None)
+    p.add_argument('--no-focus-use-confidence', dest='focus_use_confidence', action='store_false')
+    p.add_argument('--focus-mode', dest='focus_mode', choices=['real', 'uniform', 'shuffled', 'random'])
+    p.add_argument('--focus-belief-mode', dest='focus_belief_mode',
+                   choices=['oracle_next_ablation', 'learned'])
+    p.add_argument('--focus-integral-mode', dest='focus_integral_mode', choices=['MC', 'sigma', 'grid'])
+    p.add_argument('--focus-mc-num-points', dest='focus_mc_num_points', type=int)
+    p.add_argument('--focus-mc-chunk-size', dest='focus_mc_chunk_size', type=int)
+    p.add_argument('--focus-grid-size', dest='focus_grid_size', type=int)
+
     # logging / eval / io
     p.add_argument('--log-interval', dest='log_interval', type=int)
     p.add_argument('--save-interval', dest='save_interval', type=int)
     p.add_argument('--eval-interval', dest='eval_interval', type=int)
     p.add_argument('--eval-episodes', dest='eval_episodes', type=int)
     p.add_argument('--output-dir', dest='output_dir', type=str)
+    p.add_argument('--local-dir', dest='output_dir', type=str,
+                   help='Alias for --output-dir, matching Ray-based examples.')
     p.add_argument('--run-name', dest='run_name', type=str)
 
     # wandb
+    p.add_argument('--project', dest='wandb_project', type=str,
+                   help='Alias for --wandb-project, matching the examples namespace.')
+    p.add_argument('--group', dest='wandb_group', type=str,
+                   help='Alias for --wandb-group, matching the examples namespace.')
     p.add_argument('--wandb-project', dest='wandb_project', type=str)
     p.add_argument('--wandb-group', dest='wandb_group', type=str)
     p.add_argument('--wandb-name', dest='wandb_name', type=str)

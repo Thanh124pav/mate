@@ -23,6 +23,7 @@ from __future__ import annotations
 from typing import Optional
 
 import gym
+import mate
 import numpy as np
 from gym import spaces
 
@@ -134,6 +135,7 @@ class MATECoordinatorEnv(gym.Env):
         reward = float(np.mean(per_camera_return))
         done = bool(np.all(dones)) or self._elapsed_env_steps >= self.horizon
         info = self._summarize(fragment_infos)
+        info['fragment_length'] = len(fragment_rewards)
 
         return self._build_observation(), reward, done, info
 
@@ -154,6 +156,11 @@ class MATECoordinatorEnv(gym.Env):
         """Per-(camera, target) visibility mask from the observation only."""
 
         return self._view_mask(self._joint_observation)
+
+    def global_state(self) -> np.ndarray:
+        """Normalized global MATE state for centralized FOCUS diagnostics."""
+
+        return mate.normalize_observation(self.base_env.state(), self.base_env.state_space)
 
     def _build_observation(self) -> np.ndarray:
         return self.observation_builder.build(self._joint_observation)

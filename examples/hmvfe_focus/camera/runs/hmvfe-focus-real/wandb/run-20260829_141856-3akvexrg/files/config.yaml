@@ -1,0 +1,198 @@
+_wandb:
+    value:
+        cli_version: 0.21.1
+        e:
+            ox70ogn9ncrt8jnfivqdu69abjmj79n0:
+                args:
+                    - --env-config
+                    - MATE-4v8-9.yaml
+                    - --focus-mode
+                    - real
+                cpu_count: 4
+                cpu_count_logical: 8
+                cudaVersion: "12.8"
+                disk:
+                    /:
+                        total: "1081101176832"
+                        used: "215016501248"
+                email: phamvanthanh.csp@gmail.com
+                executable: /home/pavt1024/miniconda3/envs/mate/bin/python
+                git:
+                    commit: 92f62c244469911f70ff24e86a171f4a20c5f369
+                    remote: https://github.com/Thanh124pav/mate.git
+                gpu: NVIDIA GeForce GTX 1650
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Turing
+                      memoryTotal: "4294967296"
+                      name: NVIDIA GeForce GTX 1650
+                      uuid: GPU-67a28385-f21d-1b44-f1c5-cc3607b80e81
+                host: ASUS-PAVT
+                memory:
+                    total: "6214086656"
+                os: Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39
+                program: -m examples.hmvfe_focus.camera.train
+                python: CPython 3.9.23
+                root: /home/pavt1024/vsn/mate/examples/hmvfe_focus/camera/runs/hmvfe-focus-real
+                startedAt: "2026-08-29T07:18:56.233556Z"
+                writerId: ox70ogn9ncrt8jnfivqdu69abjmj79n0
+        m:
+            - "1": environment_steps
+              "6":
+                - 3
+              "7": []
+            - "2": eval/*
+              "5": 1
+              "6":
+                - 1
+              "7": []
+            - "2": focus/*
+              "5": 1
+              "6":
+                - 1
+              "7": []
+            - "2": train/*
+              "5": 1
+              "6":
+                - 1
+              "7": []
+        python_version: 3.9.23
+        t:
+            "1":
+                - 1
+                - 30
+            "2":
+                - 1
+                - 30
+            "3":
+                - 7
+                - 13
+                - 15
+                - 16
+                - 61
+            "4": 3.9.23
+            "5": 0.21.1
+            "12": 0.21.1
+            "13": linux-x86_64
+anneal_lr:
+    value: true
+coverage_coefficient:
+    value: 1
+critic_reduction:
+    value: learned
+device:
+    value: cpu
+embedding_dim:
+    value: 10
+entropy_coef:
+    value: 0.01
+env_config:
+    value: MATE-4v8-9.yaml
+env_id:
+    value: MultiAgentTracking-v0
+eval_episodes:
+    value: 5
+eval_interval:
+    value: 50
+focus_belief_mode:
+    value: oracle_next_ablation
+focus_enabled:
+    value: true
+focus_eps:
+    value: 1e-08
+focus_eta:
+    value: 1
+focus_grid_chunk_size:
+    value: 128
+focus_grid_size:
+    value: 64
+focus_horizon:
+    value: 3
+focus_horizon_discount:
+    value: 0.9
+focus_integral_mode:
+    value: MC
+focus_mc_chunk_size:
+    value: 32
+focus_mc_num_points:
+    value: 128
+focus_mc_seed:
+    value: 0
+focus_min_credit_signal:
+    value: 1e-06
+focus_mode:
+    value: real
+focus_obstacle_transmittance:
+    value: 0
+focus_sample_chunk_size:
+    value: 32
+focus_strict:
+    value: true
+focus_use_confidence:
+    value: true
+frame_skip:
+    value: 5
+gae_lambda:
+    value: 0.95
+gamma:
+    value: 0.99
+gating_hidden:
+    value: 128
+horizon:
+    value: 500
+learning_rate:
+    value: 0.0005
+log_interval:
+    value: 10
+max_grad_norm:
+    value: 50
+mlp_hidden:
+    value: 128
+mlp_layers:
+    value: 2
+normalize_advantage:
+    value: true
+num_angle_bins:
+    value: 16
+num_distance_bins:
+    value: 16
+num_envs:
+    value: 8
+num_experts:
+    value: 4
+num_occlusion_bins:
+    value: 8
+opponent:
+    value: greedy
+output_dir:
+    value: examples/hmvfe_focus/camera/runs
+reward_type:
+    value: dense
+rollout_length:
+    value: 20
+run_name:
+    value: hmvfe-focus-real
+save_interval:
+    value: 50
+seed:
+    value: 0
+top_k:
+    value: 2
+total_env_steps:
+    value: 10000000
+value_coef:
+    value: 0.5
+value_head_hidden:
+    value: 128
+wandb_group:
+    value: hmvfe_focus.camera
+wandb_mode:
+    value: online
+wandb_name:
+    value: hmvfe-focus-real
+wandb_project:
+    value: mate-camera
+wandb_tags:
+    value:
+        - hmvfe_focus
+        - focus

@@ -102,6 +102,28 @@ class HMVFEConfig:
     normalize_advantage: bool = True
     device: str = 'cpu'
 
+    # --- FOCUS camera-wise actor-gradient allocation --------------------------
+    focus_enabled: bool = False
+    focus_strict: bool = False      # fail if enabled FOCUS degenerates to vanilla HMVFE
+    focus_eta: float = 1.0
+    focus_use_confidence: bool = True
+    focus_weight_min: float = 0.1
+    focus_weight_max: float = 3.0
+    focus_eps: float = 1e-8
+    focus_mode: str = 'uniform'       # real | uniform | shuffled | random
+    focus_belief_mode: str = 'oracle_next_ablation'
+    focus_horizon: int = 3
+    focus_horizon_discount: float = 0.9
+    focus_integral_mode: str = 'MC'   # MC | sigma | grid, passed to canonical FOCUS
+    focus_mc_num_points: int = 128
+    focus_mc_chunk_size: int = 32
+    focus_mc_seed: int = 0
+    focus_sample_chunk_size: int = 32
+    focus_grid_size: int = 64
+    focus_grid_chunk_size: int = 128
+    focus_min_credit_signal: float = 1e-6
+    focus_obstacle_transmittance: float = 0.0
+
     # --- logging / checkpointing / evaluation ---------------------------------
     log_interval: int = 10            # in updates
     save_interval: int = 50           # in updates
