@@ -10,10 +10,13 @@ import torch
 
 @dataclass
 class HMVFEFocusOutput:
-    rho: torch.Tensor
+    rho: Optional[torch.Tensor]
     confidence: Optional[torch.Tensor] = None
     valid: Optional[torch.Tensor] = None
     total_gain: Optional[torch.Tensor] = None
+    belief_loss: Optional[torch.Tensor] = None
+    belief_stats: Optional[Dict[str, float]] = None
+    confidence_mode: Optional[str] = None
 
 
 class HMVFEFocusAdapter:
@@ -24,66 +27,37 @@ class HMVFEFocusAdapter:
         eta: float,
         use_confidence: bool = True,
         eps: float = 1e-8,
-        weight_min: Optional[float] = None,
-        weight_max: Optional[float] = None,
+        weight_formula: str = 'rho',
+        rho_temperature: float = 1.2,
     ) -> None:
         self.eta = float(eta)
         self.use_confidence = bool(use_confidence)
         self.eps = float(eps)
-        self.weight_min = None if weight_min is None else float(weight_min)
-        self.weight_max = None if weight_max is None else float(weight_max)
-        if self.weight_min is not None and self.weight_min < 0.0:
-            raise ValueError('focus weight_min must be non-negative')
-        if self.weight_max is not None and self.weight_max <= 0.0:
-            raise ValueError('focus weight_max must be positive')
-        if (
-            self.weight_min is not None
-            and self.weight_max is not None
-            and self.weight_min > self.weight_max
-        ):
-            raise ValueError('focus weight_min must be <= weight_max')
+        self.weight_formula = str(weight_formula).lower()
+        self.rho_temperature = float(rho_temperature)
+        if self.weight_formula not in ('rho', 'affine'):
+            raise ValueError('focus weight_formula must be one of: rho, affine')
+        if self.rho_temperature <= 0.0:
+            raise ValueError('focus rho_temperature must be positive')
 
     @torch.no_grad()
-    def _clip_preserve_mean(
-        self, weights: torch.Tensor, active_mask: Optional[torch.Tensor] = None
+    def _apply_temperature(
+        self, rho: torch.Tensor, active_mask: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
-        if self.weight_min is None and self.weight_max is None:
-            return weights
-
-        low = -torch.inf if self.weight_min is None else weights.new_tensor(self.weight_min)
-        high = torch.inf if self.weight_max is None else weights.new_tensor(self.weight_max)
-        if active_mask is None:
-            mask = torch.ones_like(weights, dtype=torch.bool)
-        else:
-            mask = active_mask.to(device=weights.device, dtype=torch.bool)
-
-        flat_weights = weights.reshape(-1, weights.shape[-1]).clone()
-        flat_mask = mask.reshape(-1, mask.shape[-1])
-        for row_idx in range(flat_weights.shape[0]):
-            row = flat_weights[row_idx]
-            row_mask = flat_mask[row_idx]
-            active_count = int(row_mask.sum().item())
-            if active_count == 0:
-                continue
-            target_sum = row.new_tensor(float(active_count))
-            active = row[row_mask].clamp(low, high)
-            # Project onto the bounded simplex with sum = active_count. This keeps
-            # FOCUS non-uniform but prevents zero/oversized actor gradients.
-            for _ in range(active.numel() + 2):
-                diff = target_sum - active.sum()
-                if diff.abs() <= self.eps:
-                    break
-                free = (active > low + self.eps) & (active < high - self.eps)
-                if not bool(free.any().item()):
-                    free = torch.ones_like(active, dtype=torch.bool)
-                active = active.clone()
-                active[free] = active[free] + diff / free.float().sum()
-                active = active.clamp(low, high)
-            row = row.clone()
-            row[row_mask] = active
-            row[~row_mask] = 0.0
-            flat_weights[row_idx] = row
-        return flat_weights.reshape_as(weights)
+        if self.rho_temperature == 1.0:
+            return rho
+        logits = torch.log(rho.clamp_min(self.eps)) / self.rho_temperature
+        if active_mask is not None:
+            mask = active_mask.to(device=rho.device, dtype=torch.bool)
+            logits = logits.masked_fill(~mask, -torch.inf)
+            inactive_rows = ~mask.any(dim=-1, keepdim=True)
+            logits = torch.where(inactive_rows, torch.zeros_like(logits), logits)
+        tempered = torch.softmax(logits, dim=-1)
+        if active_mask is not None:
+            mask = active_mask.to(device=rho.device, dtype=rho.dtype)
+            tempered = tempered * mask
+            tempered = tempered / tempered.sum(dim=-1, keepdim=True).clamp_min(self.eps)
+        return tempered
 
     @torch.no_grad()
     def compute_weights(
@@ -102,16 +76,23 @@ class HMVFEFocusAdapter:
 
         if active_mask is None:
             rho = rho / rho.sum(dim=-1, keepdim=True).clamp_min(self.eps)
+            rho = self._apply_temperature(rho)
             n_cam = rho.new_tensor(float(rho.shape[-1]))
-            weights = 1.0 + eta_t * (n_cam * rho - 1.0)
-            return self._clip_preserve_mean(weights).detach()
+            if self.weight_formula == 'rho':
+                weights = n_cam * rho
+            else:
+                weights = 1.0 + eta_t * (n_cam * rho - 1.0)
+            return weights.detach()
 
         mask = active_mask.detach().to(device=rho.device, dtype=rho.dtype)
         masked_rho = rho * mask
         rho = masked_rho / masked_rho.sum(dim=-1, keepdim=True).clamp_min(self.eps)
+        rho = self._apply_temperature(rho, active_mask=mask)
         n_active = mask.sum(dim=-1, keepdim=True)
-        weights = 1.0 + eta_t * (n_active.clamp_min(1.0) * rho - 1.0)
-        weights = self._clip_preserve_mean(weights, active_mask=mask)
+        if self.weight_formula == 'rho':
+            weights = n_active.clamp_min(1.0) * rho
+        else:
+            weights = 1.0 + eta_t * (n_active.clamp_min(1.0) * rho - 1.0)
         return (weights * mask).detach()
 
 
@@ -210,6 +191,9 @@ class HMVFEFocusResponsibilityEngine:
                 hidden_dim=int(focus_config.get('belief_hidden_dim', 256)),
                 max_delta=float(focus_config.get('belief_max_delta', 400.0)),
                 min_std=float(focus_config.get('belief_min_std', 25.0)),
+                architecture=focus_config.get('belief_arch', 'mlp'),
+                num_layers=int(focus_config.get('belief_num_layers', 1)),
+                dropout=float(focus_config.get('belief_dropout', 0.0)),
             )
 
         self.estimator = QPLEXFocusLoss(
@@ -223,11 +207,20 @@ class HMVFEFocusResponsibilityEngine:
             occupancy_model=occupancy_model,
         )
 
+    @property
+    def has_learned_belief(self) -> bool:
+        return self.estimator.occupancy_model is not None
+
+    def parameters(self):
+        return self.estimator.parameters()
+
+    def state_dict(self):
+        return self.estimator.state_dict()
+
     def to(self, device: torch.device) -> 'HMVFEFocusResponsibilityEngine':
         self.estimator.to(device)
         return self
 
-    @torch.no_grad()
     def compute(
         self,
         global_state: torch.Tensor,
@@ -252,7 +245,7 @@ class HMVFEFocusResponsibilityEngine:
             dtype=torch.long,
             device=global_state.device,
         )
-        rho, valid, total_gain, _belief_loss, confidence, _mode = self.estimator._focus_credit_target(
+        rho, valid, total_gain, belief_loss, confidence, mode = self.estimator._focus_credit_target(
             global_state,
             next_global_state,
             actions,
@@ -263,7 +256,25 @@ class HMVFEFocusResponsibilityEngine:
             confidence=confidence.detach(),
             valid=valid.detach(),
             total_gain=total_gain.detach(),
+            belief_loss=belief_loss,
+            belief_stats=dict(getattr(self.estimator, 'last_belief_stats', {}) or {}),
+            confidence_mode=mode,
         )
+
+    def belief_loss_from_sequence(
+        self,
+        global_state: torch.Tensor,
+        next_global_state: torch.Tensor,
+        valid_mask: Optional[torch.Tensor] = None,
+    ) -> HMVFEFocusOutput:
+        if not self.has_learned_belief:
+            return HMVFEFocusOutput(
+                rho=None,
+                belief_loss=global_state.new_zeros(()),
+                belief_stats={},
+                confidence_mode='off',
+            )
+        return self.compute(global_state, next_global_state, valid_mask=valid_mask)
 
 
 def synthetic_responsibility(

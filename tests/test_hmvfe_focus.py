@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from hmvfe_mate_d.focus_adapter import (
     HMVFEFocusAdapter,
+    HMVFEFocusResponsibilityEngine,
     policy_loss_from_log_prob,
     weighted_actor_log_prob,
 )
@@ -53,11 +54,55 @@ def test_focus_disabled_actor_path_matches_baseline_loss():
     )
 
 
+
+def test_rho_formula_uses_n_times_rho_when_temperature_is_one():
+    camera_log_prob = torch.tensor([[-1.0, -2.0, -3.0]])
+    joint_log_prob = camera_log_prob.sum(dim=-1)
+    rho = torch.tensor([[0.7, 0.2, 0.1]])
+    confidence = torch.zeros(1)
+    adapter = HMVFEFocusAdapter(eta=0.0, use_confidence=True, rho_temperature=1.0)
+
+    actor_log_prob, weights = weighted_actor_log_prob(
+        joint_log_prob, camera_log_prob, adapter, rho=rho, confidence=confidence
+    )
+
+    expected_weights = torch.tensor([[2.1, 0.6, 0.3]])
+    torch.testing.assert_close(weights, expected_weights)
+    torch.testing.assert_close(actor_log_prob, (camera_log_prob * expected_weights).sum(dim=-1))
+
+
+
+def test_default_rho_temperature_softens_non_uniform_responsibility():
+    rho = torch.tensor([[0.8, 0.1, 0.1]])
+    raw_adapter = HMVFEFocusAdapter(eta=1.0, rho_temperature=1.0)
+    default_adapter = HMVFEFocusAdapter(eta=1.0)
+
+    raw_weights = raw_adapter.compute_weights(rho)
+    tempered_weights = default_adapter.compute_weights(rho)
+
+    assert default_adapter.rho_temperature == 1.2
+    assert tempered_weights[0, 0] < raw_weights[0, 0]
+    assert tempered_weights[0, 1] > raw_weights[0, 1]
+    torch.testing.assert_close(tempered_weights.mean(dim=-1), torch.ones(1))
+
+
+def test_rho_temperature_respects_active_mask():
+    rho = torch.tensor([[0.8, 0.1, 0.1]])
+    mask = torch.tensor([[1.0, 0.0, 1.0]])
+    adapter = HMVFEFocusAdapter(eta=1.0, rho_temperature=1.2)
+
+    weights = adapter.compute_weights(rho, active_mask=mask)
+
+    assert weights[0, 1].item() == 0.0
+    active_weights = weights[mask.bool()]
+    torch.testing.assert_close(active_weights.mean(), torch.tensor(1.0))
+    assert active_weights[0] > active_weights[1]
+
 def test_eta_zero_recovers_unit_weights_and_joint_log_prob():
     camera_log_prob = torch.tensor([[-1.0, -2.0, -3.0]])
     joint_log_prob = camera_log_prob.sum(dim=-1)
     rho = torch.tensor([[0.7, 0.2, 0.1]])
-    adapter = HMVFEFocusAdapter(eta=0.0)
+    adapter = HMVFEFocusAdapter(eta=0.0, weight_formula='affine')
 
     actor_log_prob, weights = weighted_actor_log_prob(
         joint_log_prob, camera_log_prob, adapter, rho=rho
@@ -86,7 +131,7 @@ def test_zero_confidence_recovers_joint_log_prob():
     joint_log_prob = camera_log_prob.sum(dim=-1)
     rho = torch.tensor([[0.7, 0.2, 0.1]])
     confidence = torch.zeros(1)
-    adapter = HMVFEFocusAdapter(eta=1.0, use_confidence=True)
+    adapter = HMVFEFocusAdapter(eta=1.0, use_confidence=True, weight_formula='affine')
 
     actor_log_prob, weights = weighted_actor_log_prob(
         joint_log_prob, camera_log_prob, adapter, rho=rho, confidence=confidence
@@ -174,30 +219,41 @@ def test_non_uniform_weighting_changes_relative_camera_gradient():
 
 
 
-def test_focus_weight_bounds_prevent_negative_or_oversized_weights():
-    rho = torch.tensor([[0.99, 0.01, 0.0, 0.0]])
-    adapter = HMVFEFocusAdapter(eta=2.0, weight_min=0.1, weight_max=3.0)
-
-    weights = adapter.compute_weights(rho)
-
-    assert weights.min().item() >= 0.1 - 1e-6
-    assert weights.max().item() <= 3.0 + 1e-6
-    torch.testing.assert_close(weights.mean(dim=-1), torch.ones(1), atol=1e-6, rtol=1e-6)
 
 
-def test_focus_weight_bounds_preserve_active_mask_mean():
-    rho = torch.tensor([[0.99, 0.01, 0.0, 0.0]])
-    mask = torch.tensor([[1.0, 1.0, 0.0, 0.0]])
-    adapter = HMVFEFocusAdapter(eta=2.0, weight_min=0.1, weight_max=3.0)
+def test_learned_belief_loss_backpropagates_to_occupancy_model():
+    torch.manual_seed(23)
+    engine = HMVFEFocusResponsibilityEngine(
+        num_cameras=1,
+        num_targets=1,
+        state_dim=64,
+        config={
+            'belief_mode': 'learned',
+            'horizon': 2,
+            'belief_hidden_dim': 8,
+            'mc_num_points': 2,
+            'mc_chunk_size': 2,
+            'sample_chunk_size': 2,
+            'n_obstacles': 0,
+            'use_action_selection': False,
+        },
+    )
+    assert engine.has_learned_belief
+    state = torch.randn(2, 3, 64)
+    next_state = state + 0.05 * torch.randn(2, 3, 64)
+    first_param = next(engine.parameters())
+    before = first_param.detach().clone()
+    optimizer = torch.optim.SGD(engine.parameters(), lr=1e-3)
 
-    weights = adapter.compute_weights(rho, active_mask=mask)
+    out = engine.belief_loss_from_sequence(state, next_state)
+    assert out.belief_loss is not None
+    assert out.belief_loss.requires_grad
+    optimizer.zero_grad()
+    out.belief_loss.backward()
+    optimizer.step()
 
-    assert weights[0, 2].item() == 0.0
-    assert weights[0, 3].item() == 0.0
-    active_weights = weights[mask.bool()]
-    assert active_weights.min().item() >= 0.1 - 1e-6
-    assert active_weights.max().item() <= 3.0 + 1e-6
-    torch.testing.assert_close(active_weights.mean(), torch.tensor(1.0), atol=1e-6, rtol=1e-6)
+    assert not torch.allclose(first_param.detach(), before)
+    assert 'focus_belief_loss_h1' in (out.belief_stats or {})
 
 def test_fixed_seed_disabled_single_update_matches_baseline_formula():
     torch.manual_seed(13)

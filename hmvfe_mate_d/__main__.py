@@ -94,19 +94,36 @@ def parse_args(prog: str = 'python -m hmvfe_mate_d') -> argparse.Namespace:
     p.add_argument('--focus-strict', dest='focus_strict', action='store_true', default=None,
                    help='Fail instead of silently falling back to vanilla HMVFE when FOCUS is enabled.')
     p.add_argument('--focus-eta', dest='focus_eta', type=float)
-    p.add_argument('--focus-weight-min', dest='focus_weight_min', type=float,
-                   help='Minimum per-camera actor weight after FOCUS reweighting.')
-    p.add_argument('--focus-weight-max', dest='focus_weight_max', type=float,
-                   help='Maximum per-camera actor weight after FOCUS reweighting.')
+    p.add_argument('--focus-weight-formula', dest='focus_weight_formula', choices=['rho', 'affine'],
+                   help='FOCUS actor-weight formula: rho = N*rho_i, affine = 1+eta*c*(N*rho_i-1).')
+    p.add_argument('--focus-rho-temperature', dest='focus_rho_temperature', type=float,
+                   help='Temperature applied to rho before actor weighting; >1 softens toward uniform.')
     p.add_argument('--focus-use-confidence', dest='focus_use_confidence', action='store_true', default=None)
     p.add_argument('--no-focus-use-confidence', dest='focus_use_confidence', action='store_false')
     p.add_argument('--focus-mode', dest='focus_mode', choices=['real', 'uniform', 'shuffled', 'random'])
     p.add_argument('--focus-belief-mode', dest='focus_belief_mode',
                    choices=['oracle_next_ablation', 'learned'])
+    p.add_argument('--focus-beta-belief', dest='focus_beta_belief', type=float,
+                   help='Coefficient for the learned FOCUS belief NLL loss.')
+    p.add_argument('--focus-belief-lr', dest='focus_belief_lr', type=float,
+                   help='Optional separate LR for the learned FOCUS belief model.')
+    p.add_argument('--focus-belief-hidden-dim', dest='focus_belief_hidden_dim', type=int)
+    p.add_argument('--focus-belief-arch', dest='focus_belief_arch', choices=['mlp', 'lstm'])
+    p.add_argument('--focus-belief-num-layers', dest='focus_belief_num_layers', type=int)
+    p.add_argument('--focus-belief-dropout', dest='focus_belief_dropout', type=float)
+    p.add_argument('--focus-belief-max-delta', dest='focus_belief_max_delta', type=float)
+    p.add_argument('--focus-belief-min-std', dest='focus_belief_min_std', type=float)
+    p.add_argument('--focus-horizon', dest='focus_horizon', type=int)
+    p.add_argument('--focus-horizon-discount', dest='focus_horizon_discount', type=float)
     p.add_argument('--focus-integral-mode', dest='focus_integral_mode', choices=['MC', 'sigma', 'grid'])
     p.add_argument('--focus-mc-num-points', dest='focus_mc_num_points', type=int)
     p.add_argument('--focus-mc-chunk-size', dest='focus_mc_chunk_size', type=int)
+    p.add_argument('--focus-mc-seed', dest='focus_mc_seed', type=int)
+    p.add_argument('--focus-sample-chunk-size', dest='focus_sample_chunk_size', type=int)
     p.add_argument('--focus-grid-size', dest='focus_grid_size', type=int)
+    p.add_argument('--focus-grid-chunk-size', dest='focus_grid_chunk_size', type=int)
+    p.add_argument('--focus-min-credit-signal', dest='focus_min_credit_signal', type=float)
+    p.add_argument('--focus-obstacle-transmittance', dest='focus_obstacle_transmittance', type=float)
 
     # logging / eval / io
     p.add_argument('--log-interval', dest='log_interval', type=int)

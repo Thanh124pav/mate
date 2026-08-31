@@ -104,14 +104,14 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
         eta=config.focus_eta,
         use_confidence=config.focus_use_confidence,
         eps=config.focus_eps,
-        weight_min=config.focus_weight_min,
-        weight_max=config.focus_weight_max,
+        weight_formula=config.focus_weight_formula,
+        rho_temperature=config.focus_rho_temperature,
     )
     if config.focus_enabled and config.focus_strict:
         if focus_mode == 'uniform':
             raise ValueError('focus_strict=True disallows focus_mode=uniform because it is vanilla HMVFE.')
-        if float(config.focus_eta) == 0.0:
-            raise ValueError('focus_strict=True disallows focus_eta=0 because it is vanilla HMVFE.')
+        if focus_adapter.weight_formula == 'affine' and float(config.focus_eta) == 0.0:
+            raise ValueError('focus_strict=True disallows focus_eta=0 with affine weights because it is vanilla HMVFE.')
 
     focus_engine = None
     if config.focus_enabled and focus_mode in ('real', 'shuffled'):
@@ -124,6 +124,13 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
                 'belief_mode': config.focus_belief_mode,
                 'horizon': config.focus_horizon,
                 'horizon_discount': config.focus_horizon_discount,
+                'beta_belief': config.focus_beta_belief,
+                'belief_hidden_dim': config.focus_belief_hidden_dim,
+                'belief_arch': config.focus_belief_arch,
+                'belief_num_layers': config.focus_belief_num_layers,
+                'belief_dropout': config.focus_belief_dropout,
+                'belief_max_delta': config.focus_belief_max_delta,
+                'belief_min_std': config.focus_belief_min_std,
                 'integral_mode': config.focus_integral_mode,
                 'mc_num_points': config.focus_mc_num_points,
                 'mc_chunk_size': config.focus_mc_chunk_size,
@@ -153,7 +160,15 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
         critic_reduction=config.critic_reduction,
         value_head_hidden=config.value_head_hidden,
     ).to(device)
-    optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
+    optimizer_groups = [
+        {'params': model.parameters(), 'lr': config.learning_rate, 'initial_lr': config.learning_rate}
+    ]
+    if focus_engine is not None and focus_engine.has_learned_belief:
+        belief_lr = config.focus_belief_lr or config.learning_rate
+        optimizer_groups.append(
+            {'params': list(focus_engine.parameters()), 'lr': belief_lr, 'initial_lr': belief_lr}
+        )
+    optimizer = optim.Adam(optimizer_groups)
     run = _init_wandb(config, output_dir)
 
     steps_per_update = config.rollout_length * config.frame_skip * num_envs
@@ -179,11 +194,10 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
     for update in range(1, total_updates + 1):
         # --- linear LR annealing ---------------------------------------------
         if config.anneal_lr:
-            lr_now = config.learning_rate * (1.0 - (update - 1) / total_updates)
+            lr_factor = 1.0 - (update - 1) / total_updates
             for group in optimizer.param_groups:
-                group['lr'] = lr_now
-        else:
-            lr_now = config.learning_rate
+                group['lr'] = group['initial_lr'] * lr_factor
+        lr_now = optimizer.param_groups[0]['lr']
 
         rollout = config.rollout_length
         # buffers indexed [t][env]
@@ -192,6 +206,8 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
         focus_rhos_te = [[None] * num_envs for _ in range(rollout)]
         focus_confidence_te = [[None] * num_envs for _ in range(rollout)]
         focus_valid_te = [[None] * num_envs for _ in range(rollout)]
+        focus_states_t = [None] * rollout
+        focus_next_states_t = [None] * rollout
         values_te = [[None] * num_envs for _ in range(rollout)]
         entropies_te = [[None] * num_envs for _ in range(rollout)]
         rewards_te = np.zeros((rollout, num_envs))
@@ -224,6 +240,8 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
                 if focus_mode in ('real', 'shuffled'):
                     assert focus_engine is not None
                     focus_next_state = venv.last_next_global_state
+                    focus_states_t[t] = focus_state
+                    focus_next_states_t[t] = focus_next_state
                     focus_out = focus_engine.compute(
                         torch.as_tensor(focus_state, dtype=torch.float32, device=device),
                         torch.as_tensor(focus_next_state, dtype=torch.float32, device=device),
@@ -310,6 +328,8 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
         actor_log_probs = log_probs_stacked
         actor_loss_mask = None
         focus_metrics = {}
+        belief_metrics = {}
+        belief_loss = torch.zeros((), dtype=torch.float32, device=device)
         if config.focus_enabled:
             focus_rho_stacked = torch.stack(
                 [focus_rhos_te[t][i] for i in range(num_envs) for t in range(rollout)]
@@ -343,10 +363,34 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
                 eps=config.focus_eps,
             )
             focus_metrics['focus/valid_ratio'] = float(focus_valid_stacked.float().mean().detach().cpu())
+            focus_metrics['focus/rho_temperature'] = float(config.focus_rho_temperature)
+            if (
+                focus_engine is not None
+                and focus_engine.has_learned_belief
+                and focus_states_t[0] is not None
+            ):
+                belief_out = focus_engine.belief_loss_from_sequence(
+                    torch.as_tensor(np.stack(focus_states_t, axis=1), dtype=torch.float32, device=device),
+                    torch.as_tensor(np.stack(focus_next_states_t, axis=1), dtype=torch.float32, device=device),
+                )
+                if belief_out.belief_loss is not None:
+                    belief_loss = belief_out.belief_loss.to(device=device, dtype=torch.float32)
+                belief_metrics['focus/belief_loss'] = float(belief_loss.detach().cpu())
+                belief_metrics['focus/beta_belief'] = float(config.focus_beta_belief)
+                if len(optimizer.param_groups) > 1:
+                    belief_metrics['focus/belief_lr'] = float(optimizer.param_groups[1]['lr'])
+                for key, value in (belief_out.belief_stats or {}).items():
+                    metric_key = 'focus/' + key.replace('focus_belief_', 'belief_')
+                    belief_metrics[metric_key] = float(value)
 
         policy_loss = policy_loss_from_log_prob(actor_log_probs, advantages_t, mask=actor_loss_mask)
         value_loss = 0.5 * (returns_t - values_stacked).pow(2).mean()
-        loss = policy_loss + config.value_coef * value_loss - config.entropy_coef * entropy_mean
+        loss = (
+            policy_loss
+            + config.value_coef * value_loss
+            - config.entropy_coef * entropy_mean
+            + config.focus_beta_belief * belief_loss
+        )
 
         optimizer.zero_grad()
         loss.backward()
@@ -368,6 +412,7 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
                 'train/lr': float(lr_now),
             }
             metrics.update(focus_metrics)
+            metrics.update(belief_metrics)
             if completed_returns:
                 metrics['train/episode_return'] = float(np.mean(completed_returns[-25:]))
                 metrics['train/episode_coverage_rate'] = float(np.mean(completed_coverage[-25:]))
@@ -395,16 +440,21 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
                 run.log(eval_metrics, step=env_steps)
             if eval_metrics['eval/mean_coverage_rate'] > best_eval:
                 best_eval = eval_metrics['eval/mean_coverage_rate']
-                _save(model, optimizer, config, env_steps, output_dir / 'best.pt')
+                _save(model, optimizer, config, env_steps, output_dir / 'best.pt', focus_engine=focus_engine)
 
         # --- checkpoint -------------------------------------------------------
         if update % config.save_interval == 0:
-            _save(model, optimizer, config, env_steps, output_dir / 'latest.pt')
+            _save(model, optimizer, config, env_steps, output_dir / 'latest.pt', focus_engine=focus_engine)
             _save(
-                model, optimizer, config, env_steps, output_dir / f'checkpoint-{update:06d}.pt'
+                model,
+                optimizer,
+                config,
+                env_steps,
+                output_dir / f'checkpoint-{update:06d}.pt',
+                focus_engine=focus_engine,
             )
 
-    _save(model, optimizer, config, env_steps, output_dir / 'latest.pt')
+    _save(model, optimizer, config, env_steps, output_dir / 'latest.pt', focus_engine=focus_engine)
     venv.close()
     if run is not None:
         run.finish()
@@ -412,13 +462,20 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
     return output_dir
 
 
-def _save(model, optimizer, config: HMVFEConfig, env_steps: int, path: Path) -> None:
-    torch.save(
-        {
-            'model': model.state_dict(),
-            'optimizer': optimizer.state_dict(),
-            'config': config.to_dict(),
-            'environment_steps': env_steps,
-        },
-        path,
-    )
+def _save(
+    model,
+    optimizer,
+    config: HMVFEConfig,
+    env_steps: int,
+    path: Path,
+    focus_engine=None,
+) -> None:
+    payload = {
+        'model': model.state_dict(),
+        'optimizer': optimizer.state_dict(),
+        'config': config.to_dict(),
+        'environment_steps': env_steps,
+    }
+    if focus_engine is not None:
+        payload['focus_engine'] = focus_engine.state_dict()
+    torch.save(payload, path)

@@ -40,8 +40,10 @@ def main() -> None:
         raise SystemExit(
             'examples.hmvfe_focus disallows --focus-mode uniform because it is a vanilla-HMVFE parity mode.'
         )
-    if float(config.focus_eta) == 0.0:
-        raise SystemExit('examples.hmvfe_focus disallows --focus-eta 0 because it disables FOCUS weighting.')
+    if str(config.focus_weight_formula).lower() == 'affine' and float(config.focus_eta) == 0.0:
+        raise SystemExit(
+            'examples.hmvfe_focus disallows --focus-eta 0 with affine weights because it disables FOCUS weighting.'
+        )
     if config.run_name is None:
         config.run_name = f'hmvfe-focus-{config.focus_mode}'
     if config.wandb_mode != 'disabled':

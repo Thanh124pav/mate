@@ -107,11 +107,19 @@ class HMVFEConfig:
     focus_strict: bool = False      # fail if enabled FOCUS degenerates to vanilla HMVFE
     focus_eta: float = 1.0
     focus_use_confidence: bool = True
-    focus_weight_min: float = 0.1
-    focus_weight_max: float = 3.0
+    focus_weight_formula: str = 'rho'  # rho: w=N*rho | affine: w=1+eta*c*(N*rho-1)
+    focus_rho_temperature: float = 1.2
     focus_eps: float = 1e-8
     focus_mode: str = 'uniform'       # real | uniform | shuffled | random
-    focus_belief_mode: str = 'oracle_next_ablation'
+    focus_belief_mode: str = 'learned'
+    focus_beta_belief: float = 0.1
+    focus_belief_lr: Optional[float] = None
+    focus_belief_hidden_dim: int = 256
+    focus_belief_arch: str = 'mlp'
+    focus_belief_num_layers: int = 1
+    focus_belief_dropout: float = 0.0
+    focus_belief_max_delta: float = 400.0
+    focus_belief_min_std: float = 25.0
     focus_horizon: int = 3
     focus_horizon_discount: float = 0.9
     focus_integral_mode: str = 'MC'   # MC | sigma | grid, passed to canonical FOCUS
