@@ -10,6 +10,14 @@ ray_results/
 experiment_results/
 
 # Checkpoint & large binary files
+checkpoint_*/
+checkpoint-*
+checkpoints/
+*.ckpt
+*.pt
+*.pth
+*.tune_metadata
+.is_checkpoint
 *.pkl
 *.pb
 events.out.tfevents.*
