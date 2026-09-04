@@ -33,6 +33,7 @@ __all__ = [
     'ShiftAgentActionTimestep',
     'MetricCollector',
     'CustomMetricCallback',
+    'EvaluationLoggingCallback',
     'TrainFromCheckpoint',
     'SymlinkCheckpointCallback',
     'RLlibMultiCallbacks',
@@ -231,6 +232,52 @@ class CustomMetricCallback(RLlibCallbackBase):
                 custom_metrics[f'episode_{key}'] = float(np.sum(collector.data[key]))
 
         episode.custom_metrics.update(custom_metrics)
+
+
+class EvaluationLoggingCallback(RLlibCallbackBase):
+    EVAL_METRIC_DEFAULTS = {
+        'eval/episode_reward_mean': np.nan,
+        'eval/episode_len_mean': np.nan,
+        'eval/episodes_this_iter': np.nan,
+        'eval/mean_coverage_rate': np.nan,
+        'eval/mean_real_coverage_rate': np.nan,
+        'eval/mean_transport_rate': np.nan,
+        'eval/mean_num_delivered_cargoes': np.nan,
+    }
+
+    CUSTOM_METRIC_KEYS = {
+        'coverage_rate_mean': 'eval/mean_coverage_rate',
+        'real_coverage_rate_mean': 'eval/mean_real_coverage_rate',
+        'mean_transport_rate_mean': 'eval/mean_transport_rate',
+        'mean_transport_rate_last': 'eval/mean_transport_rate',
+        'num_delivered_cargoes_mean': 'eval/mean_num_delivered_cargoes',
+        'num_delivered_cargoes_last': 'eval/mean_num_delivered_cargoes',
+    }
+
+    def __init__(self):
+        super().__init__()
+        self.latest_eval_metrics = dict(self.EVAL_METRIC_DEFAULTS)
+
+    def on_train_result(self, *, result, **kwargs):
+        flattened = dict(self.latest_eval_metrics)
+        evaluation = result.get('evaluation') or {}
+        if evaluation:
+            flattened.update(
+                {
+                    'eval/episode_reward_mean': evaluation.get('episode_reward_mean', np.nan),
+                    'eval/episode_len_mean': evaluation.get('episode_len_mean', np.nan),
+                    'eval/episodes_this_iter': evaluation.get('episodes_this_iter', np.nan),
+                }
+            )
+
+            custom_metrics = evaluation.get('custom_metrics') or {}
+            for source_key, target_key in self.CUSTOM_METRIC_KEYS.items():
+                if source_key in custom_metrics:
+                    flattened[target_key] = custom_metrics[source_key]
+
+            self.latest_eval_metrics = flattened
+
+        result.update(flattened)
 
 
 class TrainFromCheckpoint(RLlibCallbackBase):

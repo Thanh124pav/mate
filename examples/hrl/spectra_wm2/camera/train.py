@@ -13,6 +13,7 @@ import ray
 import torch
 from ray import tune
 
+from examples.target_agents import configure_greedy_evaluation, configure_target_agent
 from examples.hrl.spectra_wm2.camera.config import config
 from examples.utils import SymlinkCheckpointCallback, WandbLoggerCallback
 
@@ -63,6 +64,8 @@ def train(
     num_gpus=NUM_GPUS_FOR_TRAINER,
     num_workers=NUM_WORKERS,
     num_envs_per_worker=8,
+    target_agent=None,
+    evaluation_interval=5,
     seed=None,
     timesteps_total=None,
     buffer_capacity=2000,
@@ -71,7 +74,7 @@ def train(
     env=None,
 ):
     tune_callbacks = [SymlinkCheckpointCallback()]
-    if WandbLoggerCallback.is_available():
+    if WandbLoggerCallback.is_available() and os.getenv('WANDB_DISABLED', '').lower() not in ('1', 'true', 'yes', 'on') and os.getenv('WANDB_MODE', '').lower() != 'disabled':
         project = project or ('mate' if not DEBUG else 'mate-debug')
         group = group or f'hrl.spectra_wm2.camera.{experiment.name}'
         tune_callbacks.append(WandbLoggerCallback(project=project, group=group))
@@ -91,6 +94,9 @@ def train(
         num_workers=num_workers,
         num_envs_per_worker=num_envs_per_worker,
     )
+    configure_target_agent(experiment.spec['config'], target_agent)
+    configure_greedy_evaluation(experiment.spec['config'], evaluation_interval)
+
     if seed is not None:
         seed = tune.grid_search(seed) if isinstance(seed, (list, tuple)) else seed
         experiment.spec['config'].update(seed=seed)
@@ -144,6 +150,18 @@ def main():
         metavar='ENV',
         default=8,
         help='number of environments per rollout worker (default: %(default)d)',
+    )
+    parser.add_argument(
+        '--target-agent',
+        choices=('greedy', 'evasive'),
+        default=None,
+        help='target policy used during training; omit to use config default',
+    )
+    parser.add_argument(
+        '--evaluation-interval',
+        type=int,
+        default=5,
+        help='run evaluation with greedy targets every K training iterations; use 0 to disable',
     )
     parser.add_argument(
         '--timesteps-total',

@@ -64,7 +64,7 @@ config = {
     'env': 'mate-hrl.qplex.camera',
     'env_config': {
         'env_id': 'MultiAgentTracking-v0',
-        'config': 'MATE-4v5-0.yaml',
+        'config': 'MATE-4v8-9.yaml',
         'config_overrides': {'reward_type': 'dense'},
         'reward_coefficients': {'coverage_rate': 1.0},  # override env's raw reward
         'reward_reduction': 'mean',  # shared reward
