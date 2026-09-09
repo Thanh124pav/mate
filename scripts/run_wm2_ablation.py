@@ -1,67 +1,41 @@
 #!/usr/bin/env python3
-"""Run one reproducible QPLEX-WM2 ablation on a selected MATE environment."""
+"""Run one reproducible WM2 ablation across supported MARL architectures."""
 
 import argparse
 import copy
+import importlib
 import json
 import os
 import subprocess
-from functools import partial
 from datetime import datetime, timezone
+from functools import partial
+from math import ceil
 from pathlib import Path
 
-from examples.hrl.qplex_wm2.camera.train import experiment as base_experiment
-from examples.hrl.qplex_wm2.camera.train import train
 from examples.target_agents import EvasiveTargetAgent, greedy_target_agent_factory
 
-VARIANTS = {
-    # Main WM2 and pre-WM baselines intentionally excluded: already run for the paper.
-    "no_local_z": {"world_model_v2.augment_local_obs": False},
-    "no_global_z": {"world_model_v2.augment_global_state": False},
-    "no_z": {
-        "world_model_v2.augment_local_obs": False,
-        "world_model_v2.augment_global_state": False,
-    },
-    "no_state_decoder": {
-        "world_model_v2.state_recon_coeff": 0.0,
-        # Reward bonus is defined from decoder error, so disable it with the decoder.
-        "world_model_v2.reward_bonus_coeff": 0.0,
-    },
-    "no_reward_head": {"world_model_v2.reward_pred_coeff": 0.0},
-    "no_kl": {"world_model_v2.kl_coeff": 0.0},
-    "no_reward_bonus": {"world_model_v2.reward_bonus_coeff": 0.0},
-    "lr_5e5": {"lr": 5e-5},
-    "lr_3e4": {"lr": 3e-4},
-    "wm_weight_01": {"world_model_v2.wm_loss_weight": 0.1},
-    "wm_weight_10": {"world_model_v2.wm_loss_weight": 1.0},
-    "transport_penalty_025": {"env_config.reward_coefficients": {
-        "coverage_rate": 1.0,
-        "mean_transport_rate": -0.25,
-    }},
-    "transport_penalty_010": {"env_config.reward_coefficients": {
-        "coverage_rate": 1.0,
-        "mean_transport_rate": -0.10,
-    }},
-    "transport_penalty_050": {"env_config.reward_coefficients": {
-        "coverage_rate": 1.0,
-        "mean_transport_rate": -0.50,
-    }},
-    "transport_penalty_100": {"env_config.reward_coefficients": {
-        "coverage_rate": 1.0,
-        "mean_transport_rate": -1.00,
-    }},
-    "target_greedy": {},
-    "target_evasive_strength_025": {},
-    "target_evasive_strength_075": {},
-    "target_evasive_range_025": {},
-    "target_evasive_range_075": {},
-    "target_evasive_noise_025": {},
-    "target_evasive_noise_075": {},
+ALGORITHMS = {
+    "qplex": {"module": "examples.hrl.qplex_wm2.camera.train", "replay": True},
+    "duelmix": {"module": "examples.hrl.duelmix_wm2.camera.train", "replay": True},
+    "spectra": {"module": "examples.hrl.spectra_wm2.camera.train", "replay": True},
+    "mappo": {"module": "examples.hrl.mappo_wm2.camera.train", "replay": False},
 }
 
+VARIANTS = (
+    "lr_half", "lr_double", "wm_weight_01", "wm_weight_10",
+    "transport_penalty_010", "transport_penalty_025",
+    "transport_penalty_050", "transport_penalty_100",
+    "target_greedy", "target_evasive_default",
+    "target_evasive_strength_025", "target_evasive_strength_075",
+    "target_evasive_range_025", "target_evasive_range_075",
+    "target_evasive_noise_025", "target_evasive_noise_075",
+)
+
 TARGET_TRAINING = {
-    "target_greedy": {
-        "kind": "greedy", "seed": 0, "factory": greedy_target_agent_factory,
+    "target_greedy": {"kind": "greedy", "seed": 0},
+    "target_evasive_default": {
+        "kind": "evasive", "seed": 0, "avoidance_strength": 0.5,
+        "avoidance_range": 0.5, "noise_scale": 0.5,
     },
     "target_evasive_strength_025": {
         "kind": "evasive", "seed": 0, "avoidance_strength": 0.25,
@@ -90,9 +64,47 @@ TARGET_TRAINING = {
 }
 
 
+def set_nested(config, dotted_key, value):
+    target = config
+    parts = dotted_key.split(".")
+    for part in parts[:-1]:
+        target = target[part]
+    target[parts[-1]] = value
+
+
+def wm_prefix(algorithm):
+    if algorithm == "mappo":
+        return "model.custom_model_config.world_model_v2"
+    return "world_model_v2"
+
+
+def variant_overrides(config, algorithm, variant):
+    prefix = wm_prefix(algorithm)
+    if variant == "lr_half":
+        return {"lr": float(config["lr"]) * 0.5}
+    if variant == "lr_double":
+        return {"lr": float(config["lr"]) * 2.0}
+    if variant == "wm_weight_01":
+        return {f"{prefix}.wm_loss_weight": 0.1}
+    if variant == "wm_weight_10":
+        return {f"{prefix}.wm_loss_weight": 1.0}
+    penalties = {
+        "transport_penalty_010": -0.10,
+        "transport_penalty_025": -0.25,
+        "transport_penalty_050": -0.50,
+        "transport_penalty_100": -1.00,
+    }
+    if variant in penalties:
+        return {"env_config.reward_coefficients": {
+            "coverage_rate": 1.0,
+            "mean_transport_rate": penalties[variant],
+        }}
+    return {}
+
+
 def target_factory(spec):
     if spec["kind"] == "greedy":
-        return spec["factory"]
+        return greedy_target_agent_factory
     return partial(
         EvasiveTargetAgent,
         seed=spec["seed"],
@@ -100,14 +112,6 @@ def target_factory(spec):
         avoidance_strength=spec["avoidance_strength"],
         avoidance_range=spec["avoidance_range"],
     )
-
-
-def set_nested(config, dotted_key, value):
-    target = config
-    parts = dotted_key.split(".")
-    for part in parts[:-1]:
-        target = target[part]
-    target[parts[-1]] = value
 
 
 def jsonable(value):
@@ -122,7 +126,9 @@ def jsonable(value):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("variant", choices=sorted(VARIANTS))
+    parser.add_argument("variant", choices=VARIANTS)
+    parser.add_argument("--algorithm", choices=sorted(ALGORITHMS), required=True)
+    parser.add_argument("--env", default="MATE-4v8-9.yaml")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--timesteps-total", type=int, default=500_000)
     parser.add_argument("--buffer-capacity", type=int, default=200)
@@ -131,14 +137,18 @@ def main():
     parser.add_argument("--num-gpus", type=float, default=1.0)
     parser.add_argument("--evaluation-interval", type=int, default=5)
     parser.add_argument("--project", default="mate-wm2-ablations")
-    parser.add_argument("--env", default="MATE-4v8-9.yaml")
     parser.add_argument("--output-root", type=Path,
                         default=Path("experiments/wm2_ablations"))
     args = parser.parse_args()
 
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    algorithm_spec = ALGORITHMS[args.algorithm]
+    uses_replay = algorithm_spec["replay"]
     env_slug = args.env.removeprefix("MATE-").removesuffix(".yaml").lower()
-    run_name = f"qplex_wm2__{env_slug}__{args.variant}__seed{args.seed}__{stamp}"
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    run_name = (
+        f"{args.algorithm}_wm2__{env_slug}__{args.variant}__"
+        f"seed{args.seed}__{stamp}"
+    )
     run_dir = (args.output_root / run_name).resolve()
     ray_dir = run_dir / "ray_results"
     wandb_dir = run_dir / "wandb"
@@ -147,55 +157,68 @@ def main():
     os.environ["WANDB_DIR"] = str(wandb_dir)
     os.environ.setdefault("WANDB_SILENT", "true")
 
-    experiment = copy.deepcopy(base_experiment)
+    module = importlib.import_module(algorithm_spec["module"])
+    experiment = copy.deepcopy(module.experiment)
     experiment.spec["name"] = run_name
-    experiment.spec["config"]["env_config"]["config"] = args.env
-    # Lossless compression keeps the replay buffer viable on the 6 GiB host.
-    experiment.spec["config"]["compress_observations"] = True
-    # Imagination is intentionally excluded from this paper's ablation suite.
-    experiment.spec["config"]["world_model_v2"]["use_imagination_targets"] = False
-    for key, value in VARIANTS[args.variant].items():
-        set_nested(experiment.spec["config"], key, value)
+    config = experiment.spec["config"]
+    config["env_config"]["config"] = args.env
+    config["compress_observations"] = uses_replay
+
+    prefix = wm_prefix(args.algorithm)
+    wm_config = config
+    for part in prefix.split("."):
+        wm_config = wm_config[part]
+    if "use_imagination_targets" in wm_config:
+        wm_config["use_imagination_targets"] = False
+
+    overrides = variant_overrides(config, args.algorithm, args.variant)
+    for key, value in overrides.items():
+        set_nested(config, key, value)
     target_spec = TARGET_TRAINING.get(args.variant)
     if target_spec is not None:
-        experiment.spec["config"]["env_config"]["opponent_agent_factory"] = (
-            target_factory(target_spec)
-        )
+        config["env_config"]["opponent_agent_factory"] = target_factory(target_spec)
 
     manifest = {
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
-        "algorithm": "QPLEX_WM2",
+        "algorithm": f"{args.algorithm.upper()}_WM2",
         "variant": args.variant,
         "seed": args.seed,
         "environment": args.env,
         "timesteps_total": args.timesteps_total,
-        "buffer_capacity_episodes_global_requested": args.buffer_capacity,
-        "buffer_size_per_worker_effective": -(-args.buffer_capacity // max(args.num_workers, 1)),
+        "uses_replay_buffer": uses_replay,
+        "buffer_capacity_episodes_global_requested": (
+            args.buffer_capacity if uses_replay else None
+        ),
+        "buffer_size_per_worker_effective": (
+            ceil(args.buffer_capacity / max(args.num_workers, 1))
+            if uses_replay else None
+        ),
         "num_workers": args.num_workers,
         "num_envs_per_worker": args.num_envs_per_worker,
         "num_gpus": args.num_gpus,
         "evaluation_interval": args.evaluation_interval,
-        "compress_observations": True,
+        "evaluation_episodes_per_checkpoint": 5,
+        "compress_observations": uses_replay,
+        "use_imagination_targets": False,
         "wandb_project": args.project,
-        "wandb_group": f"paper-wm2-{env_slug}-qplex-ablations",
-        "overrides": VARIANTS[args.variant],
-        "training_target": jsonable(target_spec) if target_spec is not None else {
-            "kind": "evasive", "seed": 0, "avoidance_strength": 0.5,
-            "avoidance_range": 0.5, "noise_scale": 0.5,
-        },
+        "wandb_group": f"paper-wm2-{env_slug}-{args.algorithm}-ablations",
+        "overrides": overrides,
+        "training_target": (
+            jsonable(target_spec) if target_spec is not None
+            else {"kind": "architecture_default"}
+        ),
         "evaluation_target": {"kind": "greedy", "seed": 0},
         "git_commit": subprocess.run(
             ["git", "rev-parse", "HEAD"], check=False, text=True,
             capture_output=True,
         ).stdout.strip(),
-        "resolved_config": jsonable(experiment.spec["config"]),
+        "resolved_config": jsonable(config),
     }
     (run_dir / "manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
 
-    train(
-        experiment,
+    train_kwargs = dict(
         project=args.project,
         group=manifest["wandb_group"],
         local_dir=str(ray_dir),
@@ -205,9 +228,10 @@ def main():
         evaluation_interval=args.evaluation_interval,
         seed=args.seed,
         timesteps_total=args.timesteps_total,
-        buffer_capacity=args.buffer_capacity,
-        env=args.env,
     )
+    if uses_replay:
+        train_kwargs.update(buffer_capacity=args.buffer_capacity, env=args.env)
+    module.train(experiment, **train_kwargs)
 
 
 if __name__ == "__main__":

@@ -28,6 +28,7 @@ from ray.rllib.policy.rnn_sequencing import chop_into_sequences
 from ray.rllib.policy.sample_batch import SampleBatch
 from ray.rllib.utils.annotations import override
 from ray.rllib.utils.framework import try_import_torch
+from ray.rllib.utils.compression import unpack_if_needed
 from ray.rllib.utils.metrics.learner_info import LEARNER_STATS_KEY
 
 
@@ -536,6 +537,7 @@ class DuelMixWM2TorchPolicy(Policy):
         return {k: v.cpu().detach().numpy() for k, v in state_dict.items()}
 
     def _unpack_observation(self, obs_batch):
+        obs_batch = [unpack_if_needed(obs) for obs in obs_batch]
         unpacked = _unpack_obs(
             np.array(obs_batch, dtype=np.float32),
             self.observation_space.original_space, tensorlib=np,
