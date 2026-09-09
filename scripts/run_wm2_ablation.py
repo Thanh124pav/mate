@@ -127,7 +127,7 @@ def jsonable(value):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("variant", choices=VARIANTS)
-    parser.add_argument("--algorithm", choices=sorted(ALGORITHMS), required=True)
+    parser.add_argument("--algorithm", choices=sorted(ALGORITHMS), default="qplex")
     parser.add_argument("--env", default="MATE-4v8-9.yaml")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--timesteps-total", type=int, default=500_000)
