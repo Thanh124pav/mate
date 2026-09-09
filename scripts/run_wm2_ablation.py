@@ -164,6 +164,19 @@ def main():
     config["env_config"]["config"] = args.env
     config["compress_observations"] = uses_replay
 
+    # MAPPO's train() derives train_batch_size from the rollout topology.
+    # Keep PPO's minibatch valid for small smoke-test topologies as well as the
+    # full experiment (e.g. 1 worker x 1 env x 25 steps => batch size 25).
+    if args.algorithm == "mappo" and args.num_workers > 0:
+        train_batch_size = (
+            args.num_workers
+            * args.num_envs_per_worker
+            * int(config["rollout_fragment_length"])
+        )
+        config["sgd_minibatch_size"] = min(
+            int(config["sgd_minibatch_size"]), train_batch_size
+        )
+
     prefix = wm_prefix(args.algorithm)
     wm_config = config
     for part in prefix.split("."):
