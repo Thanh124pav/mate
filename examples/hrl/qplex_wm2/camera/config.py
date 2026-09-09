@@ -115,6 +115,11 @@ config = {
         'reward_bonus_coeff': 0.1,
         'reward_bonus_scale': 0.5,
         'use_imagination_targets': False,
+        # Ablation switches. Defaults preserve the original WM2 behavior.
+        'augment_local_obs': True,
+        'augment_global_state': True,
+        'state_recon_coeff': 1.0,
+        'reward_pred_coeff': 1.0,
     },
     # === Evaluation: use greedy targets (no avoidance) =============================================
     'evaluation_interval': 10,

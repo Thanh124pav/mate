@@ -39,6 +39,11 @@ DEFAULT_CONFIG = with_common_config({
         "use_imagination_targets": False,  # use imagination for multi-step TD targets
         "imagination_loss_weight": 0.1,
         "ema_decay": 0.995,             # EMA decay for stable augmentation
+        # Ablation switches. Defaults preserve the original WM2 behavior.
+        "augment_local_obs": True,
+        "augment_global_state": True,
+        "state_recon_coeff": 1.0,
+        "reward_pred_coeff": 1.0,
     },
 
     # === Exploration ===

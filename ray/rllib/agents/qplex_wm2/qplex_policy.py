@@ -38,6 +38,7 @@ from ray.rllib.models.catalog import ModelCatalog
 from ray.rllib.models.modelv2 import _unpack_obs
 from ray.rllib.utils.framework import try_import_torch
 from ray.rllib.utils.metrics.learner_info import LEARNER_STATS_KEY
+from ray.rllib.utils.compression import unpack_if_needed
 from ray.rllib.utils.annotations import override
 
 torch, nn = try_import_torch(error=True)
@@ -75,6 +76,8 @@ class QPLEXWM2Loss(nn.Module):
         use_imagination_targets=False,
         imagination_loss_weight=0.1,
         ema_decay=0.995,
+        augment_local_obs=True,
+        augment_global_state=True,
     ):
         nn.Module.__init__(self)
         self.model = model
@@ -94,6 +97,8 @@ class QPLEXWM2Loss(nn.Module):
         self.use_imagination_targets = use_imagination_targets
         self.imagination_loss_weight = imagination_loss_weight
         self.ema_decay = ema_decay
+        self.augment_local_obs = augment_local_obs
+        self.augment_global_state = augment_global_state
 
     def _compute_reward_bonus(self, state_decoded, state_real):
         recon_error = ((state_decoded - state_real) ** 2).mean(dim=-1, keepdim=True)
@@ -132,19 +137,31 @@ class QPLEXWM2Loss(nn.Module):
             feature_det = ema_features
 
             feature_expanded = feature_det.unsqueeze(2).expand(-1, -1, self.n_agents, -1)
-            obs_aug = torch.cat([obs, feature_expanded], dim=-1)
+            obs_aug = (
+                torch.cat([obs, feature_expanded], dim=-1)
+                if self.augment_local_obs else obs
+            )
 
             next_obs_flat = next_obs.reshape(B * T, self.n_agents, -1)
             next_feature = self.ema_world_model.encode_obs(next_obs_flat)
             next_feature = next_feature.reshape(B, T, -1)
             next_feature_expanded = next_feature.unsqueeze(2).expand(-1, -1, self.n_agents, -1)
-            next_obs_aug = torch.cat([next_obs, next_feature_expanded], dim=-1)
+            next_obs_aug = (
+                torch.cat([next_obs, next_feature_expanded], dim=-1)
+                if self.augment_local_obs else next_obs
+            )
 
         # =================================================================
         # 3. State Augmentation
         # =================================================================
-        aug_state = torch.cat([state, feature_det], dim=-1)
-        aug_next_state = torch.cat([next_state, next_feature], dim=-1)
+        aug_state = (
+            torch.cat([state, feature_det], dim=-1)
+            if self.augment_global_state else state
+        )
+        aug_next_state = (
+            torch.cat([next_state, next_feature], dim=-1)
+            if self.augment_global_state else next_state
+        )
 
         # =================================================================
         # 4. Reward Shaping
@@ -327,6 +344,8 @@ class QPLEXWM2TorchPolicy(Policy):
             imagination_horizon=wm_config.get("imagination_horizon", 5),
             kl_coeff=wm_config.get("kl_coeff", 1.0),
             free_nats=wm_config.get("free_nats", 1.0),
+            state_recon_coeff=wm_config.get("state_recon_coeff", 1.0),
+            reward_pred_coeff=wm_config.get("reward_pred_coeff", 1.0),
         ).to(self.device)
 
         feature_dim = self.world_model.feature_dim
@@ -340,7 +359,11 @@ class QPLEXWM2TorchPolicy(Policy):
         # =====================================================================
         # Agent RNN model — augmented obs: obs_size + feature_dim
         # =====================================================================
-        self.augmented_obs_size = self.obs_size + feature_dim
+        self.augment_local_obs = wm_config.get("augment_local_obs", True)
+        self.augment_global_state = wm_config.get("augment_global_state", True)
+        self.augmented_obs_size = self.obs_size + (
+            feature_dim if self.augment_local_obs else 0
+        )
         augmented_agent_obs_space = Box(
             low=-np.inf * np.ones(self.augmented_obs_size, dtype=np.float32),
             high=np.inf * np.ones(self.augmented_obs_size, dtype=np.float32),
@@ -362,7 +385,9 @@ class QPLEXWM2TorchPolicy(Policy):
         # =====================================================================
         # Mixer — augmented state: state_dim + feature_dim
         # =====================================================================
-        augmented_state_dim = state_dim + feature_dim
+        augmented_state_dim = state_dim + (
+            feature_dim if self.augment_global_state else 0
+        )
         augmented_state_shape = (augmented_state_dim,)
 
         self.mixer = DuelMixerV2(
@@ -398,6 +423,8 @@ class QPLEXWM2TorchPolicy(Policy):
             use_imagination_targets=wm_config.get("use_imagination_targets", False),
             imagination_loss_weight=wm_config.get("imagination_loss_weight", 0.1),
             ema_decay=self.ema_decay,
+            augment_local_obs=self.augment_local_obs,
+            augment_global_state=self.augment_global_state,
         )
 
         from torch.optim import RMSprop
@@ -413,6 +440,8 @@ class QPLEXWM2TorchPolicy(Policy):
     # -----------------------------------------------------------------
 
     def _augment_obs_inference(self, obs_tensor):
+        if not self.augment_local_obs:
+            return obs_tensor
         B = obs_tensor.shape[0]
         feature = self.ema_world_model.encode_obs(obs_tensor)
         feature_expanded = feature.unsqueeze(1).expand(-1, self.n_agents, -1)
@@ -607,6 +636,10 @@ class QPLEXWM2TorchPolicy(Policy):
         return {k: v.cpu().detach().numpy() for k, v in state_dict.items()}
 
     def _unpack_observation(self, obs_batch):
+        # Replay observations may be losslessly compressed by RLlib. The stock
+        # policy path decompresses them automatically; this custom unpacker must
+        # do so explicitly before converting to a numeric array.
+        obs_batch = [unpack_if_needed(obs) for obs in obs_batch]
         unpacked = _unpack_obs(
             np.array(obs_batch, dtype=np.float32),
             self.observation_space.original_space, tensorlib=np)

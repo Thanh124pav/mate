@@ -227,7 +227,8 @@ class LatentWorldModel(nn.Module):
     def __init__(self, obs_size, state_dim, n_agents, n_actions,
                  stoch_dim=32, deter_dim=128, hidden_dim=128,
                  action_embed_dim=16, embed_dim=128,
-                 imagination_horizon=5, kl_coeff=1.0, free_nats=1.0):
+                 imagination_horizon=5, kl_coeff=1.0, free_nats=1.0,
+                 state_recon_coeff=1.0, reward_pred_coeff=1.0):
         super(LatentWorldModel, self).__init__()
 
         self.obs_size = obs_size
@@ -239,6 +240,8 @@ class LatentWorldModel(nn.Module):
         self.imagination_horizon = imagination_horizon
         self.kl_coeff = kl_coeff
         self.free_nats = free_nats
+        self.state_recon_coeff = state_recon_coeff
+        self.reward_pred_coeff = reward_pred_coeff
 
         self.feature_dim = stoch_dim + deter_dim
 
@@ -295,7 +298,11 @@ class LatentWorldModel(nn.Module):
         kl = torch.clamp(kl, min=self.free_nats)
         kl_loss = (kl * mask).sum() / mask.sum().clamp(min=1)
 
-        wm_loss = recon_loss + reward_loss + self.kl_coeff * kl_loss
+        wm_loss = (
+            self.state_recon_coeff * recon_loss
+            + self.reward_pred_coeff * reward_loss
+            + self.kl_coeff * kl_loss
+        )
 
         stats = {
             "wm_recon_loss": recon_loss.item(),
