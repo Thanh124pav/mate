@@ -12,12 +12,12 @@ from ray.rllib.agents.qplex_focus.qplex_policy import (
     OBSTACLE_STATE_DIM,
     PRESERVED_DIM,
     TARGET_STATE_DIM_PRIVATE,
-    LearnedOccupancyModel,
     QPLEXFocusLoss,
     QPLEXFocusTorchPolicy,
     _extract_obstacles,
     _unroll_mac,
     adjust_args,
+    build_occupancy_model,
     resolve_focus_config,
 )
 from ray.rllib.utils.framework import try_import_torch
@@ -392,14 +392,11 @@ class QPLEXFocusV2TorchPolicy(QPLEXFocusTorchPolicy):
         focus_config = resolve_focus_config(self.config)
         self.occupancy_model = None
         if focus_config.get("enabled", True) and focus_config.get("belief_mode", "learned") == "learned":
-            self.occupancy_model = LearnedOccupancyModel(
+            self.occupancy_model = build_occupancy_model(
                 self.env_global_state_shape,
                 self.n_agents,
                 int(focus_config.get("n_targets", 8)),
-                horizon=int(focus_config.get("horizon", 3)),
-                hidden_dim=int(focus_config.get("belief_hidden_dim", 256)),
-                max_delta=float(focus_config.get("belief_max_delta", 400.0)),
-                min_std=float(focus_config.get("belief_min_std", 25.0)),
+                focus_config,
             ).to(self.device)
 
         self.update_target()

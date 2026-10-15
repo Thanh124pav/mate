@@ -14,6 +14,7 @@ import torch
 
 from hmvfe_mate_d.config import HMVFEConfig, make_env
 from hmvfe_mate_d.models import HMVFECoordinator
+from hmvfe_mate_d.focus_adapter import execution_camera_logit_bias
 
 
 __all__ = ['evaluate']
@@ -26,6 +27,7 @@ def evaluate(
     num_episodes: int = 5,
     env=None,
     deterministic: bool = True,
+    focus_engine=None,
 ) -> Dict[str, float]:
     """Evaluate ``model`` for ``num_episodes`` and return mean metrics."""
 
@@ -46,7 +48,26 @@ def evaluate(
         last_info = {}
         while not done:
             state = torch.as_tensor(obs, dtype=torch.float32, device=device)
-            action, _, _, _ = model.act(state, deterministic=deterministic)
+            camera_bias = None
+            if (
+                config.focus_enabled
+                and focus_engine is not None
+                and float(config.focus_execution_eta) != 0.0
+            ):
+                global_state = torch.as_tensor(
+                    env.global_state(), dtype=torch.float32, device=device
+                ).reshape(1, -1)
+                inferred = focus_engine.infer(global_state)
+                camera_bias = execution_camera_logit_bias(
+                    inferred.rho.squeeze(0).squeeze(0),
+                    config.focus_execution_eta,
+                    config.focus_eps,
+                )
+            action, _, _, _ = model.act(
+                state,
+                deterministic=deterministic,
+                camera_logit_bias=camera_bias,
+            )
             obs, reward, done, info = env.step(action.cpu().numpy())
             ep_ret += reward
             ep_len += 1

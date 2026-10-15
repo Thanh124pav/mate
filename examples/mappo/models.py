@@ -9,7 +9,7 @@ from ray.rllib.policy.sample_batch import SampleBatch
 from ray.rllib.utils.framework import try_import_torch
 
 from examples.utils import SimpleRNN, get_space_flat_size, orthogonal_initializer
-from ray.rllib.agents.qplex_focus.qplex_policy import LearnedOccupancyModel, resolve_focus_config
+from ray.rllib.agents.qplex_focus.qplex_policy import build_occupancy_model, resolve_focus_config
 from ray.rllib.agents.focus_utils import focus_action_q_bias
 from ray.rllib.agents.focus_common import (
     FOCUS_CONFIDENCE,
@@ -148,14 +148,11 @@ class MAPPOModel(TorchRNN, nn.Module):
         self.focus_engine = None
         self.focus_adapter = None
         if self.focus_config.get("enabled", False):
-            self.focus_model = LearnedOccupancyModel(
+            self.focus_model = build_occupancy_model(
                 self.global_state_dim,
                 self.n_focus_agents,
                 int(self.focus_config.get("n_targets", 8)),
-                horizon=int(self.focus_config.get("horizon", 3)),
-                hidden_dim=int(self.focus_config.get("belief_hidden_dim", 256)),
-                max_delta=float(self.focus_config.get("belief_max_delta", 400.0)),
-                min_std=float(self.focus_config.get("belief_min_std", 25.0)),
+                self.focus_config,
             )
             self.focus_engine = FocusResponsibilityEngine(
                 self.focus_model,
@@ -351,6 +348,7 @@ class MAPPOModel(TorchRNN, nn.Module):
                 joint_actions=action_tensor,
                 valid_mask=valid_mask,
                 next_global_state=next_state_tensor,
+                update_belief_ema=False,
             )
             confidence = focus.confidence if self.focus_config.get("use_confidence", self.focus_config.get("focus_use_confidence", True)) else None
             weights = self.focus_adapter.responsibility_to_weight(
@@ -574,6 +572,7 @@ class MAPPOModel(TorchRNN, nn.Module):
         reference_loss = policy_loss[0] if isinstance(policy_loss, list) else policy_loss
         obs = loss_inputs[SampleBatch.CUR_OBS].float()
         belief_loss = torch.zeros_like(reference_loss)
+        belief_runtime_stats = {}
         beta = float(self.focus_config.get("beta_belief", 0.01))
 
         if (
@@ -590,7 +589,7 @@ class MAPPOModel(TorchRNN, nn.Module):
                     global_state = obs[:, self.global_state_slice].reshape(B, T, self.global_state_dim)
                     state = global_state[:, :-1, :]
                     future_state = global_state[:, 1:, :]
-                    per_horizon_losses, per_horizon_valid, *_ = self.focus_model.nll(
+                    per_horizon_losses, per_horizon_valid, _, _, diagnostics = self.focus_model.nll(
                         state, future_state
                     )
                     discount = float(self.focus_config.get("horizon_discount", 0.9))
@@ -613,6 +612,12 @@ class MAPPOModel(TorchRNN, nn.Module):
                             belief_terms.append(weights[h] * nll_per_step[valid_h].mean())
                     if belief_terms:
                         belief_loss = torch.stack(belief_terms).sum()
+                        belief_runtime_stats = self.focus_engine.observe_belief_diagnostics(
+                            diagnostics,
+                            per_horizon_valid,
+                            weights,
+                            valid_mask=time_valid,
+                        )
 
         prior_loss, prior_stats = self._focus_action_prior_loss(obs, loss_inputs, reference_loss)
         prior_coeff = float(self.focus_config.get("action_prior_coeff", 0.0))
@@ -631,6 +636,7 @@ class MAPPOModel(TorchRNN, nn.Module):
             "focus/belief_loss": belief_loss.detach(),
             "focus/beta_belief": torch.tensor(beta, device=belief_loss.device),
         }
+        self._focus_stats.update(belief_runtime_stats)
         self.tower_stats["focus_belief_loss"] = belief_loss.detach()
         self.tower_stats["focus_beta_belief"] = torch.tensor(beta, device=belief_loss.device)
         if belief_state_stats is not None:

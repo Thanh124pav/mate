@@ -11,8 +11,8 @@ import ray
 from .mixers import DuelMixMixer
 from .model import DualStreamRNNModel, _get_size
 from ray.rllib.agents.qplex_focus.qplex_policy import (
-    LearnedOccupancyModel,
     QPLEXFocusLoss,
+    build_occupancy_model,
     resolve_focus_config,
 )
 from ray.rllib.env.multi_agent_env import ENV_STATE
@@ -27,6 +27,11 @@ from ray.rllib.utils.framework import try_import_torch
 from ray.rllib.utils.metrics.learner_info import LEARNER_STATS_KEY
 from ray.rllib.utils.annotations import override
 from ray.rllib.agents.focus_utils import confidence_stats, focus_action_q_bias
+from ray.rllib.agents.focus_official import (
+    GradientFloor,
+    action_credit_loss,
+    carrier_credit_loss,
+)
 
 torch, nn = try_import_torch(error=True)
 
@@ -52,6 +57,12 @@ class DuelMixLoss(nn.Module):
             focus_config=self.focus_config, occupancy_model=occupancy_model,
         )
         self.last_focus_stats = {}
+        self.last_belief_loss = None
+        self.action_gradient_floor = GradientFloor(
+            ratio=float(self.focus_config.get("action_gradient_floor", 0.10)),
+            ema_decay=float(self.focus_config.get("action_gradient_ema_decay", 0.9)),
+            eps=float(self.focus_config.get("eps", 1e-8)),
+        )
 
     def forward(self, rewards, actions, prev_actions, terminated, mask,
                 obs, next_obs, action_mask, next_action_mask,
@@ -143,6 +154,7 @@ class DuelMixLoss(nn.Module):
         # so it directly replaces the mixer's softmax responsibility factor
         # (instead of being matched against it via a cross-entropy loss).
         focus_enabled = self.focus_config.get("enabled", False)
+        official_mode = focus_enabled and self.focus_config.get("official_mode", False)
         rho = valid = total_g = confidence = None
         belief_loss = torch.zeros((), dtype=chosen_v.dtype, device=chosen_v.device)
         belief_stats = {}
@@ -164,7 +176,7 @@ class DuelMixLoss(nn.Module):
         a_tot = self.mixer(
             chosen_v, agent_as=chosen_a, states=state,
             actions=actions_onehot, max_action_advs=max_a_vals, is_v=False,
-            return_lambda=True, rho=rho,
+            return_lambda=True, rho=None if official_mode else rho,
         )
         a_tot, lambda_weights = a_tot
         chosen_q_tot = v_tot + a_tot
@@ -192,9 +204,7 @@ class DuelMixLoss(nn.Module):
         if focus_enabled:
             eps = self.focus_config.get("eps", 1e-8)
             beta = float(self.focus_config.get("beta_belief", 0.01))
-            # rho is injected directly into the mixer above; only the belief
-            # model still needs a supervised objective.
-            loss = loss + beta * belief_loss
+            self.last_belief_loss = belief_loss
             lambda_dist = lambda_weights / (lambda_weights.sum(dim=-1, keepdim=True) + eps)
             signal_weights = self.focus_helper._signal_confidence_weights(total_g, valid)
             valid_signal_weights = signal_weights[valid] if valid.any() else signal_weights.reshape(-1)
@@ -209,6 +219,59 @@ class DuelMixLoss(nn.Module):
             })
             self.last_focus_stats.update(confidence_stats(confidence, valid, confidence_mode))
             self.last_focus_stats.update(belief_stats)
+            if official_mode:
+                alpha = float(self.focus_config.get("alpha_credit", 0.1))
+                credit_loss, lambda_dist = carrier_credit_loss(
+                    rho,
+                    lambda_weights,
+                    valid,
+                    confidence=confidence,
+                    signal_weights=signal_weights,
+                    eps=eps,
+                )
+                pair_gains = self.focus_helper.last_pair_gains
+                if pair_gains is None:
+                    raise RuntimeError(
+                        "FOCUS official action credit requires integral_mode='MC'."
+                    )
+                local_q_values = all_v + all_a
+                action_loss, action_gains = action_credit_loss(
+                    local_q_values,
+                    pair_gains,
+                    valid,
+                    confidence=confidence,
+                    signal_weights=signal_weights,
+                    temperature=float(
+                        self.focus_config.get("action_credit_temperature", 1.0)
+                    ),
+                    q_std_floor=float(
+                        self.focus_config.get("action_q_std_floor", 0.01)
+                    ),
+                    eps=eps,
+                )
+                action_coeff = float(
+                    self.focus_config.get("action_credit_coeff", 1.0)
+                )
+                scaled_action_loss, floor_stats = self.action_gradient_floor.scale(
+                    td_loss,
+                    action_coeff * action_loss,
+                    self.model.parameters(),
+                )
+                loss = td_loss + alpha * credit_loss + scaled_action_loss
+                self.last_focus_stats.update({
+                    "focus_credit_loss": credit_loss.detach().item(),
+                    "focus_alpha_credit": alpha,
+                    "focus_action_loss": action_loss.detach().item(),
+                    "focus_action_credit_coeff": action_coeff,
+                    "focus_action_gain_mean": action_gains.mean().detach().item(),
+                    "focus_action_gradient_scale": floor_stats.scale,
+                    "focus_action_gradient_norm": floor_stats.action_norm,
+                    "focus_td_gradient_norm": floor_stats.td_norm,
+                    "focus_td_gradient_norm_ema": floor_stats.td_norm_ema,
+                    "focus_action_gradient_floor_active": float(floor_stats.active),
+                })
+            else:
+                loss = loss + beta * belief_loss
 
         return loss, mask, masked_td_error, chosen_q_tot, targets
 
@@ -307,21 +370,16 @@ class DuelMixTorchPolicy(Policy):
         self.last_action_bias_stats = {}
         self.occupancy_model = None
         if focus_config.get("enabled", False) and focus_config.get("belief_mode", "learned") == "learned":
-            self.occupancy_model = LearnedOccupancyModel(
+            self.occupancy_model = build_occupancy_model(
                 self.env_global_state_shape,
                 self.n_agents,
                 int(focus_config.get("n_targets", 8)),
-                horizon=int(focus_config.get("horizon", 3)),
-                hidden_dim=int(focus_config.get("belief_hidden_dim", 256)),
-                max_delta=float(focus_config.get("belief_max_delta", 400.0)),
-                min_std=float(focus_config.get("belief_min_std", 25.0)),
-                architecture=focus_config.get("belief_arch", focus_config.get("belief_architecture", "mlp")),
-                num_layers=int(focus_config.get("belief_num_layers", 1)),
-                dropout=float(focus_config.get("belief_dropout", 0.0)),
+                focus_config,
             ).to(self.device)
 
         self.params = list(self.model.parameters()) + list(self.mixer.parameters())
-        if self.occupancy_model:
+        official_mode = bool(focus_config.get("official_mode", False))
+        if self.occupancy_model and not official_mode:
             self.params += list(self.occupancy_model.parameters())
         self.loss = DuelMixLoss(
             self.model, self.target_model, self.mixer, self.target_mixer,
@@ -334,6 +392,12 @@ class DuelMixTorchPolicy(Policy):
             alpha=config.get("optim_alpha", 0.99),
             eps=config.get("optim_eps", 1e-5),
         )
+        self.belief_optimiser = None
+        if self.occupancy_model is not None and official_mode:
+            self.belief_optimiser = torch.optim.Adam(
+                self.occupancy_model.parameters(),
+                lr=float(focus_config.get("belief_lr", 1e-4)),
+            )
 
     @override(Policy)
     def compute_actions(self, obs_batch, state_batches=None, prev_action_batch=None,
@@ -466,6 +530,15 @@ class DuelMixTorchPolicy(Policy):
         loss_out.backward()
         grad_norm = torch.nn.utils.clip_grad_norm_(self.params, self.config["grad_norm_clipping"])
         self.optimiser.step()
+        belief_grad_norm = 0.0
+        if self.belief_optimiser is not None and self.loss.last_belief_loss is not None:
+            self.belief_optimiser.zero_grad()
+            belief_objective = float(self.focus_config.get("beta_belief", 0.05)) * self.loss.last_belief_loss
+            belief_objective.backward()
+            belief_grad_norm = torch.nn.utils.clip_grad_norm_(
+                self.occupancy_model.parameters(), self.config["grad_norm_clipping"]
+            )
+            self.belief_optimiser.step()
 
         mask_elems = mask.sum().item()
         stats = {
@@ -474,6 +547,7 @@ class DuelMixTorchPolicy(Policy):
             "td_error_abs": masked_td_error.abs().sum().item() / mask_elems,
             "q_taken_mean": (chosen_q * mask).sum().item() / mask_elems,
             "target_mean": (targets * mask).sum().item() / mask_elems,
+            "focus_belief_grad_norm": float(belief_grad_norm),
         }
         stats.update(getattr(self.loss, "last_focus_stats", {}))
         stats.update(self.last_action_bias_stats)
@@ -496,6 +570,9 @@ class DuelMixTorchPolicy(Policy):
             "occupancy_model": self._cpu_dict(self.occupancy_model.state_dict())
             if self.occupancy_model
             else None,
+            "focus_official_state": self._cpu_dict(
+                self.loss.action_gradient_floor.state_dict()
+            ),
         }
 
     @override(Policy)
@@ -505,7 +582,13 @@ class DuelMixTorchPolicy(Policy):
         self.mixer.load_state_dict(self._device_dict(weights["mixer"]))
         self.target_mixer.load_state_dict(self._device_dict(weights["target_mixer"]))
         if self.occupancy_model is not None and weights.get("occupancy_model") is not None:
-            self.occupancy_model.load_state_dict(self._device_dict(weights["occupancy_model"]))
+            self.occupancy_model.load_state_dict(
+                self._device_dict(weights["occupancy_model"]), strict=False
+            )
+        if weights.get("focus_official_state") is not None:
+            self.loss.action_gradient_floor.load_state_dict(
+                self._device_dict(weights["focus_official_state"]), strict=False
+            )
 
     @override(Policy)
     def get_state(self):

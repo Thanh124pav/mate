@@ -171,29 +171,31 @@ class HMVFEFocusResponsibilityEngine:
         state_dim: int,
         config: Dict[str, Any],
     ) -> None:
-        from ray.rllib.agents.qplex_focus.qplex_policy import LearnedOccupancyModel, QPLEXFocusLoss
+        from ray.rllib.agents.qplex_focus.qplex_policy import (
+            QPLEXFocusLoss,
+            build_occupancy_model,
+            resolve_focus_config,
+        )
 
         self.num_cameras = int(num_cameras)
         self.num_targets = int(num_targets)
-        focus_config = dict(config)
-        focus_config.setdefault('n_agents', self.num_cameras)
-        focus_config.setdefault('n_targets', self.num_targets)
+        raw_focus_config = dict(config)
+        raw_focus_config.setdefault('use_env_params', False)
+        raw_focus_config.setdefault('n_agents', self.num_cameras)
+        raw_focus_config.setdefault('n_targets', self.num_targets)
+        focus_config = resolve_focus_config(
+            {'focus': raw_focus_config, 'env_config': {}}
+        )
         focus_config.setdefault('use_action_selection', False)
         focus_config.setdefault('belief_mode', 'oracle_next_ablation')
 
         occupancy_model = None
         if focus_config.get('belief_mode') == 'learned':
-            occupancy_model = LearnedOccupancyModel(
+            occupancy_model = build_occupancy_model(
                 state_dim,
                 self.num_cameras,
                 self.num_targets,
-                horizon=int(focus_config.get('horizon', 3)),
-                hidden_dim=int(focus_config.get('belief_hidden_dim', 256)),
-                max_delta=float(focus_config.get('belief_max_delta', 400.0)),
-                min_std=float(focus_config.get('belief_min_std', 25.0)),
-                architecture=focus_config.get('belief_arch', 'mlp'),
-                num_layers=int(focus_config.get('belief_num_layers', 1)),
-                dropout=float(focus_config.get('belief_dropout', 0.0)),
+                focus_config,
             )
 
         self.estimator = QPLEXFocusLoss(
@@ -217,6 +219,15 @@ class HMVFEFocusResponsibilityEngine:
     def state_dict(self):
         return self.estimator.state_dict()
 
+    def get_runtime_state(self):
+        return self.estimator.get_focus_runtime_state()
+
+    def set_runtime_state(self, state):
+        self.estimator.set_focus_runtime_state(state)
+
+    def set_learner_update(self, learner_update: int) -> None:
+        self.estimator.set_focus_learner_update(learner_update)
+
     def to(self, device: torch.device) -> 'HMVFEFocusResponsibilityEngine':
         self.estimator.to(device)
         return self
@@ -226,6 +237,7 @@ class HMVFEFocusResponsibilityEngine:
         global_state: torch.Tensor,
         next_global_state: Optional[torch.Tensor],
         valid_mask: Optional[torch.Tensor] = None,
+        update_belief_ema: bool = False,
     ) -> HMVFEFocusOutput:
         if global_state.dim() == 2:
             global_state = global_state.unsqueeze(1)
@@ -250,6 +262,7 @@ class HMVFEFocusResponsibilityEngine:
             next_global_state,
             actions,
             valid_mask,
+            update_belief_ema=update_belief_ema,
         )
         return HMVFEFocusOutput(
             rho=rho.detach(),
@@ -259,6 +272,111 @@ class HMVFEFocusResponsibilityEngine:
             belief_loss=belief_loss,
             belief_stats=dict(getattr(self.estimator, 'last_belief_stats', {}) or {}),
             confidence_mode=mode,
+        )
+
+    @torch.no_grad()
+    def infer(
+        self,
+        global_state: torch.Tensor,
+        valid_mask: Optional[torch.Tensor] = None,
+    ) -> HMVFEFocusOutput:
+        """Predict camera responsibility from the current state only.
+
+        ``compute`` also accepts a future state because it builds the auxiliary
+        belief loss.  Action selection and evaluation must not have that future
+        label, so this path directly turns the learned occupancy distribution
+        into FOCUS geometric gains.  The safeguard blend/runtime state is read
+        but never updated here.
+        """
+
+        from ray.rllib.agents.qplex_focus.qplex_policy import _extract_target_positions
+
+        if global_state.dim() == 2:
+            global_state = global_state.unsqueeze(1)
+        batch, time = global_state.shape[:2]
+        device, dtype = global_state.device, global_state.dtype
+        if valid_mask is None:
+            valid_mask = torch.ones(
+                (batch, time, self.num_cameras), device=device, dtype=dtype
+            )
+        elif valid_mask.dim() == 2:
+            valid_mask = valid_mask.unsqueeze(-1).expand(
+                -1, -1, self.num_cameras
+            )
+
+        estimator = self.estimator
+        occupancy = estimator.occupancy_model
+        uniform = torch.full(
+            (batch, time, self.num_cameras),
+            1.0 / self.num_cameras,
+            device=device,
+            dtype=dtype,
+        )
+        if occupancy is None:
+            return HMVFEFocusOutput(
+                rho=uniform,
+                confidence=torch.ones((batch, time), device=device, dtype=dtype),
+                valid=torch.zeros((batch, time), device=device, dtype=torch.bool),
+                total_gain=torch.zeros((batch, time), device=device, dtype=dtype),
+                confidence_mode='inference',
+            )
+
+        actions = torch.zeros(
+            (batch, time, self.num_cameras), device=device, dtype=torch.long
+        )
+        n_targets = self.num_targets
+        blend = estimator._belief_blend_schedule() * estimator._belief_performance_gate()
+        categorical = getattr(occupancy, 'distribution_type', None) == 'categorical_grid'
+        if categorical:
+            probabilities, _mean, _std, _logits = occupancy.distribution(global_state)
+            persistence = occupancy.persistence_probabilities(global_state)
+            effective = persistence + blend * (probabilities - persistence)
+            gains = estimator._credit_from_categorical_grid(
+                effective,
+                occupancy.displacement_grid,
+                global_state,
+                actions,
+                n_targets,
+            )
+        else:
+            mean, std = occupancy(global_state)
+            current = _extract_target_positions(
+                global_state, self.num_cameras, n_targets
+            ).unsqueeze(2)
+            effective_mean = current + blend * (mean - current)
+            integral_mode = str(estimator.focus_config.get('integral_mode', 'MC')).lower()
+            if integral_mode == 'grid':
+                gains = estimator._credit_from_grid(
+                    effective_mean, std, global_state, actions, n_targets
+                )
+            elif integral_mode == 'sigma':
+                samples, weights = estimator._sigma_points(effective_mean, std)
+                gains = estimator._credit_from_sigma_points(
+                    samples,
+                    global_state,
+                    actions,
+                    n_targets,
+                    sample_weights=weights,
+                )
+            elif integral_mode == 'mc':
+                gains = estimator._credit_from_mc_points(
+                    effective_mean, std, global_state, actions, n_targets
+                )
+            else:
+                raise ValueError(f'Unknown FOCUS integral_mode: {integral_mode}')
+
+        eps = float(estimator.focus_config.get('eps', 1e-8))
+        total_gain = gains.sum(dim=-1)
+        min_signal = float(estimator.focus_config.get('min_credit_signal', 1e-6))
+        valid = (total_gain > min_signal) & (valid_mask[..., 0] > 0)
+        rho = gains / total_gain.unsqueeze(-1).clamp_min(eps)
+        rho = torch.where(valid.unsqueeze(-1), rho, uniform)
+        return HMVFEFocusOutput(
+            rho=rho,
+            confidence=torch.ones((batch, time), device=device, dtype=dtype),
+            valid=valid,
+            total_gain=total_gain,
+            confidence_mode='belief_inference',
         )
 
     def belief_loss_from_sequence(
@@ -274,7 +392,72 @@ class HMVFEFocusResponsibilityEngine:
                 belief_stats={},
                 confidence_mode='off',
             )
-        return self.compute(global_state, next_global_state, valid_mask=valid_mask)
+        return self.compute(
+            global_state,
+            next_global_state,
+            valid_mask=valid_mask,
+            update_belief_ema=True,
+        )
+
+
+def build_hmvfe_focus_engine(config, env, device=None):
+    """Build the shared train/evaluation belief engine for an HMVFE env.
+
+    ``env`` may be either a single ``MATECoordinatorEnv`` or the synchronous
+    vector wrapper. Keeping this construction in one place prevents eval-only
+    from silently using a different belief architecture than training.
+    """
+
+    focus_mode = str(config.focus_mode).lower()
+    if not config.focus_enabled or focus_mode not in ('real', 'shuffled'):
+        return None
+    base = env.envs[0] if hasattr(env, 'envs') else env
+    state_dim = 1
+    for size in base.base_env.state_space.shape:
+        state_dim *= int(size)
+    engine = HMVFEFocusResponsibilityEngine(
+        env.num_cameras,
+        env.num_targets,
+        state_dim,
+        {
+            'belief_mode': config.focus_belief_mode,
+            'horizon': config.focus_horizon,
+            'horizon_discount': config.focus_horizon_discount,
+            'beta_belief': config.focus_beta_belief,
+            'belief_hidden_dim': config.focus_belief_hidden_dim,
+            'belief_arch': config.focus_belief_arch,
+            'belief_num_layers': config.focus_belief_num_layers,
+            'belief_dropout': config.focus_belief_dropout,
+            'belief_distribution': config.focus_belief_distribution,
+            'belief_max_delta': config.focus_belief_max_delta,
+            'belief_min_std': config.focus_belief_min_std,
+            'belief_grid_size': config.focus_belief_grid_size,
+            'belief_grid_max_delta': config.focus_belief_grid_max_delta,
+            'belief_grid_label_std': config.focus_belief_grid_label_std,
+            'belief_persistence_prior_std': config.focus_belief_persistence_prior_std,
+            'belief_position_loss_coeff': config.focus_belief_position_loss_coeff,
+            'belief_grid_chunk_size': config.focus_belief_grid_chunk_size,
+            'belief_safeguard_mode': config.focus_belief_safeguard_mode,
+            'belief_error_ema_decay': config.focus_belief_error_ema_decay,
+            'belief_gate_margin': config.focus_belief_gate_margin,
+            'belief_gate_full_improvement': config.focus_belief_gate_full_improvement,
+            'belief_blend_warmup_updates': config.focus_belief_blend_warmup_updates,
+            'belief_blend_ramp_updates': config.focus_belief_blend_ramp_updates,
+            'integral_mode': config.focus_integral_mode,
+            'mc_num_points': config.focus_mc_num_points,
+            'mc_chunk_size': config.focus_mc_chunk_size,
+            'mc_seed': config.focus_mc_seed,
+            'sample_chunk_size': config.focus_sample_chunk_size,
+            'grid_size': config.focus_grid_size,
+            'grid_chunk_size': config.focus_grid_chunk_size,
+            'min_credit_signal': config.focus_min_credit_signal,
+            'n_obstacles': base.num_obstacles,
+            'obstacle_transmittance': config.focus_obstacle_transmittance,
+            'eps': config.focus_eps,
+            'use_action_selection': False,
+        },
+    )
+    return engine.to(device) if device is not None else engine
 
 
 def synthetic_responsibility(
@@ -298,3 +481,23 @@ def synthetic_responsibility(
             rows.append(row[torch.randperm(num_cameras, device=device)])
         return torch.stack(rows, dim=0)
     raise ValueError(f'Unknown synthetic FOCUS mode: {mode}')
+
+
+def execution_camera_logit_bias(
+    rho: torch.Tensor,
+    eta: float,
+    eps: float = 1e-8,
+    max_abs: float = 2.0,
+) -> torch.Tensor:
+    """Baseline-preserving CTCE logit bias from camera responsibility.
+
+    Uniform responsibility maps exactly to zero.  The clamp prevents an early,
+    poorly calibrated belief from overwhelming the learned actor.
+    """
+
+    rho = rho.detach().clamp_min(0.0)
+    rho = rho / rho.sum(dim=-1, keepdim=True).clamp_min(eps)
+    relative = rho * float(rho.shape[-1])
+    return (float(eta) * torch.log(relative.clamp_min(eps))).clamp(
+        min=-float(max_abs), max=float(max_abs)
+    )

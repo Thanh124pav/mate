@@ -200,6 +200,66 @@ def _import_duelmix():
     return duelmix.DuelMixTrainer, duelmix.DEFAULT_CONFIG
 
 
+def _import_facmac():
+    from ray.rllib.agents import facmac
+
+    return facmac.FACMACTrainer, facmac.DEFAULT_CONFIG
+
+
+def _import_facmac_focus():
+    from ray.rllib.agents import facmac
+
+    return facmac.FACMACFocusTrainer, facmac.FOCUS_CONFIG
+
+
+def _import_resq():
+    from ray.rllib.agents import resq
+
+    return resq.ResQTrainer, resq.DEFAULT_CONFIG
+
+
+def _import_resq_focus():
+    from ray.rllib.agents import resq
+
+    return resq.ResQFocusTrainer, resq.FOCUS_CONFIG
+
+
+def _import_riskq():
+    from ray.rllib.agents import riskq
+
+    return riskq.RiskQTrainer, riskq.DEFAULT_CONFIG
+
+
+def _import_riskq_focus():
+    from ray.rllib.agents import riskq
+
+    return riskq.RiskQFocusTrainer, riskq.FOCUS_CONFIG
+
+
+def _import_qfree():
+    from ray.rllib.agents import qfree
+
+    return qfree.QFreeTrainer, qfree.DEFAULT_CONFIG
+
+
+def _import_qfree_focus():
+    from ray.rllib.agents import qfree
+
+    return qfree.QFreeFocusTrainer, qfree.FOCUS_CONFIG
+
+
+def _import_concaveq():
+    from ray.rllib.agents import concaveq
+
+    return concaveq.ConcaveQTrainer, concaveq.DEFAULT_CONFIG
+
+
+def _import_concaveq_focus():
+    from ray.rllib.agents import concaveq
+
+    return concaveq.ConcaveQFocusTrainer, concaveq.FOCUS_CONFIG
+
+
 def _import_spectra():
     from ray.rllib.agents import spectra
 
@@ -277,6 +337,16 @@ ALGORITHMS = {
     "DUELMIX": _import_duelmix,
     "DUELMIX_FOCUS": _import_duelmix_focus,
     "DUELMIX_FOCUS2": _import_duelmix_focus2,
+    "FACMAC": _import_facmac,
+    "FACMAC_FOCUS": _import_facmac_focus,
+    "RESQ": _import_resq,
+    "RESQ_FOCUS": _import_resq_focus,
+    "RISKQ": _import_riskq,
+    "RISKQ_FOCUS": _import_riskq_focus,
+    "QFREE": _import_qfree,
+    "QFREE_FOCUS": _import_qfree_focus,
+    "CONCAVEQ": _import_concaveq,
+    "CONCAVEQ_FOCUS": _import_concaveq_focus,
     "SPECTRA": _import_spectra,
     "R2D2": _import_r2d2,
     "RNNSAC": _import_rnnsac,

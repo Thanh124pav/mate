@@ -77,7 +77,7 @@ def train(
         tune_callbacks.append(WandbLoggerCallback(project=project, group=group))
 
     if not ray.is_initialized():
-        ray.init(num_cpus=NUM_NODE_CPUS, local_mode=DEBUG)
+        ray.init(num_cpus=NUM_NODE_CPUS, num_gpus=NUM_NODE_GPUS, local_mode=DEBUG)
 
     num_ray_cpus = round(ray.cluster_resources()['CPU'])
     num_ray_gpus = ray.cluster_resources().get('GPU', 0.0)

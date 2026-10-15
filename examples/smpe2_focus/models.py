@@ -8,7 +8,7 @@ from ray.rllib.agents.qplex_focus.qplex_policy import (
     CAMERA_STATE_DIM_PRIVATE,
     PRESERVED_DIM,
     TARGET_STATE_DIM_PRIVATE,
-    LearnedOccupancyModel,
+    build_occupancy_model,
     _extract_camera_fov,
     _extract_target_positions,
     resolve_focus_config,
@@ -45,14 +45,11 @@ class SMPE2FocusModel(SMPE2Model):
         self.focus_engine = None
         self.focus_adapter = None
         if self.focus_config.get("enabled", False):
-            self.focus_model = LearnedOccupancyModel(
+            self.focus_model = build_occupancy_model(
                 self.global_state_dim,
                 self.n_focus_agents,
                 int(self.focus_config.get("n_targets", 8)),
-                horizon=int(self.focus_config.get("horizon", 3)),
-                hidden_dim=int(self.focus_config.get("belief_hidden_dim", 256)),
-                max_delta=float(self.focus_config.get("belief_max_delta", 400.0)),
-                min_std=float(self.focus_config.get("belief_min_std", 25.0)),
+                self.focus_config,
             )
             self.focus_engine = FocusResponsibilityEngine(
                 self.focus_model,
@@ -300,6 +297,7 @@ class SMPE2FocusModel(SMPE2Model):
                 joint_actions=action_tensor,
                 valid_mask=valid_mask,
                 next_global_state=next_state_tensor,
+                update_belief_ema=False,
             )
             confidence = (
                 focus.confidence
@@ -355,7 +353,9 @@ class SMPE2FocusModel(SMPE2Model):
         global_state = obs[:, self.global_state_slice].reshape(B, T, self.global_state_dim)
         state = global_state[:, :-1, :]
         future_state = global_state[:, 1:, :]
-        per_horizon_losses, per_horizon_valid, *_ = self.focus_model.nll(state, future_state)
+        per_horizon_losses, per_horizon_valid, _, _, diagnostics = self.focus_model.nll(
+            state, future_state
+        )
         discount = float(self.focus_config.get("horizon_discount", 0.9))
         weights = torch.tensor(
             [discount ** h for h in range(len(per_horizon_losses))],
@@ -381,11 +381,20 @@ class SMPE2FocusModel(SMPE2Model):
             if belief_terms
             else torch.zeros_like(reference_loss)
         )
+        belief_runtime_stats = {}
+        if belief_terms:
+            belief_runtime_stats = self.focus_engine.observe_belief_diagnostics(
+                diagnostics,
+                per_horizon_valid,
+                weights,
+                valid_mask=time_valid,
+            )
         beta = float(self.focus_config.get("beta_belief", 0.01))
         self._focus_stats = {
             "focus/belief_loss": belief_loss.detach(),
             "focus/beta_belief": torch.tensor(beta, device=belief_loss.device),
         }
+        self._focus_stats.update(belief_runtime_stats)
         if isinstance(policy_loss, list):
             return [loss + beta * belief_loss for loss in policy_loss]
         return policy_loss + beta * belief_loss

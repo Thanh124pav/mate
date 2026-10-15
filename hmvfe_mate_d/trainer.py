@@ -27,11 +27,12 @@ from hmvfe_mate_d.config import HMVFEConfig, make_env, make_output_dir
 from hmvfe_mate_d.evaluate import evaluate
 from hmvfe_mate_d.focus_adapter import (
     HMVFEFocusAdapter,
-    HMVFEFocusResponsibilityEngine,
+    build_hmvfe_focus_engine,
     focus_diagnostics,
     policy_loss_from_log_prob,
     synthetic_responsibility,
     weighted_actor_log_prob,
+    execution_camera_logit_bias,
 )
 from hmvfe_mate_d.models import HMVFECoordinator
 from hmvfe_mate_d.vector_env import SyncVectorCoordinatorEnv
@@ -71,6 +72,14 @@ def _init_wandb(config: HMVFEConfig, output_dir: Path):
     return run
 
 
+def _append_metrics(path: Path, split: str, metrics: dict) -> None:
+    """Persist metrics even when W&B is disabled (one JSON object per line)."""
+
+    row = {'split': split, **metrics}
+    with open(path, 'a', encoding='utf-8') as handle:
+        handle.write(json.dumps(row, sort_keys=True) + '\n')
+
+
 def _compute_gae(rewards, values, dones, bootstrap_value, gamma, gae_lambda):
     """Standard GAE on a scalar reward/value stream. Returns (advantages, returns)."""
 
@@ -95,6 +104,8 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
     output_dir = make_output_dir(config)
     with open(output_dir / 'config.json', 'w', encoding='utf-8') as f:
         json.dump(config.to_dict(), f, indent=2)
+    metrics_path = output_dir / 'metrics.jsonl'
+    metrics_path.write_text('', encoding='utf-8')
 
     num_envs = max(1, int(config.num_envs))
     venv = SyncVectorCoordinatorEnv(config, num_envs)
@@ -113,38 +124,7 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
         if focus_adapter.weight_formula == 'affine' and float(config.focus_eta) == 0.0:
             raise ValueError('focus_strict=True disallows focus_eta=0 with affine weights because it is vanilla HMVFE.')
 
-    focus_engine = None
-    if config.focus_enabled and focus_mode in ('real', 'shuffled'):
-        state_dim = int(np.prod(venv.envs[0].base_env.state_space.shape))
-        focus_engine = HMVFEFocusResponsibilityEngine(
-            venv.num_cameras,
-            venv.num_targets,
-            state_dim,
-            {
-                'belief_mode': config.focus_belief_mode,
-                'horizon': config.focus_horizon,
-                'horizon_discount': config.focus_horizon_discount,
-                'beta_belief': config.focus_beta_belief,
-                'belief_hidden_dim': config.focus_belief_hidden_dim,
-                'belief_arch': config.focus_belief_arch,
-                'belief_num_layers': config.focus_belief_num_layers,
-                'belief_dropout': config.focus_belief_dropout,
-                'belief_max_delta': config.focus_belief_max_delta,
-                'belief_min_std': config.focus_belief_min_std,
-                'integral_mode': config.focus_integral_mode,
-                'mc_num_points': config.focus_mc_num_points,
-                'mc_chunk_size': config.focus_mc_chunk_size,
-                'mc_seed': config.focus_mc_seed,
-                'sample_chunk_size': config.focus_sample_chunk_size,
-                'grid_size': config.focus_grid_size,
-                'grid_chunk_size': config.focus_grid_chunk_size,
-                'min_credit_signal': config.focus_min_credit_signal,
-                'n_obstacles': venv.envs[0].num_obstacles,
-                'obstacle_transmittance': config.focus_obstacle_transmittance,
-                'eps': config.focus_eps,
-                'use_action_selection': False,
-            },
-        ).to(device)
+    focus_engine = build_hmvfe_focus_engine(config, venv, device=device)
 
     model = HMVFECoordinator(
         venv.num_cameras,
@@ -192,6 +172,10 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
     )
 
     for update in range(1, total_updates + 1):
+        if focus_engine is not None:
+            # Credits in this rollout use only gate statistics from completed
+            # learner updates.  The current rollout updates the EMA once below.
+            focus_engine.set_learner_update(update - 1)
         # --- linear LR annealing ---------------------------------------------
         if config.anneal_lr:
             lr_factor = 1.0 - (update - 1) / total_updates
@@ -218,12 +202,38 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
         for t in range(rollout):
             actions = []
             focus_state = None
+            execution_bias = None
+            inferred_focus = None
             if config.focus_enabled and focus_mode in ('real', 'shuffled'):
                 focus_state = venv.global_state()
+                if focus_engine is not None:
+                    inferred_focus = focus_engine.infer(
+                        torch.as_tensor(
+                            focus_state, dtype=torch.float32, device=device
+                        )
+                    )
+                    execution_rho = inferred_focus.rho.squeeze(1)
+                    if focus_mode == 'shuffled':
+                        execution_rho = synthetic_responsibility(
+                            'shuffled',
+                            (num_envs, venv.num_cameras),
+                            device,
+                            torch.float32,
+                            config.focus_eps,
+                            base_rho=execution_rho,
+                        )
+                    if float(config.focus_execution_eta) != 0.0:
+                        execution_bias = execution_camera_logit_bias(
+                            execution_rho,
+                            config.focus_execution_eta,
+                            config.focus_eps,
+                        )
             for i in range(num_envs):
                 state = torch.as_tensor(obs[i], dtype=torch.float32, device=device)
                 action, log_prob, entropy, value, camera_log_prob = model.act(
-                    state, return_per_camera_log_prob=True
+                    state,
+                    return_per_camera_log_prob=True,
+                    camera_logit_bias=(execution_bias[i] if execution_bias is not None else None),
                 )
                 actions.append(action.detach().cpu().numpy())
                 log_probs_te[t][i] = log_prob
@@ -239,16 +249,22 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
                 confidence_t = torch.ones(num_envs, dtype=torch.float32, device=device)
                 if focus_mode in ('real', 'shuffled'):
                     assert focus_engine is not None
+                    assert inferred_focus is not None
                     focus_next_state = venv.last_next_global_state
                     focus_states_t[t] = focus_state
                     focus_next_states_t[t] = focus_next_state
-                    focus_out = focus_engine.compute(
-                        torch.as_tensor(focus_state, dtype=torch.float32, device=device),
-                        torch.as_tensor(focus_next_state, dtype=torch.float32, device=device),
+                    # Actor credit is the causal current-state inference made
+                    # before the action.  ``focus_next_state`` is retained only
+                    # for the auxiliary supervised belief loss below.
+                    rho_t = inferred_focus.rho.squeeze(1).to(
+                        device=device, dtype=torch.float32
                     )
-                    rho_t = focus_out.rho.squeeze(1).to(device=device, dtype=torch.float32)
-                    confidence_t = focus_out.confidence.squeeze(1).to(device=device, dtype=torch.float32)
-                    valid_t = focus_out.valid.squeeze(1).to(device=device, dtype=torch.bool)
+                    confidence_t = inferred_focus.confidence.squeeze(1).to(
+                        device=device, dtype=torch.float32
+                    )
+                    valid_t = inferred_focus.valid.squeeze(1).to(
+                        device=device, dtype=torch.bool
+                    )
                     if focus_mode == 'shuffled':
                         rho_t = synthetic_responsibility(
                             'shuffled',
@@ -416,6 +432,7 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
             if completed_returns:
                 metrics['train/episode_return'] = float(np.mean(completed_returns[-25:]))
                 metrics['train/episode_coverage_rate'] = float(np.mean(completed_coverage[-25:]))
+            _append_metrics(metrics_path, 'train', metrics)
             print(
                 f'[hmvfe_mate_d] update {update}/{total_updates} '
                 f'steps={env_steps} '
@@ -429,10 +446,17 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
 
         # --- evaluation -------------------------------------------------------
         if update % config.eval_interval == 0:
-            eval_metrics = evaluate(model, config, num_episodes=config.eval_episodes)
+            eval_metrics = evaluate(
+                model,
+                config,
+                num_episodes=config.eval_episodes,
+                focus_engine=focus_engine,
+            )
             eval_metrics['environment_steps'] = env_steps
+            _append_metrics(metrics_path, 'eval', eval_metrics)
             print(
                 f'[hmvfe_mate_d]   eval cov={eval_metrics["eval/mean_coverage_rate"]:.3f} '
+                f'real_cov={eval_metrics["eval/mean_real_coverage_rate"]:.3f} '
                 f'transport={eval_metrics["eval/mean_transport_rate"]:.3f} '
                 f'delivered={eval_metrics["eval/mean_num_delivered_cargoes"]:.2f}'
             )
@@ -478,4 +502,5 @@ def _save(
     }
     if focus_engine is not None:
         payload['focus_engine'] = focus_engine.state_dict()
+        payload['focus_runtime_state'] = focus_engine.get_runtime_state()
     torch.save(payload, path)

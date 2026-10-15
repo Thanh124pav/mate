@@ -51,14 +51,31 @@ experiment = tune.Experiment(
 )
 
 
-def _resolve_experiment(base_experiment, focus_prior=None):
+def _resolve_experiment(
+    base_experiment,
+    focus_prior=None,
+    belief_safeguard_mode=None,
+    belief_distribution=None,
+    belief_grid_size=None,
+    belief_grid_max_delta=None,
+    belief_grid_label_std=None,
+    belief_position_loss_coeff=None,
+):
     resolved = copy.deepcopy(base_experiment)
-    if focus_prior is None:
-        return resolved
     focus_config = resolved.spec["config"]["model"]["custom_model_config"].setdefault("focus", {})
-    focus_config["action_prior_enabled"] = focus_prior
-    suffix = "FOCUS_PRIOR" if focus_prior else "BELIEF_ONLY"
-    resolved.name = f"{resolved.name}_{suffix}"
+    if focus_prior is not None:
+        focus_config["action_prior_enabled"] = focus_prior
+        suffix = "FOCUS_PRIOR" if focus_prior else "BELIEF_ONLY"
+        resolved.name = f"{resolved.name}_{suffix}"
+    overrides = {
+        "belief_safeguard_mode": belief_safeguard_mode,
+        "belief_distribution": belief_distribution,
+        "belief_grid_size": belief_grid_size,
+        "belief_grid_max_delta": belief_grid_max_delta,
+        "belief_grid_label_std": belief_grid_label_std,
+        "belief_position_loss_coeff": belief_position_loss_coeff,
+    }
+    focus_config.update({key: value for key, value in overrides.items() if value is not None})
     return resolved
 
 
@@ -73,9 +90,25 @@ def train(
     seed=None,
     timesteps_total=None,
     focus_prior=None,
+    belief_safeguard_mode=None,
+    belief_distribution=None,
+    belief_grid_size=None,
+    belief_grid_max_delta=None,
+    belief_grid_label_std=None,
+    belief_position_loss_coeff=None,
+    env=None,
 ):
     _ensure_local_repo_on_pythonpath()
-    experiment = _resolve_experiment(experiment, focus_prior=focus_prior)
+    experiment = _resolve_experiment(
+        experiment,
+        focus_prior=focus_prior,
+        belief_safeguard_mode=belief_safeguard_mode,
+        belief_distribution=belief_distribution,
+        belief_grid_size=belief_grid_size,
+        belief_grid_max_delta=belief_grid_max_delta,
+        belief_grid_label_std=belief_grid_label_std,
+        belief_position_loss_coeff=belief_position_loss_coeff,
+    )
     group = group or f"mappo_focus.camera.{experiment.name}"
     return _train(
         experiment,
@@ -87,6 +120,7 @@ def train(
         num_envs_per_worker=num_envs_per_worker,
         seed=seed,
         timesteps_total=timesteps_total,
+        env=env,
     )
 
 
@@ -100,12 +134,23 @@ def main():
     parser.add_argument("--num-envs-per-worker", type=int, metavar="ENV", default=8)
     parser.add_argument("--timesteps-total", type=float, metavar="STEP", default=10e6)
     parser.add_argument("--seed", type=int, metavar="SEED", nargs="*", default=None)
+    parser.add_argument("--env", default=None, help=".yaml environment to run experiments")
     parser.add_argument(
         "--focus-prior",
         choices=("on", "off"),
         default=None,
         help="Toggle FOCUS action-prior distillation; off keeps the local-observation belief head only.",
     )
+    parser.add_argument(
+        "--belief-safeguard-mode",
+        choices=("zero", "zero_ema", "zero_ema_blend"),
+        default=None,
+    )
+    parser.add_argument("--belief-distribution", choices=("gaussian", "categorical_grid"), default=None)
+    parser.add_argument("--belief-grid-size", type=int, default=None)
+    parser.add_argument("--belief-grid-max-delta", type=float, default=None)
+    parser.add_argument("--belief-grid-label-std", type=float, default=None)
+    parser.add_argument("--belief-position-loss-coeff", type=float, default=None)
     args = vars(parser.parse_args())
     if args["focus_prior"] is not None:
         args["focus_prior"] = args["focus_prior"] == "on"

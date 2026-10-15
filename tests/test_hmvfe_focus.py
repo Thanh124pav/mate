@@ -8,6 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from hmvfe_mate_d.focus_adapter import (
     HMVFEFocusAdapter,
     HMVFEFocusResponsibilityEngine,
+    execution_camera_logit_bias,
     policy_loss_from_log_prob,
     weighted_actor_log_prob,
 )
@@ -36,6 +37,56 @@ def test_camera_log_prob_decomposition_matches_joint_policy_output():
     )
     assert camera_log_prob.shape == (3,)
     torch.testing.assert_close(camera_log_prob.sum(dim=-1), joint_log_prob)
+
+
+def test_uniform_execution_responsibility_is_exact_policy_noop():
+    torch.manual_seed(11)
+    model = HMVFECoordinator(
+        num_cameras=3,
+        num_targets=4,
+        table_size=32,
+        num_fields=5,
+        embedding_dim=4,
+        num_experts=2,
+        top_k=1,
+        gating_hidden=8,
+        mlp_hidden=8,
+        mlp_layers=1,
+        critic_reduction='learned',
+        value_head_hidden=8,
+    )
+    obs = torch.randint(0, 32, (3, 4, 5)).float()
+    baseline = model.act(obs, deterministic=True)[0]
+    bias = execution_camera_logit_bias(torch.full((3,), 1.0 / 3.0), eta=0.5)
+    focused = model.act(obs, deterministic=True, camera_logit_bias=bias)[0]
+    torch.testing.assert_close(bias, torch.zeros_like(bias))
+    torch.testing.assert_close(focused, baseline)
+
+
+def test_belief_responsibility_inference_needs_no_future_state():
+    n_cameras, n_targets = 2, 2
+    state_dim = 13 + n_cameras * 9 + n_targets * 14
+    engine = HMVFEFocusResponsibilityEngine(
+        n_cameras,
+        n_targets,
+        state_dim,
+        {
+            'belief_mode': 'learned',
+            'belief_distribution': 'categorical_grid',
+            'belief_grid_size': 5,
+            'belief_grid_max_delta': 200.0,
+            'belief_hidden_dim': 8,
+            'horizon': 2,
+            'n_obstacles': 0,
+            'use_action_selection': False,
+        },
+    )
+    output = engine.infer(torch.zeros(3, state_dim))
+    assert output.rho.shape == (3, 1, n_cameras)
+    assert torch.isfinite(output.rho).all()
+    torch.testing.assert_close(
+        output.rho.sum(dim=-1), torch.ones_like(output.rho[..., 0])
+    )
 
 
 def test_focus_disabled_actor_path_matches_baseline_loss():
@@ -254,6 +305,53 @@ def test_learned_belief_loss_backpropagates_to_occupancy_model():
 
     assert not torch.allclose(first_param.detach(), before)
     assert 'focus_belief_loss_h1' in (out.belief_stats or {})
+
+
+def test_hmvfe_zero_ema_gate_updates_once_after_sequence_loss():
+    torch.manual_seed(29)
+    engine = HMVFEFocusResponsibilityEngine(
+        num_cameras=1,
+        num_targets=1,
+        state_dim=64,
+        config={
+            'belief_mode': 'learned',
+            'belief_safeguard_mode': 'zero_ema',
+            'horizon': 2,
+            'belief_hidden_dim': 8,
+            'integral_mode': 'sigma',
+            'sigma_method': 'legacy5',
+            'n_obstacles': 0,
+            'use_action_selection': False,
+        },
+    )
+    state = torch.randn(2, 3, 64)
+    next_state = state + 0.05 * torch.randn(2, 3, 64)
+
+    credit = engine.compute(state, next_state)
+    assert credit.belief_stats['focus_belief_effective_blend'] == 0.0
+    assert engine.get_runtime_state()['belief_error_ema_updates'] == 0
+
+    sequence = engine.belief_loss_from_sequence(state, next_state)
+    assert sequence.belief_loss.requires_grad
+    assert engine.get_runtime_state()['belief_error_ema_updates'] == 1
+
+    restored = HMVFEFocusResponsibilityEngine(
+        num_cameras=1,
+        num_targets=1,
+        state_dim=64,
+        config={
+            'belief_mode': 'learned',
+            'belief_safeguard_mode': 'zero_ema',
+            'horizon': 2,
+            'belief_hidden_dim': 8,
+            'integral_mode': 'sigma',
+            'sigma_method': 'legacy5',
+            'n_obstacles': 0,
+            'use_action_selection': False,
+        },
+    )
+    restored.estimator.load_state_dict(engine.state_dict())
+    assert restored.get_runtime_state() == engine.get_runtime_state()
 
 def test_fixed_seed_disabled_single_update_matches_baseline_formula():
     torch.manual_seed(13)

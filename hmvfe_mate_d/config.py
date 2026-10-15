@@ -118,8 +118,21 @@ class HMVFEConfig:
     focus_belief_arch: str = 'mlp'
     focus_belief_num_layers: int = 1
     focus_belief_dropout: float = 0.0
+    focus_belief_distribution: str = 'gaussian'
     focus_belief_max_delta: float = 400.0
     focus_belief_min_std: float = 25.0
+    focus_belief_grid_size: int = 21
+    focus_belief_grid_max_delta: float = 400.0
+    focus_belief_grid_label_std: Optional[float] = None
+    focus_belief_persistence_prior_std: Optional[float] = None
+    focus_belief_position_loss_coeff: float = 0.1
+    focus_belief_grid_chunk_size: int = 128
+    focus_belief_safeguard_mode: str = 'zero'  # zero | zero_ema | zero_ema_blend
+    focus_belief_error_ema_decay: float = 0.95
+    focus_belief_gate_margin: float = 0.0
+    focus_belief_gate_full_improvement: float = 0.2
+    focus_belief_blend_warmup_updates: int = 0
+    focus_belief_blend_ramp_updates: int = 80
     focus_horizon: int = 3
     focus_horizon_discount: float = 0.9
     focus_integral_mode: str = 'MC'   # MC | sigma | grid, passed to canonical FOCUS
@@ -131,6 +144,9 @@ class HMVFEConfig:
     focus_grid_chunk_size: int = 128
     focus_min_credit_signal: float = 1e-6
     focus_obstacle_transmittance: float = 0.0
+    # CTCE only: use the current-state belief in action selection as well as
+    # actor credit. Uniform responsibility is an exact zero-bias no-op.
+    focus_execution_eta: float = 0.25
 
     # --- logging / checkpointing / evaluation ---------------------------------
     log_interval: int = 10            # in updates

@@ -24,6 +24,7 @@ import torch
 
 from hmvfe_mate_d.config import HMVFEConfig, make_env
 from hmvfe_mate_d.evaluate import evaluate
+from hmvfe_mate_d.focus_adapter import build_hmvfe_focus_engine
 from hmvfe_mate_d.models import HMVFECoordinator
 from hmvfe_mate_d.trainer import train
 
@@ -111,8 +112,27 @@ def parse_args(prog: str = 'python -m hmvfe_mate_d') -> argparse.Namespace:
     p.add_argument('--focus-belief-arch', dest='focus_belief_arch', choices=['mlp', 'lstm'])
     p.add_argument('--focus-belief-num-layers', dest='focus_belief_num_layers', type=int)
     p.add_argument('--focus-belief-dropout', dest='focus_belief_dropout', type=float)
+    p.add_argument('--focus-belief-distribution', dest='focus_belief_distribution',
+                   choices=['gaussian', 'categorical_grid'])
     p.add_argument('--focus-belief-max-delta', dest='focus_belief_max_delta', type=float)
     p.add_argument('--focus-belief-min-std', dest='focus_belief_min_std', type=float)
+    p.add_argument('--focus-belief-grid-size', dest='focus_belief_grid_size', type=int)
+    p.add_argument('--focus-belief-grid-max-delta', dest='focus_belief_grid_max_delta', type=float)
+    p.add_argument('--focus-belief-grid-label-std', dest='focus_belief_grid_label_std', type=float)
+    p.add_argument('--focus-belief-persistence-prior-std', dest='focus_belief_persistence_prior_std', type=float)
+    p.add_argument('--focus-belief-position-loss-coeff', dest='focus_belief_position_loss_coeff', type=float)
+    p.add_argument('--focus-belief-grid-chunk-size', dest='focus_belief_grid_chunk_size', type=int)
+    p.add_argument(
+        '--focus-belief-safeguard-mode',
+        dest='focus_belief_safeguard_mode',
+        choices=['zero', 'zero_ema', 'zero_ema_blend'],
+        help='Belief safeguard; default is zero-initialized persistence residual.',
+    )
+    p.add_argument('--focus-belief-error-ema-decay', dest='focus_belief_error_ema_decay', type=float)
+    p.add_argument('--focus-belief-gate-margin', dest='focus_belief_gate_margin', type=float)
+    p.add_argument('--focus-belief-gate-full-improvement', dest='focus_belief_gate_full_improvement', type=float)
+    p.add_argument('--focus-belief-blend-warmup-updates', dest='focus_belief_blend_warmup_updates', type=int)
+    p.add_argument('--focus-belief-blend-ramp-updates', dest='focus_belief_blend_ramp_updates', type=int)
     p.add_argument('--focus-horizon', dest='focus_horizon', type=int)
     p.add_argument('--focus-horizon-discount', dest='focus_horizon_discount', type=float)
     p.add_argument('--focus-integral-mode', dest='focus_integral_mode', choices=['MC', 'sigma', 'grid'])
@@ -124,6 +144,8 @@ def parse_args(prog: str = 'python -m hmvfe_mate_d') -> argparse.Namespace:
     p.add_argument('--focus-grid-chunk-size', dest='focus_grid_chunk_size', type=int)
     p.add_argument('--focus-min-credit-signal', dest='focus_min_credit_signal', type=float)
     p.add_argument('--focus-obstacle-transmittance', dest='focus_obstacle_transmittance', type=float)
+    p.add_argument('--focus-execution-eta', dest='focus_execution_eta', type=float,
+                   help='CTCE camera-logit bias strength from current-state belief responsibility.')
 
     # logging / eval / io
     p.add_argument('--log-interval', dest='log_interval', type=int)
@@ -160,6 +182,18 @@ def main() -> None:
 
     if args.eval_only:
         assert args.load, '--eval-only requires --load <checkpoint.pt>.'
+        state = torch.load(args.load, map_location='cpu')
+        if state.get('config'):
+            field_names = {field.name for field in dataclasses.fields(HMVFEConfig)}
+            saved = {
+                key: value for key, value in state['config'].items()
+                if key in field_names
+            }
+            explicit = {
+                key: getattr(args, key) for key in field_names
+                if getattr(args, key, None) is not None
+            }
+            config = HMVFEConfig(**{**saved, **explicit})
         env = make_env(config)
         env.seed(config.seed + 10_000)
         model = HMVFECoordinator(
@@ -175,10 +209,21 @@ def main() -> None:
             mlp_layers=config.mlp_layers,
             critic_reduction=config.critic_reduction,
             value_head_hidden=config.value_head_hidden,
-        )
-        state = torch.load(args.load, map_location='cpu')
+        ).to(torch.device(config.device))
         model.load_state_dict(state['model'])
-        metrics = evaluate(model, config, num_episodes=config.eval_episodes, env=env)
+        focus_engine = build_hmvfe_focus_engine(
+            config, env, device=torch.device(config.device)
+        )
+        if focus_engine is not None and 'focus_engine' in state:
+            focus_engine.estimator.load_state_dict(state['focus_engine'])
+            focus_engine.set_runtime_state(state.get('focus_runtime_state'))
+        metrics = evaluate(
+            model,
+            config,
+            num_episodes=config.eval_episodes,
+            env=env,
+            focus_engine=focus_engine,
+        )
         env.close()
         for key, value in metrics.items():
             print(f'{key}: {value:.4f}')

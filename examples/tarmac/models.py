@@ -8,7 +8,7 @@ from ray.rllib.policy.sample_batch import SampleBatch
 from ray.rllib.utils.framework import try_import_torch
 
 from examples.utils import SimpleRNN, get_space_flat_size
-from ray.rllib.agents.qplex_focus.qplex_policy import LearnedOccupancyModel, resolve_focus_config
+from ray.rllib.agents.qplex_focus.qplex_policy import build_occupancy_model, resolve_focus_config
 from ray.rllib.agents.focus_common import (
     FOCUS_CONFIDENCE,
     FOCUS_GAIN,
@@ -187,14 +187,11 @@ class TarMACModel(TorchRNN, nn.Module):
         self.focus_engine = None
         self.focus_adapter = None
         if self.focus_config.get('enabled', False):
-            self.focus_model = LearnedOccupancyModel(
+            self.focus_model = build_occupancy_model(
                 self.global_state_dim,
                 self.n_focus_agents,
                 int(self.focus_config.get('n_targets', 8)),
-                horizon=int(self.focus_config.get('horizon', 3)),
-                hidden_dim=int(self.focus_config.get('belief_hidden_dim', 256)),
-                max_delta=float(self.focus_config.get('belief_max_delta', 400.0)),
-                min_std=float(self.focus_config.get('belief_min_std', 25.0)),
+                self.focus_config,
             )
             self.focus_engine = FocusResponsibilityEngine(
                 self.focus_model,
@@ -409,6 +406,7 @@ class TarMACModel(TorchRNN, nn.Module):
                 joint_actions=action_tensor,
                 valid_mask=valid_mask,
                 next_global_state=next_state_tensor,
+                update_belief_ema=False,
             )
             confidence = focus.confidence if self.focus_config.get('use_confidence', self.focus_config.get('focus_use_confidence', True)) else None
             weights = self.focus_adapter.responsibility_to_weight(
@@ -455,7 +453,7 @@ class TarMACModel(TorchRNN, nn.Module):
         global_state = obs[:, self.global_state_slice].reshape(B, T, self.global_state_dim)
         state = global_state[:, :-1, :]
         future_state = global_state[:, 1:, :]
-        per_horizon_losses, per_horizon_valid, *_ = self.focus_model.nll(
+        per_horizon_losses, per_horizon_valid, _, _, diagnostics = self.focus_model.nll(
             state, future_state
         )
         discount = float(self.focus_config.get('horizon_discount', 0.9))
@@ -482,11 +480,20 @@ class TarMACModel(TorchRNN, nn.Module):
             if belief_terms
             else torch.zeros_like(reference_loss)
         )
+        belief_runtime_stats = {}
+        if belief_terms:
+            belief_runtime_stats = self.focus_engine.observe_belief_diagnostics(
+                diagnostics,
+                per_horizon_valid,
+                weights,
+                valid_mask=time_valid,
+            )
         beta = float(self.focus_config.get('beta_belief', 0.01))
         self._focus_stats = {
             'focus/belief_loss': belief_loss.detach(),
             'focus/beta_belief': torch.tensor(beta, device=belief_loss.device),
         }
+        self._focus_stats.update(belief_runtime_stats)
         if isinstance(policy_loss, list):
             return [loss + beta * belief_loss for loss in policy_loss]
         return policy_loss + beta * belief_loss

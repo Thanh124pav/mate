@@ -7,13 +7,24 @@ from examples.smpe2_focus.models import SMPE2FocusModel
 
 config = copy.deepcopy(_smpe2_config)
 config["model"]["custom_model"] = SMPE2FocusModel
-config["env_config"]["reward_coefficients"] = {"real_coverage_rate": 1.0}
 config["env_config"]["reward_reduction"] = "mean"
-config["env_config"]["intrinsic_coeff"] = 0.2
 focus_config = config["model"]["custom_model_config"].setdefault("focus", {})
 focus_config.update(
     {
         "enabled": True,
+        "belief_safeguard_mode": "zero",
+        "belief_distribution": "gaussian",
+        "belief_grid_size": 21,
+        "belief_grid_max_delta": 400.0,
+        "belief_grid_label_std": None,
+        "belief_persistence_prior_std": None,
+        "belief_position_loss_coeff": 0.1,
+        "belief_grid_chunk_size": 128,
+        "belief_blend_warmup_updates": 20,
+        "belief_blend_ramp_updates": 80,
+        "belief_error_ema_decay": 0.95,
+        "belief_gate_margin": 0.0,
+        "belief_gate_full_improvement": 0.2,
         "policy_eta": 1.0,
         "use_confidence": True,
         "beta_belief": 0.02,

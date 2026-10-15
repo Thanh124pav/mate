@@ -186,11 +186,16 @@ class HMVFECoordinator(nn.Module):
         obs: torch.Tensor,
         deterministic: bool = False,
         return_per_camera_log_prob: bool = False,
+        camera_logit_bias: torch.Tensor = None,
     ):
         """Returns ``(action[N_cam,N_tgt], log_prob, entropy, value)``."""
 
         z, pooled = self._scores_and_pool(obs)
-        prob = torch.sigmoid(z).clamp(1e-6, 1.0 - 1e-6)
+        logits = z.reshape(self.num_cameras, self.num_targets)
+        if camera_logit_bias is not None:
+            bias = camera_logit_bias.to(device=logits.device, dtype=logits.dtype)
+            logits = logits + bias.reshape(self.num_cameras, 1)
+        prob = torch.sigmoid(logits.reshape(-1)).clamp(1e-6, 1.0 - 1e-6)
         dist = torch.distributions.Bernoulli(probs=prob)
         action = (prob > 0.5).float() if deterministic else dist.sample()
         pair_log_prob = dist.log_prob(action).reshape(self.num_cameras, self.num_targets)

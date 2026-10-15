@@ -30,6 +30,12 @@ from ray.rllib.agents.focus_utils import (
     focus_action_q_bias,
     belief_std_confidence,
 )
+from ray.rllib.agents.focus_official import (
+    GradientFloor,
+    RunningFeatureNormalizer,
+    action_credit_loss,
+    carrier_credit_loss,
+)
 
 torch, nn = try_import_torch(error=True)
 
@@ -117,6 +123,24 @@ def resolve_focus_config(config):
     focus_config.setdefault("n_agents", 4)
     focus_config.setdefault("n_obstacles", 0)
     focus_config.setdefault("obstacle_transmittance", 0.0)
+    safeguard_mode = focus_config.get("belief_safeguard_mode")
+    if safeguard_mode is not None:
+        safeguard_mode = str(safeguard_mode).lower()
+        modes = {
+            "zero": (True, False, False),
+            "zero_ema": (True, True, False),
+            "zero_ema_blend": (True, True, True),
+        }
+        if safeguard_mode not in modes:
+            raise ValueError(
+                "belief_safeguard_mode must be one of "
+                f"{sorted(modes)}, got {safeguard_mode!r}"
+            )
+        persistence, ema_gate, progressive_blend = modes[safeguard_mode]
+        focus_config["belief_safeguard_mode"] = safeguard_mode
+        focus_config["belief_persistence_initialization"] = persistence
+        focus_config["belief_performance_gate"] = ema_gate
+        focus_config["belief_progressive_blend"] = progressive_blend
     add_confidence_defaults(focus_config)
     return focus_config
 
@@ -309,6 +333,9 @@ class LearnedOccupancyModel(nn.Module):
         architecture="mlp",
         num_layers=1,
         dropout=0.0,
+        persistence_initialization=False,
+        normalize_input=True,
+        normalization_clip=5.0,
     ):
         super(LearnedOccupancyModel, self).__init__()
         self.state_dim = int(np.prod(state_dim))
@@ -319,6 +346,12 @@ class LearnedOccupancyModel(nn.Module):
         self.min_std = min_std
         self.architecture = str(architecture).lower()
         self.num_layers = int(num_layers)
+        self.persistence_initialization = bool(persistence_initialization)
+        self.input_normalizer = (
+            RunningFeatureNormalizer(self.state_dim, clip=normalization_clip)
+            if normalize_input
+            else None
+        )
 
         if self.architecture == "mlp":
             self.net = nn.Sequential(
@@ -340,10 +373,32 @@ class LearnedOccupancyModel(nn.Module):
         else:
             raise ValueError(f"Unknown belief architecture: {architecture}")
 
+        if self.persistence_initialization:
+            self._initialize_as_persistence_forecast()
+
+    def _initialize_as_persistence_forecast(self):
+        """Start with ``mean(t + h) == position(t)`` for every horizon.
+
+        The model predicts a residual displacement.  PyTorch's default random
+        initialization can therefore be much worse than the zero-displacement
+        persistence forecast before the first supervised update.  Zeroing the
+        output head makes both the displacement and its initial state-dependent
+        variation exactly zero.  The output head still receives a non-zero
+        gradient on the first update; the hidden layers start receiving one
+        after the head has moved away from zero.
+        """
+
+        output = self.net[-1] if self.architecture == "mlp" else self.head
+        with torch.no_grad():
+            output.weight.zero_()
+            output.bias.zero_()
+
     def forward(self, state):
         B, T = state.shape[:2]
         current_pos = _extract_target_positions(state, self.n_agents, self.n_targets)
         state_flat = state.reshape(B, T, self.state_dim)
+        if self.input_normalizer is not None:
+            state_flat = self.input_normalizer(state_flat)
         if self.architecture == "mlp":
             out = self.net(state_flat.reshape(-1, self.state_dim)).view(
                 B, T, self.horizon, self.n_targets, 4
@@ -371,6 +426,7 @@ class LearnedOccupancyModel(nn.Module):
         per_horizon_position_errors = []
         per_horizon_baseline_position_errors = []
         per_horizon_pred_stds = []
+        per_horizon_target_positions = []
         for h in range(self.horizon):
             valid_t = T - h
             if valid_t <= 0:
@@ -401,12 +457,307 @@ class LearnedOccupancyModel(nn.Module):
             per_horizon_position_errors.append(padded_position_error)
             per_horizon_baseline_position_errors.append(padded_baseline_position_error)
             per_horizon_pred_stds.append(padded_pred_std)
+            per_horizon_target_positions.append(target)
         diagnostics = {
             "position_error": per_horizon_position_errors,
             "baseline_position_error": per_horizon_baseline_position_errors,
             "pred_std": per_horizon_pred_stds,
+            "target_position": per_horizon_target_positions,
         }
         return per_horizon_losses, per_horizon_valid, mean, std, diagnostics
+
+
+class CategoricalOccupancyModel(nn.Module):
+    """Multi-horizon displacement distribution on a finite two-dimensional grid.
+
+    The network predicts residual logits on top of a fixed, symmetric
+    persistence prior centered at zero displacement.  With a zero-initialized
+    output head, the expected future position is therefore exactly the current
+    target position.  Training uses a distance-aware soft categorical NLL plus
+    an optional expected-position Smooth-L1 term.
+    """
+
+    distribution_type = "categorical_grid"
+
+    def __init__(
+        self,
+        state_dim,
+        n_agents,
+        n_targets,
+        horizon=3,
+        hidden_dim=256,
+        grid_size=21,
+        max_delta=400.0,
+        label_std=None,
+        persistence_prior_std=None,
+        position_loss_coeff=0.1,
+        min_std=1.0,
+        architecture="mlp",
+        num_layers=1,
+        dropout=0.0,
+        persistence_initialization=False,
+        normalize_input=True,
+        normalization_clip=5.0,
+        eps=1e-8,
+    ):
+        super().__init__()
+        self.state_dim = int(np.prod(state_dim))
+        self.n_agents = int(n_agents)
+        self.n_targets = int(n_targets)
+        self.horizon = int(horizon)
+        self.grid_size = int(grid_size)
+        if self.grid_size < 3 or self.grid_size % 2 == 0:
+            raise ValueError("categorical belief grid_size must be odd and >= 3")
+        self.max_delta = float(max_delta)
+        self.position_loss_coeff = float(position_loss_coeff)
+        self.min_std = float(min_std)
+        self.architecture = str(architecture).lower()
+        self.num_layers = int(num_layers)
+        self.persistence_initialization = bool(persistence_initialization)
+        self.eps = float(eps)
+        self.input_normalizer = (
+            RunningFeatureNormalizer(self.state_dim, clip=normalization_clip)
+            if normalize_input
+            else None
+        )
+
+        axis = torch.linspace(-self.max_delta, self.max_delta, self.grid_size)
+        yy, xx = torch.meshgrid(axis, axis, indexing="ij")
+        displacement_grid = torch.stack([xx.reshape(-1), yy.reshape(-1)], dim=-1)
+        self.register_buffer("displacement_grid", displacement_grid)
+        self.num_cells = int(displacement_grid.size(0))
+        cell_width = 2.0 * self.max_delta / float(self.grid_size - 1)
+        self.label_std = float(label_std if label_std is not None else cell_width)
+        self.persistence_prior_std = float(
+            persistence_prior_std
+            if persistence_prior_std is not None
+            else cell_width
+        )
+        if self.label_std <= 0.0 or self.persistence_prior_std <= 0.0:
+            raise ValueError("categorical label/prior std must be positive")
+
+        prior_logits = -0.5 * (
+            displacement_grid / self.persistence_prior_std
+        ).square().sum(dim=-1)
+        prior_logits = prior_logits - torch.logsumexp(prior_logits, dim=-1)
+        self.register_buffer("persistence_prior_logits", prior_logits)
+
+        output_dim = self.horizon * self.n_targets * self.num_cells
+        if self.architecture == "mlp":
+            self.net = nn.Sequential(
+                nn.Linear(self.state_dim, hidden_dim),
+                nn.ReLU(),
+                nn.Linear(hidden_dim, hidden_dim),
+                nn.ReLU(),
+                nn.Linear(hidden_dim, output_dim),
+            )
+        elif self.architecture == "lstm":
+            self.rnn = nn.LSTM(
+                input_size=self.state_dim,
+                hidden_size=hidden_dim,
+                num_layers=self.num_layers,
+                batch_first=True,
+                dropout=float(dropout) if self.num_layers > 1 else 0.0,
+            )
+            self.head = nn.Linear(hidden_dim, output_dim)
+        else:
+            raise ValueError(f"Unknown belief architecture: {architecture}")
+
+        if self.persistence_initialization:
+            output = self.net[-1] if self.architecture == "mlp" else self.head
+            with torch.no_grad():
+                output.weight.zero_()
+                output.bias.zero_()
+
+    def _residual_logits(self, state):
+        batch, time = state.shape[:2]
+        flat = state.reshape(batch, time, self.state_dim)
+        if self.input_normalizer is not None:
+            flat = self.input_normalizer(flat)
+        if self.architecture == "mlp":
+            output = self.net(flat.reshape(-1, self.state_dim))
+        else:
+            with torch.backends.cudnn.flags(enabled=False):
+                features, _ = self.rnn(flat)
+            output = self.head(features).reshape(-1, self.horizon * self.n_targets * self.num_cells)
+        return output.view(
+            batch, time, self.horizon, self.n_targets, self.num_cells
+        )
+
+    def distribution(self, state):
+        residual_logits = self._residual_logits(state)
+        logits = residual_logits + self.persistence_prior_logits.view(
+            1, 1, 1, 1, self.num_cells
+        )
+        probabilities = torch.softmax(logits, dim=-1)
+        mean, std = self.moments_from_probabilities(state, probabilities)
+        return probabilities, mean, std, logits
+
+    def moments_from_probabilities(self, state, probabilities):
+        current_position = _extract_target_positions(
+            state, self.n_agents, self.n_targets
+        )
+        expected_delta = torch.einsum(
+            "bthnk,kd->bthnd", probabilities, self.displacement_grid
+        )
+        mean = current_position.unsqueeze(2) + expected_delta
+        centered = self.displacement_grid.view(1, 1, 1, 1, self.num_cells, 2)
+        centered = centered - expected_delta.unsqueeze(-2)
+        variance = (probabilities.unsqueeze(-1) * centered.square()).sum(dim=-2)
+        std = torch.sqrt(variance.clamp_min(self.eps)).clamp_min(self.min_std)
+        return mean, std
+
+    def persistence_probabilities(self, state):
+        shape = (*state.shape[:2], self.horizon, self.n_targets, self.num_cells)
+        return torch.softmax(self.persistence_prior_logits, dim=-1).view(
+            1, 1, 1, 1, self.num_cells
+        ).expand(shape)
+
+    def forward(self, state):
+        _probabilities, mean, std, _logits = self.distribution(state)
+        return mean, std
+
+    def nll(self, state, next_state):
+        probabilities, mean, std, logits = self.distribution(state)
+        log_probabilities = torch.log_softmax(logits, dim=-1)
+        current_position = _extract_target_positions(
+            state, self.n_agents, self.n_targets
+        )
+        batch, time = state.shape[:2]
+        losses, valid_masks = [], []
+        position_errors, baseline_errors, pred_stds, target_positions = [], [], [], []
+        spatial_nlls, position_losses, top1_errors = [], [], []
+        grid = self.displacement_grid.view(1, 1, 1, self.num_cells, 2)
+
+        for horizon in range(self.horizon):
+            valid_time = time - horizon
+            if valid_time <= 0:
+                break
+            future_state = next_state[:, horizon:, :]
+            target = _extract_target_positions(
+                future_state, self.n_agents, self.n_targets
+            )
+            baseline = current_position[:, :valid_time]
+            target_delta = target - baseline
+            label_logits = -0.5 * (
+                (grid - target_delta.unsqueeze(-2)) / self.label_std
+            ).square().sum(dim=-1)
+            soft_target = torch.softmax(label_logits, dim=-1)
+            log_prob = log_probabilities[:, :valid_time, horizon]
+            spatial_nll = -(soft_target * log_prob).sum(dim=-1).mean(dim=-1)
+
+            pred_mean = mean[:, :valid_time, horizon]
+            normalized_error = (pred_mean - target) / max(self.max_delta, self.eps)
+            position_loss = F.smooth_l1_loss(
+                normalized_error,
+                torch.zeros_like(normalized_error),
+                reduction="none",
+            ).sum(dim=-1).mean(dim=-1)
+            combined = spatial_nll + self.position_loss_coeff * position_loss
+
+            position_error = torch.linalg.norm(target - pred_mean, dim=-1).mean(dim=-1)
+            baseline_error = torch.linalg.norm(target - baseline, dim=-1).mean(dim=-1)
+            pred_std = std[:, :valid_time, horizon].mean(dim=(-1, -2))
+            top1 = probabilities[:, :valid_time, horizon].argmax(dim=-1)
+            top1_delta = self.displacement_grid[top1]
+            top1_position = baseline + top1_delta
+            top1_error = torch.linalg.norm(target - top1_position, dim=-1).mean(dim=-1)
+
+            def pad(values, dtype=None):
+                output = torch.zeros(
+                    (batch, time),
+                    dtype=dtype or values.dtype,
+                    device=values.device,
+                )
+                output[:, :valid_time] = values
+                return output
+
+            losses.append(pad(combined))
+            valid_masks.append(
+                pad(
+                    torch.ones_like(combined, dtype=torch.bool),
+                    dtype=torch.bool,
+                )
+            )
+            position_errors.append(pad(position_error))
+            baseline_errors.append(pad(baseline_error))
+            pred_stds.append(pad(pred_std))
+            spatial_nlls.append(pad(spatial_nll))
+            position_losses.append(pad(position_loss))
+            top1_errors.append(pad(top1_error))
+            target_positions.append(target)
+
+        diagnostics = {
+            "position_error": position_errors,
+            "baseline_position_error": baseline_errors,
+            "pred_std": pred_stds,
+            "target_position": target_positions,
+            "categorical_nll": spatial_nlls,
+            "position_loss": position_losses,
+            "top1_position_error": top1_errors,
+            "probabilities": probabilities,
+        }
+        return losses, valid_masks, mean, std, diagnostics
+
+
+def build_occupancy_model(state_dim, n_agents, n_targets, focus_config):
+    """Construct the configured learned occupancy distribution."""
+
+    distribution = str(focus_config.get("belief_distribution", "gaussian")).lower()
+    common = {
+        "horizon": int(focus_config.get("horizon", 3)),
+        "hidden_dim": int(focus_config.get("belief_hidden_dim", 256)),
+        "architecture": focus_config.get(
+            "belief_arch", focus_config.get("belief_architecture", "mlp")
+        ),
+        "num_layers": int(focus_config.get("belief_num_layers", 1)),
+        "dropout": float(focus_config.get("belief_dropout", 0.0)),
+        "persistence_initialization": bool(
+            focus_config.get("belief_persistence_initialization", False)
+        ),
+        "normalize_input": bool(
+            focus_config.get("belief_input_normalization", True)
+        ),
+        "normalization_clip": float(
+            focus_config.get("belief_input_clip", 5.0)
+        ),
+    }
+    if distribution in ("gaussian", "normal"):
+        return LearnedOccupancyModel(
+            state_dim,
+            n_agents,
+            n_targets,
+            max_delta=float(focus_config.get("belief_max_delta", 400.0)),
+            min_std=float(focus_config.get("belief_min_std", 25.0)),
+            **common,
+        )
+    if distribution in ("categorical", "categorical_grid", "grid"):
+        return CategoricalOccupancyModel(
+            state_dim,
+            n_agents,
+            n_targets,
+            grid_size=int(focus_config.get("belief_grid_size", 21)),
+            max_delta=float(
+                focus_config.get(
+                    "belief_grid_max_delta",
+                    focus_config.get("belief_max_delta", 400.0),
+                )
+            ),
+            label_std=focus_config.get("belief_grid_label_std"),
+            persistence_prior_std=focus_config.get(
+                "belief_persistence_prior_std"
+            ),
+            position_loss_coeff=float(
+                focus_config.get("belief_position_loss_coeff", 0.1)
+            ),
+            min_std=float(focus_config.get("belief_min_std", 1.0)),
+            eps=float(focus_config.get("eps", 1e-8)),
+            **common,
+        )
+    raise ValueError(
+        "belief_distribution must be gaussian or categorical_grid, "
+        f"got {distribution!r}"
+    )
 
 
 class LocalTargetBeliefModel(nn.Module):
@@ -571,6 +922,192 @@ class QPLEXFocusLoss(nn.Module):
         self.occupancy_model = occupancy_model
         self.local_belief_model = local_belief_model
         self.last_focus_stats = {}
+        self.last_pair_gains = None
+        self.last_belief_loss = None
+        self.action_gradient_floor = GradientFloor(
+            ratio=float(self.focus_config.get("action_gradient_floor", 0.10)),
+            ema_decay=float(self.focus_config.get("action_gradient_ema_decay", 0.9)),
+            eps=float(self.focus_config.get("eps", 1e-8)),
+        )
+        # Tensor buffers are required here (instead of nn.Module extra_state):
+        # this repository's RLlib TorchPolicy assumes every state_dict value
+        # supports .cpu().detach().numpy() during worker synchronization.
+        self.register_buffer(
+            "_focus_learner_update_state", torch.zeros((), dtype=torch.long)
+        )
+        self.register_buffer(
+            "_belief_model_error_ema_state",
+            torch.full((), float("nan"), dtype=torch.float64),
+        )
+        self.register_buffer(
+            "_belief_baseline_error_ema_state",
+            torch.full((), float("nan"), dtype=torch.float64),
+        )
+        self.register_buffer(
+            "_belief_error_ema_updates_state", torch.zeros((), dtype=torch.long)
+        )
+
+    @property
+    def _focus_learner_update(self):
+        return int(self._focus_learner_update_state.item())
+
+    @_focus_learner_update.setter
+    def _focus_learner_update(self, value):
+        self._focus_learner_update_state.fill_(max(int(value), 0))
+
+    @property
+    def _belief_model_error_ema(self):
+        value = float(self._belief_model_error_ema_state.item())
+        return None if np.isnan(value) else value
+
+    @_belief_model_error_ema.setter
+    def _belief_model_error_ema(self, value):
+        value = float("nan") if value is None else float(value)
+        self._belief_model_error_ema_state.fill_(value)
+
+    @property
+    def _belief_baseline_error_ema(self):
+        value = float(self._belief_baseline_error_ema_state.item())
+        return None if np.isnan(value) else value
+
+    @_belief_baseline_error_ema.setter
+    def _belief_baseline_error_ema(self, value):
+        value = float("nan") if value is None else float(value)
+        self._belief_baseline_error_ema_state.fill_(value)
+
+    @property
+    def _belief_error_ema_updates(self):
+        return int(self._belief_error_ema_updates_state.item())
+
+    @_belief_error_ema_updates.setter
+    def _belief_error_ema_updates(self, value):
+        self._belief_error_ema_updates_state.fill_(max(int(value), 0))
+
+    def _load_from_state_dict(
+        self,
+        state_dict,
+        prefix,
+        local_metadata,
+        strict,
+        missing_keys,
+        unexpected_keys,
+        error_msgs,
+    ):
+        # Backward compatibility with checkpoints created before runtime gate
+        # buffers existed.  Missing buffers start in their conservative state.
+        for name in (
+            "_focus_learner_update_state",
+            "_belief_model_error_ema_state",
+            "_belief_baseline_error_ema_state",
+            "_belief_error_ema_updates_state",
+        ):
+            state_dict.setdefault(prefix + name, getattr(self, name).detach().clone())
+        super()._load_from_state_dict(
+            state_dict,
+            prefix,
+            local_metadata,
+            strict,
+            missing_keys,
+            unexpected_keys,
+            error_msgs,
+        )
+
+    def set_focus_learner_update(self, learner_update):
+        self._focus_learner_update = max(int(learner_update or 0), 0)
+
+    def get_focus_runtime_state(self):
+        """Return non-parameter gate state for checkpointing on the learner."""
+
+        return {
+            "learner_update": self._focus_learner_update,
+            "belief_model_error_ema": self._belief_model_error_ema,
+            "belief_baseline_error_ema": self._belief_baseline_error_ema,
+            "belief_error_ema_updates": self._belief_error_ema_updates,
+        }
+
+    def set_focus_runtime_state(self, state):
+        state = state or {}
+        self._focus_learner_update = max(int(state.get("learner_update", 0)), 0)
+        model_error = state.get("belief_model_error_ema")
+        baseline_error = state.get("belief_baseline_error_ema")
+        self._belief_model_error_ema = (
+            None if model_error is None else float(model_error)
+        )
+        self._belief_baseline_error_ema = (
+            None if baseline_error is None else float(baseline_error)
+        )
+        self._belief_error_ema_updates = max(
+            int(state.get("belief_error_ema_updates", 0)), 0
+        )
+
+    def observe_belief_errors(self, model_error, baseline_error, learner_update=None):
+        """Advance the causal gate from a completed learner batch.
+
+        The caller must pass detached errors computed from supervised future
+        labels.  Credits for that batch must already have been constructed;
+        consequently these errors can affect only subsequent batches.
+        """
+
+        if not self.focus_config.get("belief_performance_gate", False):
+            return False
+        self._update_belief_error_ema(float(model_error), float(baseline_error))
+        if learner_update is None:
+            learner_update = self._focus_learner_update + 1
+        self.set_focus_learner_update(learner_update)
+        return True
+
+    def _belief_blend_schedule(self):
+        if not self.focus_config.get("belief_progressive_blend", False):
+            return 1.0
+        warmup = max(
+            int(self.focus_config.get("belief_blend_warmup_updates", 0)), 0
+        )
+        ramp = max(int(self.focus_config.get("belief_blend_ramp_updates", 0)), 0)
+        if self._focus_learner_update <= warmup:
+            return 0.0
+        if ramp == 0:
+            return 1.0
+        return float(
+            np.clip((self._focus_learner_update - warmup) / float(ramp), 0.0, 1.0)
+        )
+
+    def _belief_performance_gate(self):
+        """Trust learned displacement only after prior batches beat persistence."""
+
+        if not self.focus_config.get("belief_performance_gate", False):
+            return 1.0
+        if (
+            self._belief_model_error_ema is None
+            or self._belief_baseline_error_ema is None
+            or self._belief_error_ema_updates <= 0
+        ):
+            return 0.0
+        eps = float(self.focus_config.get("eps", 1e-8))
+        baseline = max(self._belief_baseline_error_ema, eps)
+        margin = max(float(self.focus_config.get("belief_gate_margin", 0.0)), 0.0)
+        full_improvement = max(
+            float(self.focus_config.get("belief_gate_full_improvement", 0.2)), eps
+        )
+        improvement = (baseline * (1.0 - margin) - self._belief_model_error_ema) / baseline
+        return float(np.clip(improvement / full_improvement, 0.0, 1.0))
+
+    def _update_belief_error_ema(self, model_error, baseline_error):
+        decay = float(self.focus_config.get("belief_error_ema_decay", 0.95))
+        decay = float(np.clip(decay, 0.0, 1.0))
+        model_error = float(model_error)
+        baseline_error = float(baseline_error)
+        if self._belief_error_ema_updates == 0:
+            self._belief_model_error_ema = model_error
+            self._belief_baseline_error_ema = baseline_error
+        else:
+            self._belief_model_error_ema = (
+                decay * self._belief_model_error_ema + (1.0 - decay) * model_error
+            )
+            self._belief_baseline_error_ema = (
+                decay * self._belief_baseline_error_ema
+                + (1.0 - decay) * baseline_error
+            )
+        self._belief_error_ema_updates += 1
 
     def _decode_target_selection(self, actions, n_targets):
         if not self.focus_config.get("use_action_selection", True):
@@ -822,6 +1359,82 @@ class QPLEXFocusLoss(nn.Module):
             g = g + torch.einsum("btcjg,btjg->btc", unique_vis, occ)
         return g
 
+    def _credit_from_categorical_grid(
+        self,
+        probabilities,
+        displacement_grid,
+        state,
+        actions,
+        n_targets,
+    ):
+        """Integrate exact categorical cell mass without collapsing to a mean."""
+
+        cam_pos, cam_orient, cam_range, cam_half_angle, obstacle_pos, obstacle_radius = (
+            self._credit_geometry(state, n_targets)
+        )
+        selection = self._decode_target_selection(actions, n_targets)
+        horizon_weights = self._horizon_weights(
+            probabilities.size(2), probabilities.device, probabilities.dtype
+        )
+        current_position = _extract_target_positions(
+            state, self.n_agents, n_targets
+        )
+        chunk_size = int(
+            self.focus_config.get(
+                "belief_grid_chunk_size",
+                self.focus_config.get("grid_chunk_size", 128),
+            )
+        )
+        chunk_size = max(1, min(chunk_size, displacement_grid.size(0)))
+        gains = probabilities.new_zeros(
+            probabilities.size(0), probabilities.size(1), self.n_agents
+        )
+
+        for start in range(0, displacement_grid.size(0), chunk_size):
+            end = min(start + chunk_size, displacement_grid.size(0))
+            displacement = displacement_grid[start:end]
+            cell_mass = (
+                probabilities[..., start:end]
+                * horizon_weights.view(1, 1, -1, 1, 1)
+            ).sum(dim=2)
+            points = current_position.unsqueeze(-2) + displacement.view(
+                1, 1, 1, -1, 2
+            )
+            visibility = self._point_visibility(
+                points.unsqueeze(2),
+                cam_pos,
+                cam_orient,
+                cam_range,
+                cam_half_angle,
+                obstacle_pos=obstacle_pos,
+                obstacle_radius=obstacle_radius,
+            ).squeeze(3)
+            if selection is not None:
+                visibility = visibility * selection.unsqueeze(-1)
+            one_minus = 1.0 - visibility
+            uncovered_by_others = []
+            for camera in range(self.n_agents):
+                if self.n_agents == 1:
+                    uncovered_by_others.append(
+                        torch.ones_like(visibility[:, :, camera])
+                    )
+                else:
+                    others = torch.cat(
+                        [
+                            one_minus[:, :, :camera],
+                            one_minus[:, :, camera + 1 :],
+                        ],
+                        dim=2,
+                    )
+                    uncovered_by_others.append(others.prod(dim=2))
+            unique_visibility = visibility * torch.stack(
+                uncovered_by_others, dim=2
+            )
+            gains = gains + (
+                unique_visibility * cell_mass.unsqueeze(2)
+            ).sum(dim=(-1, -2))
+        return gains
+
     def _credit_chunk_sum(
         self,
         target_samples,
@@ -833,8 +1446,9 @@ class QPLEXFocusLoss(nn.Module):
         sample_weights=None,
         obstacle_pos=None,
         obstacle_radius=None,
+        return_pair_gains=False,
     ):
-        visible = self._point_visibility(
+        raw_visible = self._point_visibility(
             target_samples,
             cam_pos,
             cam_orient,
@@ -844,8 +1458,9 @@ class QPLEXFocusLoss(nn.Module):
             obstacle_radius=obstacle_radius,
         )
 
+        visible = raw_visible
         if selection is not None:
-            visible = visible * selection.unsqueeze(3).unsqueeze(-1)
+            visible = raw_visible * selection.unsqueeze(3).unsqueeze(-1)
 
         one_minus = 1.0 - visible
         all_uncovered_by_others = []
@@ -855,10 +1470,22 @@ class QPLEXFocusLoss(nn.Module):
             else:
                 others = torch.cat([one_minus[:, :, :i, :], one_minus[:, :, i + 1 :, :]], dim=2)
                 all_uncovered_by_others.append(torch.prod(others, dim=2))
-        unique_gain = visible * torch.stack(all_uncovered_by_others, dim=2)
+        uncovered_by_others = torch.stack(all_uncovered_by_others, dim=2)
+        unique_gain = visible * uncovered_by_others
+        # G_ij asks what camera i would uniquely gain if it selected target j,
+        # while all teammates keep their sampled actions.  Therefore its own
+        # selection bit is forced on, unlike the camera-level gain above.
+        pair_unique_gain = raw_visible * uncovered_by_others
         if sample_weights is not None:
             unique_gain = unique_gain * sample_weights.view(1, 1, 1, 1, 1, -1)
-        return unique_gain.sum(dim=-1).sum(dim=-1)
+            pair_unique_gain = pair_unique_gain * sample_weights.view(
+                1, 1, 1, 1, 1, -1
+            )
+        pair_gains = unique_gain.sum(dim=-1)
+        camera_gains = pair_gains.sum(dim=-1)
+        if return_pair_gains:
+            return camera_gains, pair_unique_gain.sum(dim=-1)
+        return camera_gains
 
     def _credit_geometry(self, state, n_targets):
         cam_pos, cam_orient, cam_range, cam_half_angle = _extract_camera_fov(state, self.n_agents)
@@ -921,7 +1548,9 @@ class QPLEXFocusLoss(nn.Module):
                 g = g + horizon_weights[h] * chunk_sum
         return g
 
-    def _credit_from_mc_points(self, mean, std, state, actions, n_targets):
+    def _credit_from_mc_points(
+        self, mean, std, state, actions, n_targets, return_pair_gains=False
+    ):
         cam_pos, cam_orient, cam_range, cam_half_angle, obstacle_pos, obstacle_radius = (
             self._credit_geometry(state, n_targets)
         )
@@ -938,6 +1567,9 @@ class QPLEXFocusLoss(nn.Module):
         )
         horizon_weights = self._horizon_weights(mean.size(2), actions.device, mean.dtype)
         g = mean.new_zeros(mean.size(0), mean.size(1), self.n_agents)
+        pair_gains = mean.new_zeros(
+            mean.size(0), mean.size(1), self.n_agents, n_targets
+        )
 
         for h in range(mean.size(2)):
             mean_h = mean[:, :, h : h + 1, :, :]
@@ -947,7 +1579,7 @@ class QPLEXFocusLoss(nn.Module):
                 samples = mean_h.unsqueeze(4) + std_h.unsqueeze(4) * normal_chunk.view(
                     1, 1, 1, 1, -1, 2
                 )
-                chunk_sum = self._credit_chunk_sum(
+                chunk_result = self._credit_chunk_sum(
                     samples,
                     cam_pos,
                     cam_orient,
@@ -956,11 +1588,25 @@ class QPLEXFocusLoss(nn.Module):
                     selection,
                     obstacle_pos=obstacle_pos,
                     obstacle_radius=obstacle_radius,
-                ).squeeze(3)
+                    return_pair_gains=return_pair_gains,
+                )
+                if return_pair_gains:
+                    chunk_sum, chunk_pairs = chunk_result
+                    chunk_pairs = chunk_pairs.squeeze(3)
+                    pair_gains = pair_gains + (
+                        horizon_weights[h] * chunk_pairs / float(num_points)
+                    )
+                else:
+                    chunk_sum = chunk_result
+                chunk_sum = chunk_sum.squeeze(3)
                 g = g + horizon_weights[h] * chunk_sum / float(num_points)
+        if return_pair_gains:
+            return g, pair_gains
         return g
 
-    def _focus_credit_target(self, state, next_state, actions, mask):
+    def _focus_credit_target(
+        self, state, next_state, actions, mask, update_belief_ema=True
+    ):
         eps = self.focus_config.get("eps", 1e-8)
         n_targets = int(self.focus_config.get("n_targets", 8))
         min_signal = float(self.focus_config.get("min_credit_signal", 1e-6))
@@ -968,6 +1614,8 @@ class QPLEXFocusLoss(nn.Module):
         confidence = torch.ones(actions.shape[:2], dtype=torch.float, device=actions.device)
         confidence_mode = "off"
         self.last_belief_stats = {}
+        pending_belief_ema = None
+        self.last_pair_gains = None
 
         required_dim = PRESERVED_DIM + self.n_agents * CAMERA_STATE_DIM_PRIVATE + n_targets * TARGET_STATE_DIM_PRIVATE
         if state is None or state.size(-1) < required_dim:
@@ -996,22 +1644,83 @@ class QPLEXFocusLoss(nn.Module):
                 total_g = torch.zeros((B, T), dtype=torch.float, device=actions.device)
                 return rho, valid, total_g, belief_loss, confidence, confidence_mode
             per_horizon_losses, per_horizon_valid, mean, std, diagnostics = self.occupancy_model.nll(state, next_state)
+            categorical_belief = (
+                getattr(self.occupancy_model, "distribution_type", None)
+                == "categorical_grid"
+            )
             valid_belief = mask[:, :, 0] > 0.0
             horizon_weights = self._horizon_weights(mean.size(2), actions.device, mean.dtype)
+            blend_schedule = self._belief_blend_schedule()
+            performance_gate = self._belief_performance_gate()
+            effective_blend = blend_schedule * performance_gate
+            current_position = _extract_target_positions(
+                state, self.n_agents, n_targets
+            ).unsqueeze(2)
+            # Supervision always uses the raw learned distribution.  Only the
+            # distribution consumed by FOCUS is blended toward persistence.
+            credit_probabilities = None
+            if categorical_belief:
+                raw_probabilities = diagnostics["probabilities"]
+                persistence_probabilities = (
+                    self.occupancy_model.persistence_probabilities(state)
+                )
+                credit_probabilities = persistence_probabilities + effective_blend * (
+                    raw_probabilities - persistence_probabilities
+                )
+                credit_mean, _credit_std = (
+                    self.occupancy_model.moments_from_probabilities(
+                        state, credit_probabilities
+                    )
+                )
+            else:
+                credit_mean = current_position + effective_blend * (
+                    mean - current_position
+                )
             weighted_losses = []
             per_step_belief_loss = torch.zeros_like(valid_belief, dtype=mean.dtype)
             weighted_position_error = torch.zeros_like(valid_belief, dtype=mean.dtype)
             weighted_baseline_position_error = torch.zeros_like(valid_belief, dtype=mean.dtype)
+            weighted_effective_position_error = torch.zeros_like(
+                valid_belief, dtype=mean.dtype
+            )
             weighted_pred_std = torch.zeros_like(valid_belief, dtype=mean.dtype)
-            belief_stats = {}
+            belief_stats = {
+                "focus_belief_distribution_categorical": float(categorical_belief),
+                "focus_belief_blend_schedule": blend_schedule,
+                "focus_belief_performance_gate": performance_gate,
+                "focus_belief_effective_blend": effective_blend,
+                "focus_belief_gate_ema_ready": float(
+                    self._belief_error_ema_updates > 0
+                ),
+                "focus_belief_gate_ema_model_error": float(
+                    self._belief_model_error_ema or 0.0
+                ),
+                "focus_belief_gate_ema_baseline_error": float(
+                    self._belief_baseline_error_ema or 0.0
+                ),
+                "focus_belief_gate_ema_updates": float(
+                    self._belief_error_ema_updates
+                ),
+            }
             for h, (nll_per_step, valid_h) in enumerate(zip(per_horizon_losses, per_horizon_valid)):
                 per_step_belief_loss = per_step_belief_loss + horizon_weights[h] * nll_per_step
                 position_error = diagnostics["position_error"][h]
                 baseline_position_error = diagnostics["baseline_position_error"][h]
                 pred_std = diagnostics["pred_std"][h]
+                target_position = diagnostics["target_position"][h]
+                valid_t = target_position.size(1)
+                effective_position_error = torch.linalg.norm(
+                    target_position - credit_mean[:, :valid_t, h, :, :], dim=-1
+                ).mean(dim=-1)
+                padded_effective_position_error = torch.zeros_like(position_error)
+                padded_effective_position_error[:, :valid_t] = effective_position_error
                 weighted_position_error = weighted_position_error + horizon_weights[h] * position_error
                 weighted_baseline_position_error = (
                     weighted_baseline_position_error + horizon_weights[h] * baseline_position_error
+                )
+                weighted_effective_position_error = (
+                    weighted_effective_position_error
+                    + horizon_weights[h] * padded_effective_position_error
                 )
                 weighted_pred_std = weighted_pred_std + horizon_weights[h] * pred_std
                 valid_h = valid_h & valid_belief
@@ -1020,6 +1729,7 @@ class QPLEXFocusLoss(nn.Module):
                     horizon_id = h + 1
                     model_err = position_error[valid_h].mean()
                     baseline_err = baseline_position_error[valid_h].mean()
+                    effective_err = padded_effective_position_error[valid_h].mean()
                     std_mean = pred_std[valid_h].mean()
                     belief_stats[f"focus_belief_loss_h{horizon_id}"] = nll_per_step[valid_h].mean().detach().item()
                     belief_stats[f"focus_belief_pos_error_h{horizon_id}"] = model_err.detach().item()
@@ -1027,10 +1737,26 @@ class QPLEXFocusLoss(nn.Module):
                     belief_stats[f"focus_belief_pos_error_improvement_h{horizon_id}"] = (
                         baseline_err - model_err
                     ).detach().item()
+                    belief_stats[f"focus_belief_effective_pos_error_h{horizon_id}"] = (
+                        effective_err.detach().item()
+                    )
                     belief_stats[f"focus_belief_pred_std_h{horizon_id}"] = std_mean.detach().item()
                     belief_stats[f"focus_belief_error_to_std_ratio_h{horizon_id}"] = (
                         model_err / (std_mean + eps)
                     ).detach().item()
+                    if categorical_belief:
+                        categorical_nll = diagnostics["categorical_nll"][h][valid_h].mean()
+                        position_loss = diagnostics["position_loss"][h][valid_h].mean()
+                        top1_error = diagnostics["top1_position_error"][h][valid_h].mean()
+                        belief_stats[
+                            f"focus_belief_categorical_nll_h{horizon_id}"
+                        ] = categorical_nll.detach().item()
+                        belief_stats[
+                            f"focus_belief_position_loss_h{horizon_id}"
+                        ] = position_loss.detach().item()
+                        belief_stats[
+                            f"focus_belief_top1_pos_error_h{horizon_id}"
+                        ] = top1_error.detach().item()
             if weighted_losses:
                 belief_loss = torch.stack(weighted_losses).sum()
             confidence, confidence_mode = resolve_confidence(
@@ -1044,6 +1770,7 @@ class QPLEXFocusLoss(nn.Module):
                 valid_conf = confidence[valid_belief]
                 valid_pos_error = weighted_position_error[valid_belief]
                 valid_baseline_error = weighted_baseline_position_error[valid_belief]
+                valid_effective_error = weighted_effective_position_error[valid_belief]
                 valid_pred_std = weighted_pred_std[valid_belief]
                 belief_stats["focus_belief_pos_error_weighted"] = valid_pos_error.mean().detach().item()
                 belief_stats["focus_belief_baseline_pos_error_weighted"] = (
@@ -1052,6 +1779,9 @@ class QPLEXFocusLoss(nn.Module):
                 belief_stats["focus_belief_pos_error_improvement_weighted"] = (
                     valid_baseline_error.mean() - valid_pos_error.mean()
                 ).detach().item()
+                belief_stats["focus_belief_effective_pos_error_weighted"] = (
+                    valid_effective_error.mean().detach().item()
+                )
                 belief_stats["focus_belief_pred_std_weighted"] = valid_pred_std.mean().detach().item()
                 belief_stats["focus_belief_error_to_std_ratio_weighted"] = (
                     valid_pos_error.mean() / (valid_pred_std.mean() + eps)
@@ -1075,12 +1805,24 @@ class QPLEXFocusLoss(nn.Module):
                         belief_stats["focus_belief_high_conf_pos_error"] = (
                             valid_pos_error[high_mask].mean().detach().item()
                         )
+                pending_belief_ema = (
+                    valid_pos_error.mean().detach().item(),
+                    valid_baseline_error.mean().detach().item(),
+                )
             self.last_belief_stats = belief_stats
             integral_mode = self.focus_config.get("integral_mode", "MC")
-            if integral_mode == "grid":
-                g = self._credit_from_grid(mean.detach(), std.detach(), state, actions, n_targets)
+            if categorical_belief:
+                g = self._credit_from_categorical_grid(
+                    credit_probabilities.detach(),
+                    self.occupancy_model.displacement_grid.detach(),
+                    state,
+                    actions,
+                    n_targets,
+                )
+            elif integral_mode == "grid":
+                g = self._credit_from_grid(credit_mean.detach(), std.detach(), state, actions, n_targets)
             elif integral_mode == "sigma":
-                target_samples, sample_weights = self._sigma_points(mean, std)
+                target_samples, sample_weights = self._sigma_points(credit_mean, std)
                 g = self._credit_from_sigma_points(
                     target_samples.detach(),
                     state,
@@ -1089,7 +1831,23 @@ class QPLEXFocusLoss(nn.Module):
                     sample_weights=sample_weights.detach(),
                 )
             elif integral_mode == "MC":
-                g = self._credit_from_mc_points(mean.detach(), std.detach(), state, actions, n_targets)
+                official_action = bool(
+                    self.focus_config.get("official_mode", False)
+                    and self.focus_config.get("action_credit_enabled", True)
+                )
+                mc_result = self._credit_from_mc_points(
+                    credit_mean.detach(),
+                    std.detach(),
+                    state,
+                    actions,
+                    n_targets,
+                    return_pair_gains=official_action,
+                )
+                if official_action:
+                    g, self.last_pair_gains = mc_result
+                    self.last_pair_gains = self.last_pair_gains.detach()
+                else:
+                    g = mc_result
             else:
                 raise ValueError(f"Unknown FOCUS integral_mode: {integral_mode}")
         elif belief_mode == "oracle_next_ablation":
@@ -1098,6 +1856,24 @@ class QPLEXFocusLoss(nn.Module):
             g = self._credit_from_sigma_points(target_samples, state, actions, n_targets)
         else:
             raise ValueError(f"Unknown FOCUS belief_mode: {belief_mode}")
+        # This update is deliberately after credit construction.  The current
+        # batch's future states therefore cannot increase its own trust gate;
+        # they can only influence subsequent learner updates.
+        if (
+            pending_belief_ema is not None
+            and update_belief_ema
+            and self.focus_config.get("belief_performance_gate", False)
+        ):
+            self._update_belief_error_ema(*pending_belief_ema)
+            self.last_belief_stats["focus_belief_gate_ema_model_error_after"] = float(
+                self._belief_model_error_ema
+            )
+            self.last_belief_stats[
+                "focus_belief_gate_ema_baseline_error_after"
+            ] = float(self._belief_baseline_error_ema)
+            self.last_belief_stats["focus_belief_gate_ema_updates_after"] = float(
+                self._belief_error_ema_updates
+            )
         total_g = g.sum(dim=-1)
         valid = (total_g > min_signal) & (mask[:, :, 0] > 0.0)
         rho = g / (total_g.unsqueeze(-1) + eps)
@@ -1654,6 +2430,7 @@ class QPLEXFocusLoss(nn.Module):
         # so it directly replaces the mixer's softmax responsibility factor
         # (instead of being matched against it via a KL/cross-entropy loss).
         focus_enabled = self.focus_config.get("enabled", True) and self.mixer is not None
+        official_mode = focus_enabled and self.focus_config.get("official_mode", False)
         rho = None
         valid = total_g = confidence = None
         belief_loss = torch.zeros((), dtype=chosen_action_qvals.dtype, device=chosen_action_qvals.device)
@@ -1674,7 +2451,7 @@ class QPLEXFocusLoss(nn.Module):
                 max_action_vals=max_action_vals,
                 is_v=False,
                 return_lambda=True,
-                rho=rho,
+                rho=None if official_mode else rho,
             )
             chosen_action_qvals = ans_chosen + ans_adv
 
@@ -1719,6 +2496,7 @@ class QPLEXFocusLoss(nn.Module):
         if focus_enabled:
             eps = self.focus_config.get("eps", 1e-8)
             beta = float(self.focus_config.get("beta_belief", 0.01))
+            self.last_belief_loss = belief_loss
             lambda_dist = lambda_weights / (lambda_weights.sum(dim=-1, keepdim=True) + eps)
             rho_entropy = -(rho * torch.log(rho + eps)).sum(dim=-1)
             lambda_entropy = -(lambda_dist * torch.log(lambda_dist + eps)).sum(dim=-1)
@@ -1737,14 +2515,62 @@ class QPLEXFocusLoss(nn.Module):
             self.last_focus_stats.update(focus_stats)
             self.last_focus_stats.update(confidence_stats(confidence, valid, confidence_mode))
             self.last_focus_stats.update(self.last_belief_stats)
-            # rho is injected directly into the mixer above; the belief model
-            # and local action student still need supervised objectives.
-            loss = (
-                td_loss
-                + beta * belief_loss
-                + action_distill_coeff * action_distill_loss
-                + local_belief_coeff * local_belief_loss
-            )
+            if official_mode:
+                alpha = float(self.focus_config.get("alpha_credit", 0.1))
+                action_coeff = float(self.focus_config.get("action_credit_coeff", 1.0))
+                temperature = float(self.focus_config.get("action_credit_temperature", 1.0))
+                q_std_floor = float(self.focus_config.get("action_q_std_floor", 0.01))
+                credit_loss, lambda_dist = carrier_credit_loss(
+                    rho,
+                    lambda_weights,
+                    valid,
+                    confidence=confidence,
+                    signal_weights=signal_weights,
+                    eps=eps,
+                )
+                pair_gains = self.last_pair_gains
+                if pair_gains is None:
+                    raise RuntimeError(
+                        "FOCUS official action credit requires integral_mode='MC' "
+                        "so camera-target gains can reuse the Sobol samples."
+                    )
+                action_loss, action_gains = action_credit_loss(
+                    mac_out,
+                    pair_gains,
+                    valid,
+                    confidence=confidence,
+                    signal_weights=signal_weights,
+                    temperature=temperature,
+                    q_std_floor=q_std_floor,
+                    eps=eps,
+                )
+                scaled_action_loss, floor_stats = self.action_gradient_floor.scale(
+                    td_loss,
+                    action_coeff * action_loss,
+                    self.model.parameters(),
+                )
+                loss = td_loss + alpha * credit_loss + scaled_action_loss
+                self.last_focus_stats.update({
+                    "focus_credit_loss": credit_loss.detach().item(),
+                    "focus_alpha_credit": alpha,
+                    "focus_action_loss": action_loss.detach().item(),
+                    "focus_action_credit_coeff": action_coeff,
+                    "focus_action_gain_mean": action_gains.mean().detach().item(),
+                    "focus_action_gradient_scale": floor_stats.scale,
+                    "focus_action_gradient_norm": floor_stats.action_norm,
+                    "focus_td_gradient_norm": floor_stats.td_norm,
+                    "focus_td_gradient_norm_ema": floor_stats.td_norm_ema,
+                    "focus_action_gradient_floor_active": float(floor_stats.active),
+                })
+            else:
+                # Compatibility path for pre-official experiments that inject
+                # rho directly into the mixer and use optional distillation.
+                loss = (
+                    td_loss
+                    + beta * belief_loss
+                    + action_distill_coeff * action_distill_loss
+                    + local_belief_coeff * local_belief_loss
+                )
         else:
             loss = td_loss + action_distill_coeff * action_distill_loss + local_belief_coeff * local_belief_loss
         self.last_focus_stats["td_loss"] = td_loss.detach().item()
@@ -1878,17 +2704,11 @@ class QPLEXFocusTorchPolicy(Policy):
         self.last_action_bias_stats = {}
         self.occupancy_model = None
         if focus_config.get("enabled", True) and focus_config.get("belief_mode", "learned") == "learned":
-            self.occupancy_model = LearnedOccupancyModel(
+            self.occupancy_model = build_occupancy_model(
                 self.env_global_state_shape,
                 self.n_agents,
                 int(focus_config.get("n_targets", 8)),
-                horizon=int(focus_config.get("horizon", 3)),
-                hidden_dim=int(focus_config.get("belief_hidden_dim", 256)),
-                max_delta=float(focus_config.get("belief_max_delta", 400.0)),
-                min_std=float(focus_config.get("belief_min_std", 25.0)),
-                architecture=focus_config.get("belief_arch", focus_config.get("belief_architecture", "mlp")),
-                num_layers=int(focus_config.get("belief_num_layers", 1)),
-                dropout=float(focus_config.get("belief_dropout", 0.0)),
+                focus_config,
             ).to(self.device)
 
         self.local_belief_model = None
@@ -1909,7 +2729,8 @@ class QPLEXFocusTorchPolicy(Policy):
         self.params = list(self.model.parameters())
         if self.mixer:
             self.params += list(self.mixer.parameters())
-        if self.occupancy_model:
+        official_mode = bool(focus_config.get("official_mode", False))
+        if self.occupancy_model and not official_mode:
             self.params += list(self.occupancy_model.parameters())
         if self.local_belief_model:
             self.params += list(self.local_belief_model.parameters())
@@ -1934,6 +2755,12 @@ class QPLEXFocusTorchPolicy(Policy):
             alpha=config["optim_alpha"],
             eps=config["optim_eps"],
         )
+        self.belief_optimiser = None
+        if self.occupancy_model is not None and official_mode:
+            self.belief_optimiser = torch.optim.Adam(
+                self.occupancy_model.parameters(),
+                lr=float(focus_config.get("belief_lr", 1e-4)),
+            )
 
     @override(Policy)
     def compute_actions(
@@ -2197,6 +3024,15 @@ class QPLEXFocusTorchPolicy(Policy):
             self.params, self.config["grad_norm_clipping"]
         )
         self.optimiser.step()
+        belief_grad_norm = 0.0
+        if self.belief_optimiser is not None and self.loss.last_belief_loss is not None:
+            self.belief_optimiser.zero_grad()
+            belief_objective = float(self.focus_config.get("beta_belief", 0.05)) * self.loss.last_belief_loss
+            belief_objective.backward()
+            belief_grad_norm = torch.nn.utils.clip_grad_norm_(
+                self.occupancy_model.parameters(), self.config["grad_norm_clipping"]
+            )
+            self.belief_optimiser.step()
 
         mask_elems = mask.sum().item()
         stats = {
@@ -2207,6 +3043,7 @@ class QPLEXFocusTorchPolicy(Policy):
             "td_error_abs": masked_td_error.abs().sum().item() / mask_elems,
             "q_taken_mean": (chosen_action_qvals * mask).sum().item() / mask_elems,
             "target_mean": (targets * mask).sum().item() / mask_elems,
+            "focus_belief_grad_norm": float(belief_grad_norm),
         }
         stats.update(getattr(self.loss, "last_focus_stats", {}))
         stats.update(self.last_action_bias_stats)
@@ -2234,6 +3071,9 @@ class QPLEXFocusTorchPolicy(Policy):
             "local_belief_model": self._cpu_dict(self.local_belief_model.state_dict())
             if self.local_belief_model
             else None,
+            "focus_official_state": self._cpu_dict(
+                self.loss.action_gradient_floor.state_dict()
+            ),
         }
 
     @override(Policy)
@@ -2248,9 +3088,15 @@ class QPLEXFocusTorchPolicy(Policy):
                 self._device_dict(weights["target_mixer"])
             )
         if self.occupancy_model is not None and weights.get("occupancy_model") is not None:
-            self.occupancy_model.load_state_dict(self._device_dict(weights["occupancy_model"]))
+            self.occupancy_model.load_state_dict(
+                self._device_dict(weights["occupancy_model"]), strict=False
+            )
         if self.local_belief_model is not None and weights.get("local_belief_model") is not None:
             self.local_belief_model.load_state_dict(self._device_dict(weights["local_belief_model"]))
+        if weights.get("focus_official_state") is not None:
+            self.loss.action_gradient_floor.load_state_dict(
+                self._device_dict(weights["focus_official_state"]), strict=False
+            )
 
     @override(Policy)
     def get_state(self):

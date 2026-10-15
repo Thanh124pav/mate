@@ -66,6 +66,12 @@ def train(
     seed=None,
     timesteps_total=None,
     buffer_capacity=2000,
+    belief_safeguard_mode=None,
+    belief_distribution=None,
+    belief_grid_size=None,
+    belief_grid_max_delta=None,
+    belief_grid_label_std=None,
+    belief_position_loss_coeff=None,
     restore=None, 
     resume=False,
     env = None,
@@ -77,7 +83,7 @@ def train(
         tune_callbacks.append(WandbLoggerCallback(project=project, group=group))
 
     if not ray.is_initialized():
-        ray.init(num_cpus=NUM_NODE_CPUS, num_gpus = NUM_NODE_GPUS, local_mode=DEBUG)
+        ray.init(num_cpus=NUM_NODE_CPUS, num_gpus=NUM_NODE_GPUS, local_mode=DEBUG)
 
     num_ray_cpus = round(ray.cluster_resources()['CPU'])
     num_ray_gpus = ray.cluster_resources().get('GPU', 0.0)
@@ -100,6 +106,17 @@ def train(
         experiment.spec['local_dir'] = local_dir
     if env is not None:
         experiment.spec['config']['env_config']['config'] = env
+    belief_overrides = {
+        'belief_safeguard_mode': belief_safeguard_mode,
+        'belief_distribution': belief_distribution,
+        'belief_grid_size': belief_grid_size,
+        'belief_grid_max_delta': belief_grid_max_delta,
+        'belief_grid_label_std': belief_grid_label_std,
+        'belief_position_loss_coeff': belief_position_loss_coeff,
+    }
+    experiment.spec['config'].setdefault('focus', {}).update(
+        {key: value for key, value in belief_overrides.items() if value is not None}
+    )
     if restore is not None:
         # tune.run ignores `restore` when passed an Experiment object (Ray 1.x bug):
         # it only applies restore when constructing a new Experiment internally.
@@ -172,6 +189,20 @@ def main():
         default=200,
         help='capacity for the replay buffer (default: %(default).1e episodes)',
     )
+    parser.add_argument(
+        '--belief-safeguard-mode',
+        choices=('zero', 'zero_ema', 'zero_ema_blend'),
+        default=None,
+    )
+    parser.add_argument(
+        '--belief-distribution',
+        choices=('gaussian', 'categorical_grid'),
+        default=None,
+    )
+    parser.add_argument('--belief-grid-size', type=int, default=None)
+    parser.add_argument('--belief-grid-max-delta', type=float, default=None)
+    parser.add_argument('--belief-grid-label-std', type=float, default=None)
+    parser.add_argument('--belief-position-loss-coeff', type=float, default=None)
     parser.add_argument(
         '--restore',
         type=str,

@@ -64,6 +64,7 @@ def train(
     num_envs_per_worker=8,
     seed=None,
     timesteps_total=None,
+    env=None,
 ):
     tune_callbacks = [SymlinkCheckpointCallback()]
     if WandbLoggerCallback.is_available():
@@ -72,7 +73,7 @@ def train(
         tune_callbacks.append(WandbLoggerCallback(project=project, group=group))
 
     if not ray.is_initialized():
-        ray.init(num_cpus=NUM_NODE_CPUS, local_mode=DEBUG)
+        ray.init(num_cpus=NUM_NODE_CPUS, num_gpus=NUM_NODE_GPUS, local_mode=DEBUG)
 
     num_ray_cpus = round(ray.cluster_resources()['CPU'])
     num_ray_gpus = ray.cluster_resources().get('GPU', 0.0)
@@ -93,6 +94,8 @@ def train(
         experiment.spec['stop'].update(timesteps_total=timesteps_total)
     if local_dir is not None:
         experiment.spec['local_dir'] = local_dir
+    if env is not None:
+        experiment.spec['config']['env_config']['config'] = env
 
     if num_workers > 0:
         rollout_fragment_length = experiment.spec['config']['rollout_fragment_length']
@@ -116,6 +119,7 @@ def main():
     parser.add_argument('--num-envs-per-worker', type=int, default=8)
     parser.add_argument('--timesteps-total', type=float, default=10e6)
     parser.add_argument('--seed', type=int, nargs='*', default=None)
+    parser.add_argument('--env', default=None, help='.yaml environment to run experiments')
     args = parser.parse_args()
     analysis = train(experiment, **vars(args))
     return analysis

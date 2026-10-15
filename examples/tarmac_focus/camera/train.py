@@ -61,8 +61,26 @@ def train(
     num_envs_per_worker=8,
     seed=None,
     timesteps_total=None,
+    belief_safeguard_mode=None,
+    belief_distribution=None,
+    belief_grid_size=None,
+    belief_grid_max_delta=None,
+    belief_grid_label_std=None,
+    belief_position_loss_coeff=None,
+    env=None,
 ):
     _ensure_local_repo_on_pythonpath()
+    experiment = copy.deepcopy(experiment)
+    focus_config = experiment.spec["config"]["model"]["custom_model_config"].setdefault("focus", {})
+    overrides = {
+        "belief_safeguard_mode": belief_safeguard_mode,
+        "belief_distribution": belief_distribution,
+        "belief_grid_size": belief_grid_size,
+        "belief_grid_max_delta": belief_grid_max_delta,
+        "belief_grid_label_std": belief_grid_label_std,
+        "belief_position_loss_coeff": belief_position_loss_coeff,
+    }
+    focus_config.update({key: value for key, value in overrides.items() if value is not None})
     group = group or f"tarmac_focus.camera.{experiment.name}"
     return _train(
         experiment,
@@ -74,6 +92,7 @@ def train(
         num_envs_per_worker=num_envs_per_worker,
         seed=seed,
         timesteps_total=timesteps_total,
+        env=env,
     )
 
 
@@ -87,6 +106,17 @@ def main():
     parser.add_argument("--num-envs-per-worker", type=int, metavar="ENV", default=8)
     parser.add_argument("--timesteps-total", type=float, metavar="STEP", default=10e6)
     parser.add_argument("--seed", type=int, metavar="SEED", nargs="*", default=None)
+    parser.add_argument("--env", default=None, help=".yaml environment to run experiments")
+    parser.add_argument(
+        "--belief-safeguard-mode",
+        choices=("zero", "zero_ema", "zero_ema_blend"),
+        default=None,
+    )
+    parser.add_argument("--belief-distribution", choices=("gaussian", "categorical_grid"), default=None)
+    parser.add_argument("--belief-grid-size", type=int, default=None)
+    parser.add_argument("--belief-grid-max-delta", type=float, default=None)
+    parser.add_argument("--belief-grid-label-std", type=float, default=None)
+    parser.add_argument("--belief-position-loss-coeff", type=float, default=None)
     return train(**vars(parser.parse_args()))
 
 
