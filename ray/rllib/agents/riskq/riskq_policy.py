@@ -151,13 +151,8 @@ class RiskQTorchPolicy(GroupedCTDEPolicy):
         )
         next_actions = next_risk.argmax(dim=-1)
         target_chosen = self._gather_action_quantiles(target_next, next_actions)
-        if focus is not None:
-            weights = focus_agent_weights(
-                focus.rho,
-                self.n_agents,
-                float(self.focus_config.get("eta", 0.1)),
-                focus.confidence,
-            )
+        weights = self._focuss_route_weights(focus)
+        if weights is not None:
             chosen = forward_preserving_scale(chosen, weights)
         keys = self._agent_keys(batch.state, batch.obs)
         next_keys = self._agent_keys(batch.next_state, batch.next_obs)
@@ -180,6 +175,10 @@ class RiskQTorchPolicy(GroupedCTDEPolicy):
             batch.mask.squeeze(-1),
         )
         loss = float(self.config.get("qmix_loss", 1.0)) * quantile_loss
+        focuss_credit_loss, focuss_credit_stats = self._focuss_agent_objective(
+            joint_quantiles, chosen, focus
+        )
+        loss = loss + focuss_credit_loss
         focuss_action_loss, focuss_stats = self._focuss_action_objective(
             self._scores_from_output(current),
             focus,
@@ -230,6 +229,7 @@ class RiskQTorchPolicy(GroupedCTDEPolicy):
             )
             stats.update(self.focus_engine.last_belief_stats)
         stats.update(focuss_stats)
+        stats.update(focuss_credit_stats)
         return stats
 
     @override(GroupedCTDEPolicy)

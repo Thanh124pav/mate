@@ -2,6 +2,7 @@
 
 from ray.rllib.agents.focus_common.adapters import MAPPOFocusAdapter
 from ray.rllib.agents.focus_common.constants import (
+    FOCUS_ACTION_GAINS,
     FOCUS_CONFIDENCE,
     FOCUS_GAIN,
     FOCUS_RHO,
@@ -16,6 +17,7 @@ from ray.rllib.agents.focus_common.responsibility_engine import (
 )
 
 __all__ = [
+    "FOCUS_ACTION_GAINS",
     "FOCUS_CONFIDENCE",
     "FOCUS_GAIN",
     "FOCUS_RHO",

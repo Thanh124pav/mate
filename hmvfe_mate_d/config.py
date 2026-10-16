@@ -144,6 +144,15 @@ class HMVFEConfig:
     focus_grid_chunk_size: int = 128
     focus_min_credit_signal: float = 1e-6
     focus_obstacle_transmittance: float = 0.0
+    focus_credit_level: str = 'both'
+    focus_credit_mechanism: str = 'route'
+    focus_action_credit_enabled: bool = True
+    focus_action_alpha: float = 1.0
+    focus_action_temperature: float = 1.0
+    focus_action_q_std_floor: float = 0.01
+    focus_action_grad_floor: float = 0.10
+    focus_action_grad_ema: float = 0.9
+    focus_action_grad_mode: str = 'match'
     # CTCE only: use the current-state belief in action selection as well as
     # actor credit. Uniform responsibility is an exact zero-bias no-op.
     focus_execution_eta: float = 0.25

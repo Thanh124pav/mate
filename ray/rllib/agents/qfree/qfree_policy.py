@@ -217,14 +217,7 @@ class QFreeTorchPolicy(GroupedCTDEPolicy):
         next_target_a = next_a_target.gather(
             -1, next_greedy.unsqueeze(-1)
         ).squeeze(-1)
-        weights = None
-        if focus is not None:
-            weights = focus_agent_weights(
-                focus.rho,
-                self.n_agents,
-                float(self.focus_config.get("eta", 0.1)),
-                focus.confidence,
-            )
+        weights = self._focuss_route_weights(focus)
         current_total, current_value_total, current_advantage_total = self.mixer(
             current_v, current_chosen_a, batch.state, advantage_weights=weights
         )
@@ -262,6 +255,10 @@ class QFreeTorchPolicy(GroupedCTDEPolicy):
             + float(self.config.get("igm_optimal_coefficient", 1.0)) * optimal_loss
             + float(self.config.get("igm_nonoptimal_coefficient", 1.0)) * nonoptimal_loss
         )
+        focuss_credit_loss, focuss_credit_stats = self._focuss_agent_objective(
+            current_total, current_chosen_a, focus
+        )
+        loss = loss + focuss_credit_loss
         focuss_action_loss, focuss_stats = self._focuss_action_objective(
             current_q,
             focus,
@@ -315,6 +312,7 @@ class QFreeTorchPolicy(GroupedCTDEPolicy):
             )
             stats.update(self.focus_engine.last_belief_stats)
         stats.update(focuss_stats)
+        stats.update(focuss_credit_stats)
         return stats
 
     @override(GroupedCTDEPolicy)

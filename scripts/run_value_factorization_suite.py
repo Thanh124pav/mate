@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the ten MATE value-factorization configurations sequentially.
+"""Run matched MATE value-factorization configurations sequentially.
 
 Each algorithm is launched in a fresh process so Ray releases workers, CUDA
 contexts, and object-store memory before the next trial.  Stdout/stderr and a
@@ -18,6 +18,7 @@ from pathlib import Path
 MODULES = {
     "FACMAC": "examples.facmac.camera",
     "FACMAC_FOCUS": "examples.facmac_focus.camera",
+    "FACMAC_FOCUSS": "examples.facmac_focuss.camera",
     "RESQ": "examples.resq.camera",
     "RESQ_FOCUS": "examples.resq_focus.camera",
     "RISKQ": "examples.riskq.camera",

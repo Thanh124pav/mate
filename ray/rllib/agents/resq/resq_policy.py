@@ -160,13 +160,8 @@ class ResQTorchPolicy(GroupedCTDEPolicy):
                 self.config["td_lambda"],
             )
 
-        if focus is not None:
-            weights = focus_agent_weights(
-                focus.rho,
-                self.n_agents,
-                float(self.focus_config.get("eta", 0.1)),
-                focus.confidence,
-            )
+        weights = self._focuss_route_weights(focus)
+        if weights is not None:
             main_chosen = forward_preserving_scale(main_chosen, weights)
             residual_chosen = forward_preserving_scale(residual_chosen, weights)
             central_chosen = forward_preserving_scale(central_chosen, weights)
@@ -189,6 +184,10 @@ class ResQTorchPolicy(GroupedCTDEPolicy):
             + float(self.config.get("central_loss", 1.0)) * central_loss
             + float(self.config.get("noopt_loss", 1.0)) * noopt_loss
         )
+        focuss_credit_loss, focuss_credit_stats = self._focuss_agent_objective(
+            main_total, main_chosen, focus
+        )
+        loss = loss + focuss_credit_loss
         focuss_action_loss, focuss_stats = self._focuss_action_objective(
             main_all,
             focus,
@@ -236,6 +235,7 @@ class ResQTorchPolicy(GroupedCTDEPolicy):
             )
             stats.update(self.focus_engine.last_belief_stats)
         stats.update(focuss_stats)
+        stats.update(focuss_credit_stats)
         return stats
 
     @override(GroupedCTDEPolicy)

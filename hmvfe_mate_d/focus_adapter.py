@@ -11,6 +11,7 @@ import torch
 @dataclass
 class HMVFEFocusOutput:
     rho: Optional[torch.Tensor]
+    pair_gains: Optional[torch.Tensor] = None
     confidence: Optional[torch.Tensor] = None
     valid: Optional[torch.Tensor] = None
     total_gain: Optional[torch.Tensor] = None
@@ -266,6 +267,11 @@ class HMVFEFocusResponsibilityEngine:
         )
         return HMVFEFocusOutput(
             rho=rho.detach(),
+            pair_gains=(
+                self.estimator.last_pair_gains.detach()
+                if self.estimator.last_pair_gains is not None
+                else None
+            ),
             confidence=confidence.detach(),
             valid=valid.detach(),
             total_gain=total_gain.detach(),
@@ -359,9 +365,11 @@ class HMVFEFocusResponsibilityEngine:
                     sample_weights=weights,
                 )
             elif integral_mode == 'mc':
-                gains = estimator._credit_from_mc_points(
+                mc_result = estimator._credit_from_mc_points(
                     effective_mean, std, global_state, actions, n_targets
+                    , return_pair_gains=True
                 )
+                gains, pair_gains = mc_result
             else:
                 raise ValueError(f'Unknown FOCUS integral_mode: {integral_mode}')
 
@@ -373,6 +381,7 @@ class HMVFEFocusResponsibilityEngine:
         rho = torch.where(valid.unsqueeze(-1), rho, uniform)
         return HMVFEFocusOutput(
             rho=rho,
+            pair_gains=locals().get('pair_gains'),
             confidence=torch.ones((batch, time), device=device, dtype=dtype),
             valid=valid,
             total_gain=total_gain,
@@ -455,6 +464,8 @@ def build_hmvfe_focus_engine(config, env, device=None):
             'obstacle_transmittance': config.focus_obstacle_transmittance,
             'eps': config.focus_eps,
             'use_action_selection': False,
+            'official_mode': True,
+            'action_credit_enabled': True,
         },
     )
     return engine.to(device) if device is not None else engine

@@ -6,6 +6,7 @@ from ray.rllib.agents.focus_official import (
     RunningFeatureNormalizer,
     action_credit_loss,
     carrier_credit_loss,
+    factored_action_credit_loss,
     subset_action_matrix,
 )
 
@@ -55,6 +56,28 @@ def test_gradient_floor_raises_small_action_gradient_to_ten_percent():
     assert stats.scale == pytest.approx(100.0, rel=1e-4)
     assert scaled_grad == pytest.approx(0.2, rel=1e-4)
     assert stats.active
+
+
+def test_gradient_match_caps_large_policy_action_gradient_to_ten_percent():
+    parameter = torch.nn.Parameter(torch.tensor(1.0))
+    controller = GradientFloor(ratio=0.1, mode="match")
+    policy_loss = parameter.square()  # gradient norm 2
+    action_loss = 2.0 * parameter.square()  # gradient norm 4
+    scaled, stats = controller.scale(policy_loss, action_loss, [parameter])
+    scaled_grad = torch.autograd.grad(scaled, parameter)[0].abs().item()
+    assert stats.scale == pytest.approx(0.05, rel=1e-4)
+    assert scaled_grad == pytest.approx(0.2, rel=1e-4)
+
+
+def test_factored_action_credit_encourages_positive_gain_bits():
+    logits = torch.zeros(1, 1, 2, 3, requires_grad=True)
+    gains = torch.tensor([[[[0.1, 0.5, 0.0], [0.4, 0.0, 0.2]]]])
+    loss = factored_action_credit_loss(
+        logits, gains, torch.ones(1, 1, dtype=torch.bool)
+    )
+    loss.backward()
+    assert logits.grad[0, 0, 0, 1] < logits.grad[0, 0, 0, 0]
+    assert logits.grad[0, 0, 1, 0] < logits.grad[0, 0, 1, 1]
 
 
 def test_running_normalizer_updates_and_clips():

@@ -118,6 +118,51 @@ def action_credit_loss(
     return (per_agent * weights).sum() / (denominator + eps), action_gains
 
 
+def factored_action_credit_loss(
+    logits,
+    pair_gains,
+    valid,
+    *,
+    confidence=None,
+    signal_weights=None,
+    temperature=1.0,
+    q_std_floor=0.01,
+    eps=1e-8,
+):
+    """Exact action CE for independent Bernoulli target-selection heads.
+
+    This is the closed form used by the reference factored FOCUS learner; it
+    avoids enumerating all ``2**n_targets`` subset actions.
+    """
+
+    if logits.shape != pair_gains.shape:
+        raise ValueError("logits and pair_gains must have the same [..., agents, targets] shape")
+    gain_std = torch.sqrt(pair_gains.detach().square().sum(-1, keepdim=True)) / 2.0
+    target = torch.sigmoid(
+        pair_gains.detach() / ((gain_std + float(eps)) * float(temperature))
+    )
+    q_std = torch.sqrt(
+        logits.square().sum(-1, keepdim=True) / 4.0 + float(q_std_floor) ** 2
+    )
+    prediction = logits / (q_std * float(temperature))
+    per_agent = -(
+        target * F.logsigmoid(prediction)
+        + (1.0 - target) * F.logsigmoid(-prediction)
+    ).sum(-1)
+    weights = valid.to(dtype=logits.dtype)
+    if confidence is not None:
+        weights = weights * confidence.detach().to(dtype=weights.dtype)
+    if signal_weights is not None:
+        weights = weights * signal_weights.detach().to(dtype=weights.dtype)
+    while weights.dim() < per_agent.dim():
+        weights = weights.unsqueeze(-1)
+    weights = weights.expand_as(per_agent)
+    denominator = weights.sum()
+    if denominator.detach().item() <= eps:
+        return logits.new_zeros(())
+    return (per_agent * weights).sum() / (denominator + eps)
+
+
 def carrier_credit_loss(
     rho,
     carrier,
@@ -168,11 +213,14 @@ class GradientFloorStats:
 class GradientFloor(nn.Module):
     """Raise action-credit gradient to a fraction of the TD gradient EMA."""
 
-    def __init__(self, ratio=0.10, ema_decay=0.9, eps=1e-12):
+    def __init__(self, ratio=0.10, ema_decay=0.9, eps=1e-12, mode="floor"):
         super().__init__()
         self.ratio = float(ratio)
         self.ema_decay = float(ema_decay)
         self.eps = float(eps)
+        self.mode = str(mode).lower()
+        if self.mode not in ("floor", "cap", "match"):
+            raise ValueError("gradient scaling mode must be floor, cap, or match")
         self.register_buffer("td_norm_ema", torch.zeros(()))
         self.register_buffer("num_updates", torch.zeros((), dtype=torch.long))
         self.register_buffer("num_activations", torch.zeros((), dtype=torch.long))
@@ -189,10 +237,14 @@ class GradientFloor(nn.Module):
                     td_norm, alpha=1.0 - self.ema_decay
                 )
             required = self.ratio * self.td_norm_ema
-            scale = torch.maximum(
-                action_norm.new_ones(()), required / action_norm.clamp_min(self.eps)
-            )
-            active = bool(scale.item() > 1.0 + 1e-7)
+            requested = required / action_norm.clamp_min(self.eps)
+            if self.mode == "floor":
+                scale = torch.maximum(action_norm.new_ones(()), requested)
+            elif self.mode == "cap":
+                scale = torch.minimum(action_norm.new_ones(()), requested)
+            else:
+                scale = requested
+            active = bool(abs(scale.item() - 1.0) > 1e-7)
             self.num_updates.add_(1)
             if active:
                 self.num_activations.add_(1)

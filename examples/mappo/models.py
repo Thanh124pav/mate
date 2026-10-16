@@ -12,6 +12,7 @@ from examples.utils import SimpleRNN, get_space_flat_size, orthogonal_initialize
 from ray.rllib.agents.qplex_focus.qplex_policy import build_occupancy_model, resolve_focus_config
 from ray.rllib.agents.focus_utils import focus_action_q_bias
 from ray.rllib.agents.focus_common import (
+    FOCUS_ACTION_GAINS,
     FOCUS_CONFIDENCE,
     FOCUS_GAIN,
     FOCUS_RHO,
@@ -22,6 +23,7 @@ from ray.rllib.agents.focus_common import (
     FocusResponsibilityEngine,
     MAPPOFocusAdapter,
 )
+from ray.rllib.agents.focus_official import GradientFloor, subset_action_matrix
 
 
 torch, nn = try_import_torch()
@@ -166,6 +168,22 @@ class MAPPOModel(TorchRNN, nn.Module):
                     self.focus_config.get("focus_policy_eta", 0.0),
                 )
             )
+        self.focus_action_gradient = GradientFloor(
+            ratio=float(
+                self.focus_config.get(
+                    "action_grad_floor",
+                    self.focus_config.get("action_gradient_ratio", 0.10),
+                )
+            ),
+            ema_decay=float(
+                self.focus_config.get(
+                    "action_grad_ema",
+                    self.focus_config.get("action_gradient_ema_decay", 0.9),
+                )
+            ),
+            eps=float(self.focus_config.get("eps", 1e-8)),
+            mode=str(self.focus_config.get("action_gradient_rule", "match")),
+        )
         self._focus_stats = {}
         self._last_action_logits = None
         self._last_belief_state = None
@@ -227,6 +245,9 @@ class MAPPOModel(TorchRNN, nn.Module):
         sample_batch[FOCUS_GAIN] = np.zeros(count, dtype=np.float32)
         sample_batch[FOCUS_RHO_ENTROPY] = np.zeros(count, dtype=np.float32)
         sample_batch[FOCUS_TOTAL_GAIN] = np.zeros(count, dtype=np.float32)
+        sample_batch[FOCUS_ACTION_GAINS] = np.zeros(
+            (count, self.n_action_choices), dtype=np.float32
+        )
         return sample_batch
 
     @staticmethod
@@ -365,12 +386,27 @@ class MAPPOModel(TorchRNN, nn.Module):
         eps = float(self.focus_config.get("eps", 1e-8))
         rho_entropy_np = -(rho_np * np.log(rho_np + eps)).sum(axis=-1)
         total_gain_np = focus.total_gain.squeeze(0).detach().cpu().numpy()
+        action_gains_np = None
+        if focus.pair_gains is not None:
+            bits = subset_action_matrix(
+                self.n_action_choices,
+                focus.pair_gains.size(-1),
+                device=focus.pair_gains.device,
+                dtype=focus.pair_gains.dtype,
+            )
+            action_gains_np = torch.einsum(
+                "btij,aj->btia", focus.pair_gains, bits
+            ).squeeze(0).detach().cpu().numpy()
 
         sample_batch[FOCUS_RHO][rows_np] = rho_np[np.arange(len(rows_np)), agents_np]
         sample_batch[FOCUS_GAIN][rows_np] = gain_np[np.arange(len(rows_np)), agents_np]
         sample_batch[FOCUS_CONFIDENCE][rows_np] = confidence_np
         sample_batch[FOCUS_RHO_ENTROPY][rows_np] = rho_entropy_np
         sample_batch[FOCUS_TOTAL_GAIN][rows_np] = total_gain_np
+        if action_gains_np is not None:
+            sample_batch[FOCUS_ACTION_GAINS][rows_np] = action_gains_np[
+                np.arange(len(rows_np)), agents_np
+            ]
         sample_batch[FOCUS_VALID][rows_np] = valid_np
         sample_batch[FOCUS_WEIGHT][rows_np] = np.where(
             valid_np,
@@ -476,50 +512,81 @@ class MAPPOModel(TorchRNN, nn.Module):
         if obs.size(-1) != self.flat_obs_dim:
             return torch.zeros_like(reference_loss), None
 
-        prior_config = dict(self.focus_config)
-        prior_config["action_bias_eta"] = float(
-            self.focus_config.get(
-                "action_prior_bias_eta",
-                self.focus_config.get("action_bias_eta", 1.0),
+        if FOCUS_ACTION_GAINS in loss_inputs:
+            gain = loss_inputs[FOCUS_ACTION_GAINS].float().to(obs.device)
+            centered_gain = gain - gain.mean(dim=-1, keepdim=True)
+            gain_std = centered_gain.std(dim=-1, keepdim=True, unbiased=False).clamp_min(1e-8)
+            temperature = max(
+                float(
+                    self.focus_config.get(
+                        "action_temperature",
+                        self.focus_config.get("action_prior_temperature", 1.0),
+                    )
+                ),
+                1e-6,
             )
-        )
-        q_values = logits.new_zeros((obs.shape[0], self.n_focus_agents, self.n_action_choices))
-        state_source = str(self.focus_config.get("action_prior_state_source", "belief")).lower()
-        if state_source in ("belief", "predicted", "prediction", "local_belief"):
-            global_state = self._last_belief_state
-            if global_state is None or global_state.shape[0] != obs.shape[0]:
+            target_probs = torch.softmax(
+                (centered_gain / gain_std / temperature).detach(), dim=-1
+            )
+            if self.has_action_mask:
+                action_mask = obs[:, self.action_mask_slice].clamp(min=0.0, max=1.0)
+                target_probs = target_probs * action_mask
+                target_probs = target_probs / target_probs.sum(
+                    dim=-1, keepdim=True
+                ).clamp_min(1e-8)
+            logit_centered = logits - logits.mean(dim=-1, keepdim=True)
+            logit_std = logit_centered.std(
+                dim=-1, keepdim=True, unbiased=False
+            ).clamp_min(float(self.focus_config.get("action_q_std_floor", 0.01)))
+            log_probs = torch.log_softmax(
+                logit_centered / logit_std / temperature, dim=-1
+            )
+            per_row_loss = -(target_probs * log_probs).sum(dim=-1)
+        else:
+            prior_config = dict(self.focus_config)
+            prior_config["action_bias_eta"] = float(
+                self.focus_config.get(
+                    "action_prior_bias_eta",
+                    self.focus_config.get("action_bias_eta", 1.0),
+                )
+            )
+            q_values = logits.new_zeros((obs.shape[0], self.n_focus_agents, self.n_action_choices))
+            state_source = str(self.focus_config.get("action_prior_state_source", "belief")).lower()
+            if state_source in ("belief", "predicted", "prediction", "local_belief"):
+                global_state = self._last_belief_state
+                if global_state is None or global_state.shape[0] != obs.shape[0]:
+                    return torch.zeros_like(reference_loss), None
+                if self.belief_state_detach_for_prior:
+                    global_state = global_state.detach()
+            else:
+                global_state = obs[:, self.global_state_slice]
+            action_bias = focus_action_q_bias(
+                q_values,
+                global_state,
+                prior_config,
+                self.n_focus_agents,
+                self.n_action_choices,
+            )
+            if action_bias is None:
                 return torch.zeros_like(reference_loss), None
-            if self.belief_state_detach_for_prior:
-                global_state = global_state.detach()
-        else:
-            global_state = obs[:, self.global_state_slice]
-        action_bias = focus_action_q_bias(
-            q_values,
-            global_state,
-            prior_config,
-            self.n_focus_agents,
-            self.n_action_choices,
-        )
-        if action_bias is None:
-            return torch.zeros_like(reference_loss), None
 
-        if SampleBatch.AGENT_INDEX in loss_inputs:
-            agent_index = loss_inputs[SampleBatch.AGENT_INDEX].long().to(obs.device)
-        else:
-            agent_index = obs[:, self.local_obs_slice.start + 3].round().long()
-        agent_index = agent_index.clamp(0, self.n_focus_agents - 1)
-        rows = torch.arange(obs.shape[0], device=obs.device)
-        selected_bias = action_bias[rows, agent_index]
+            if SampleBatch.AGENT_INDEX in loss_inputs:
+                agent_index = loss_inputs[SampleBatch.AGENT_INDEX].long().to(obs.device)
+            else:
+                agent_index = obs[:, self.local_obs_slice.start + 3].round().long()
+            agent_index = agent_index.clamp(0, self.n_focus_agents - 1)
+            rows = torch.arange(obs.shape[0], device=obs.device)
+            selected_bias = action_bias[rows, agent_index]
 
-        temperature = max(float(self.focus_config.get("action_prior_temperature", 1.0)), 1e-6)
-        target_probs = torch.softmax((selected_bias / temperature).detach(), dim=-1)
-        if self.has_action_mask:
-            action_mask = obs[:, self.action_mask_slice].clamp(min=0.0, max=1.0)
-            target_probs = target_probs * action_mask
-            target_probs = target_probs / target_probs.sum(dim=-1, keepdim=True).clamp_min(1e-8)
+            temperature = max(float(self.focus_config.get("action_prior_temperature", 1.0)), 1e-6)
+            target_probs = torch.softmax((selected_bias / temperature).detach(), dim=-1)
+            if self.has_action_mask:
+                action_mask = obs[:, self.action_mask_slice].clamp(min=0.0, max=1.0)
+                target_probs = target_probs * action_mask
+                target_probs = target_probs / target_probs.sum(dim=-1, keepdim=True).clamp_min(1e-8)
 
-        log_probs = torch.log_softmax(logits, dim=-1)
-        per_row_loss = -(target_probs * log_probs).sum(dim=-1)
+            log_probs = torch.log_softmax(logits, dim=-1)
+            per_row_loss = -(target_probs * log_probs).sum(dim=-1)
         valid = self._flat_sequence_mask(obs, loss_inputs)
         if self.focus_config.get("action_prior_use_focus_valid", False) and FOCUS_VALID in loss_inputs:
             valid = valid & loss_inputs[FOCUS_VALID].bool().to(obs.device)
@@ -666,10 +733,20 @@ class MAPPOModel(TorchRNN, nn.Module):
                 }
             )
 
+        scaled_prior_loss = reference_loss.new_zeros(())
+        if prior_stats is not None and prior_coeff != 0.0 and prior_loss.requires_grad:
+            scaled_prior_loss, floor_stats = self.focus_action_gradient.scale(
+                reference_loss,
+                prior_coeff * prior_loss,
+                self.actor.parameters(),
+            )
+            self.tower_stats["focus_action_gradient_scale"] = torch.tensor(
+                floor_stats.scale, device=reference_loss.device
+            )
         auxiliary_loss = (
             beta * belief_loss
             + belief_state_coeff * belief_state_loss
-            + prior_coeff * prior_loss
+            + scaled_prior_loss
         )
         if isinstance(policy_loss, list):
             return [loss + auxiliary_loss for loss in policy_loss]

@@ -186,6 +186,7 @@ class HMVFECoordinator(nn.Module):
         obs: torch.Tensor,
         deterministic: bool = False,
         return_per_camera_log_prob: bool = False,
+        return_pair_logits: bool = False,
         camera_logit_bias: torch.Tensor = None,
     ):
         """Returns ``(action[N_cam,N_tgt], log_prob, entropy, value)``."""
@@ -209,8 +210,13 @@ class HMVFECoordinator(nn.Module):
             entropy,
             value,
         )
+        extras = []
         if return_per_camera_log_prob:
-            return (*result, camera_log_prob)
+            extras.append(camera_log_prob)
+        if return_pair_logits:
+            extras.append(logits)
+        if extras:
+            return (*result, *extras)
         return result
 
     def value_only(self, obs: torch.Tensor) -> torch.Tensor:

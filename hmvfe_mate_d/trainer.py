@@ -23,6 +23,11 @@ import numpy as np
 import torch
 import torch.optim as optim
 
+from ray.rllib.agents.focus_official import (
+    GradientFloor,
+    factored_action_credit_loss,
+)
+
 from hmvfe_mate_d.config import HMVFEConfig, make_env, make_output_dir
 from hmvfe_mate_d.evaluate import evaluate
 from hmvfe_mate_d.focus_adapter import (
@@ -140,15 +145,23 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
         critic_reduction=config.critic_reduction,
         value_head_hidden=config.value_head_hidden,
     ).to(device)
-    optimizer_groups = [
-        {'params': model.parameters(), 'lr': config.learning_rate, 'initial_lr': config.learning_rate}
-    ]
+    optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
+    for group in optimizer.param_groups:
+        group['initial_lr'] = config.learning_rate
+    belief_optimizer = None
     if focus_engine is not None and focus_engine.has_learned_belief:
         belief_lr = config.focus_belief_lr or config.learning_rate
-        optimizer_groups.append(
-            {'params': list(focus_engine.parameters()), 'lr': belief_lr, 'initial_lr': belief_lr}
+        belief_optimizer = optim.Adam(
+            focus_engine.parameters(), lr=belief_lr
         )
-    optimizer = optim.Adam(optimizer_groups)
+        for group in belief_optimizer.param_groups:
+            group['initial_lr'] = belief_lr
+    action_gradient = GradientFloor(
+        ratio=config.focus_action_grad_floor,
+        ema_decay=config.focus_action_grad_ema,
+        eps=config.focus_eps,
+        mode=config.focus_action_grad_mode,
+    ).to(device)
     run = _init_wandb(config, output_dir)
 
     steps_per_update = config.rollout_length * config.frame_skip * num_envs
@@ -181,12 +194,17 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
             lr_factor = 1.0 - (update - 1) / total_updates
             for group in optimizer.param_groups:
                 group['lr'] = group['initial_lr'] * lr_factor
+            if belief_optimizer is not None:
+                for group in belief_optimizer.param_groups:
+                    group['lr'] = group['initial_lr'] * lr_factor
         lr_now = optimizer.param_groups[0]['lr']
 
         rollout = config.rollout_length
         # buffers indexed [t][env]
         log_probs_te = [[None] * num_envs for _ in range(rollout)]
         camera_log_probs_te = [[None] * num_envs for _ in range(rollout)]
+        pair_logits_te = [[None] * num_envs for _ in range(rollout)]
+        focus_pair_gains_te = [[None] * num_envs for _ in range(rollout)]
         focus_rhos_te = [[None] * num_envs for _ in range(rollout)]
         focus_confidence_te = [[None] * num_envs for _ in range(rollout)]
         focus_valid_te = [[None] * num_envs for _ in range(rollout)]
@@ -230,14 +248,16 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
                         )
             for i in range(num_envs):
                 state = torch.as_tensor(obs[i], dtype=torch.float32, device=device)
-                action, log_prob, entropy, value, camera_log_prob = model.act(
+                action, log_prob, entropy, value, camera_log_prob, pair_logits = model.act(
                     state,
                     return_per_camera_log_prob=True,
+                    return_pair_logits=True,
                     camera_logit_bias=(execution_bias[i] if execution_bias is not None else None),
                 )
                 actions.append(action.detach().cpu().numpy())
                 log_probs_te[t][i] = log_prob
                 camera_log_probs_te[t][i] = camera_log_prob
+                pair_logits_te[t][i] = pair_logits
                 entropies_te[t][i] = entropy
                 values_te[t][i] = value.squeeze()
                 values_f_te[t, i] = float(value.detach().squeeze().cpu())
@@ -265,6 +285,13 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
                     valid_t = inferred_focus.valid.squeeze(1).to(
                         device=device, dtype=torch.bool
                     )
+                    pair_gains_t = (
+                        inferred_focus.pair_gains.squeeze(1).to(
+                            device=device, dtype=torch.float32
+                        )
+                        if inferred_focus.pair_gains is not None
+                        else None
+                    )
                     if focus_mode == 'shuffled':
                         rho_t = synthetic_responsibility(
                             'shuffled',
@@ -289,6 +316,8 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
                     focus_rhos_te[t][i] = rho_t[i]
                     focus_confidence_te[t][i] = confidence_t[i]
                     focus_valid_te[t][i] = valid_t[i]
+                    if pair_gains_t is not None:
+                        focus_pair_gains_te[t][i] = pair_gains_t[i]
 
             for i in range(num_envs):
                 rewards_te[t, i] = rewards[i]
@@ -400,12 +429,61 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
                     belief_metrics[metric_key] = float(value)
 
         policy_loss = policy_loss_from_log_prob(actor_log_probs, advantages_t, mask=actor_loss_mask)
+        scaled_action_loss = policy_loss.new_zeros(())
+        action_loss = policy_loss.new_zeros(())
+        if (
+            config.focus_enabled
+            and config.focus_action_credit_enabled
+            and all(
+                focus_pair_gains_te[t][i] is not None
+                for i in range(num_envs)
+                for t in range(rollout)
+            )
+        ):
+            pair_logits = torch.stack(
+                [pair_logits_te[t][i] for i in range(num_envs) for t in range(rollout)]
+            )
+            pair_gains = torch.stack(
+                [focus_pair_gains_te[t][i] for i in range(num_envs) for t in range(rollout)]
+            )
+            signal = pair_gains.sum(dim=(-1, -2))
+            valid = focus_valid_stacked
+            if valid.any():
+                signal = signal / signal[valid].mean().clamp_min(config.focus_eps)
+            signal = signal.clamp(0.1, 3.0)
+            action_loss = factored_action_credit_loss(
+                pair_logits,
+                pair_gains,
+                valid,
+                confidence=focus_confidence_stacked,
+                signal_weights=signal,
+                temperature=config.focus_action_temperature,
+                q_std_floor=config.focus_action_q_std_floor,
+                eps=config.focus_eps,
+            )
+            scaled_action_loss, action_floor_stats = action_gradient.scale(
+                policy_loss,
+                config.focus_action_alpha * action_loss,
+                model.parameters(),
+            )
+            focus_metrics['focus/action_loss'] = float(action_loss.detach().cpu())
+            focus_metrics['focus/action_gradient_scale'] = action_floor_stats.scale
+            focus_metrics['focus/action_gradient_floor_active'] = float(
+                action_floor_stats.active
+            )
         value_loss = 0.5 * (returns_t - values_stacked).pow(2).mean()
+        if belief_optimizer is not None and belief_loss.requires_grad:
+            belief_optimizer.zero_grad()
+            (config.focus_beta_belief * belief_loss).backward()
+            torch.nn.utils.clip_grad_norm_(
+                focus_engine.parameters(), config.max_grad_norm
+            )
+            belief_optimizer.step()
         loss = (
             policy_loss
             + config.value_coef * value_loss
             - config.entropy_coef * entropy_mean
-            + config.focus_beta_belief * belief_loss
+            + scaled_action_loss
         )
 
         optimizer.zero_grad()
@@ -464,11 +542,13 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
                 run.log(eval_metrics, step=env_steps)
             if eval_metrics['eval/mean_coverage_rate'] > best_eval:
                 best_eval = eval_metrics['eval/mean_coverage_rate']
-                _save(model, optimizer, config, env_steps, output_dir / 'best.pt', focus_engine=focus_engine)
+                _save(model, optimizer, config, env_steps, output_dir / 'best.pt',
+                      focus_engine=focus_engine, belief_optimizer=belief_optimizer)
 
         # --- checkpoint -------------------------------------------------------
         if update % config.save_interval == 0:
-            _save(model, optimizer, config, env_steps, output_dir / 'latest.pt', focus_engine=focus_engine)
+            _save(model, optimizer, config, env_steps, output_dir / 'latest.pt',
+                  focus_engine=focus_engine, belief_optimizer=belief_optimizer)
             _save(
                 model,
                 optimizer,
@@ -476,9 +556,11 @@ def train(config: HMVFEConfig) -> Path:  # pylint: disable=too-many-locals,too-m
                 env_steps,
                 output_dir / f'checkpoint-{update:06d}.pt',
                 focus_engine=focus_engine,
+                belief_optimizer=belief_optimizer,
             )
 
-    _save(model, optimizer, config, env_steps, output_dir / 'latest.pt', focus_engine=focus_engine)
+    _save(model, optimizer, config, env_steps, output_dir / 'latest.pt',
+          focus_engine=focus_engine, belief_optimizer=belief_optimizer)
     venv.close()
     if run is not None:
         run.finish()
@@ -493,6 +575,7 @@ def _save(
     env_steps: int,
     path: Path,
     focus_engine=None,
+    belief_optimizer=None,
 ) -> None:
     payload = {
         'model': model.state_dict(),
@@ -503,4 +586,6 @@ def _save(
     if focus_engine is not None:
         payload['focus_engine'] = focus_engine.state_dict()
         payload['focus_runtime_state'] = focus_engine.get_runtime_state()
+    if belief_optimizer is not None:
+        payload['focus_belief_optimizer'] = belief_optimizer.state_dict()
     torch.save(payload, path)

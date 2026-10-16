@@ -151,8 +151,11 @@ class FACMACTorchPolicy(GroupedCTDEPolicy):
         replay_total = self.mixer(replay_agent_q, batch.state)
         td_error = replay_total - targets.detach()
         critic_loss = masked_mean(td_error.square(), batch.mask)
+        focuss_credit_loss, focuss_credit_stats = self._focuss_agent_objective(
+            replay_total, replay_agent_q, focus
+        )
         self.critic_optimizer.zero_grad()
-        critic_loss.backward()
+        (critic_loss + focuss_credit_loss).backward()
         critic_norm = torch.nn.utils.clip_grad_norm_(
             list(self.critic.parameters()) + list(self.mixer.parameters()),
             float(self.config["grad_norm_clipping"]),
@@ -171,13 +174,8 @@ class FACMACTorchPolicy(GroupedCTDEPolicy):
             hard=True,
             dim=-1,
         )
-        if focus is not None:
-            weights = focus_agent_weights(
-                focus.rho,
-                self.n_agents,
-                float(self.focus_config.get("eta", self.focus_config.get("alpha_credit", 0.1))),
-                focus.confidence,
-            )
+        weights = self._focuss_route_weights(focus)
+        if weights is not None:
             policy_action = forward_preserving_scale(policy_action, weights)
         self._freeze_critic(True)
         actor_agent_q = self.critic(batch.obs, policy_action)
@@ -231,6 +229,7 @@ class FACMACTorchPolicy(GroupedCTDEPolicy):
             )
             stats.update(self.focus_engine.last_belief_stats)
         stats.update(focuss_stats)
+        stats.update(focuss_credit_stats)
         return stats
 
     @override(GroupedCTDEPolicy)

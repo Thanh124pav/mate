@@ -25,7 +25,11 @@ from ray.rllib.utils.metrics.learner_info import LEARNER_STATS_KEY
 from ray.rllib.agents.focus_common.responsibility_engine import (
     FocusResponsibilityEngine,
 )
-from ray.rllib.agents.focus_official import GradientFloor, action_credit_loss
+from ray.rllib.agents.focus_official import (
+    GradientFloor,
+    action_credit_loss,
+    carrier_credit_loss,
+)
 from ray.rllib.agents.qplex_focus.qplex_policy import (
     build_occupancy_model,
     resolve_focus_config,
@@ -122,9 +126,17 @@ class GroupedCTDEPolicy(Policy):
         self._learner_updates = 0
         self._last_target_update = 0
         self.focuss_gradient_floor = GradientFloor(
-            ratio=float(self.focus_config.get("action_gradient_floor", 0.10)),
+            ratio=float(
+                self.focus_config.get(
+                    "action_grad_floor",
+                    self.focus_config.get("action_gradient_floor", 0.10),
+                )
+            ),
             ema_decay=float(
-                self.focus_config.get("action_gradient_ema_decay", 0.9)
+                self.focus_config.get(
+                    "action_grad_ema",
+                    self.focus_config.get("action_gradient_ema_decay", 0.9),
+                )
             ),
             eps=float(self.focus_config.get("eps", 1e-8)),
         ).to(self.device)
@@ -171,6 +183,16 @@ class GroupedCTDEPolicy(Policy):
         """Return official action CE scaled to at least 10% backbone gradient."""
 
         zero = reference_loss.new_zeros(())
+        credit_level = str(self.focus_config.get("credit_level", "both")).lower()
+        action_enabled = bool(
+            self.focus_config.get("action_credit_enabled", True)
+        ) and credit_level in ("action", "both")
+        if not action_enabled:
+            return zero, {
+                "focuss_action_loss": zero,
+                "focuss_action_gradient_scale": 0.0,
+                "focuss_action_gradient_floor_active": 0.0,
+            }
         if focus is None or focus.pair_gains is None:
             return zero, {
                 "focuss_action_loss": zero,
@@ -194,12 +216,19 @@ class GroupedCTDEPolicy(Policy):
             confidence=focus.confidence,
             signal_weights=signal,
             temperature=float(
-                self.focus_config.get("action_credit_temperature", 1.0)
+                self.focus_config.get(
+                    "action_temperature",
+                    self.focus_config.get("action_credit_temperature", 1.0),
+                )
             ),
             q_std_floor=float(self.focus_config.get("action_q_std_floor", 0.01)),
             eps=float(self.focus_config.get("eps", 1e-8)),
         )
-        coefficient = float(self.focus_config.get("action_credit_coeff", 1.0))
+        coefficient = float(
+            self.focus_config.get(
+                "action_alpha", self.focus_config.get("action_credit_coeff", 1.0)
+            )
+        )
         scaled, floor = self.focuss_gradient_floor.scale(
             reference_loss,
             coefficient * action_loss,
@@ -214,6 +243,94 @@ class GroupedCTDEPolicy(Policy):
             "focuss_backbone_gradient_norm_ema": floor.td_norm_ema,
             "focuss_action_gradient_floor_active": float(floor.active),
         }
+
+    def _focuss_gradient_carrier(self, joint_value, agent_utility):
+        """Return the official gradient carrier |dQ_tot/du_i| normalized over agents.
+
+        ``create_graph=True`` is intentional: the carrier CE must update the
+        mixer's parameters, while the environmental target remains detached.
+        Extra axes (for example RiskQ quantiles) are averaged into one carrier
+        probability per agent and transition.
+        """
+
+        (gradient,) = torch.autograd.grad(
+            joint_value.sum(),
+            agent_utility,
+            create_graph=True,
+            retain_graph=True,
+            allow_unused=False,
+        )
+        gradient = gradient.abs()
+        while gradient.dim() > 3:
+            gradient = gradient.mean(dim=-1)
+        eps = float(self.focus_config.get("eps", 1e-8))
+        return gradient / gradient.sum(dim=-1, keepdim=True).clamp_min(eps)
+
+    def _focuss_agent_objective(self, joint_value, agent_utility, focus):
+        """Official agent-level CE(rho, gradient carrier) for value backbones."""
+
+        zero = joint_value.new_zeros(())
+        stats = {
+            "focuss_credit_loss": zero,
+            "focuss_alpha_credit": 0.0,
+        }
+        if focus is None:
+            return zero, stats
+        credit_level = str(self.focus_config.get("credit_level", "both")).lower()
+        mechanism = str(self.focus_config.get("credit_mechanism", "align")).lower()
+        if credit_level not in ("agent", "both") or mechanism == "route":
+            return zero, stats
+        if mechanism not in ("align", "both"):
+            raise ValueError(
+                "focus.credit_mechanism must be one of align, route, or both"
+            )
+        carrier = self._focuss_gradient_carrier(joint_value, agent_utility)
+        signal = focus.total_gain.detach()
+        if focus.valid.any():
+            signal = signal / signal[focus.valid].mean().clamp_min(1e-8)
+        else:
+            signal = torch.ones_like(signal)
+        signal = signal.clamp(
+            min=float(self.focus_config.get("signal_weight_min", 0.1)),
+            max=float(self.focus_config.get("signal_weight_max", 3.0)),
+        )
+        credit_loss, carrier = carrier_credit_loss(
+            focus.rho,
+            carrier,
+            focus.valid,
+            confidence=focus.confidence,
+            signal_weights=signal,
+            eps=float(self.focus_config.get("eps", 1e-8)),
+        )
+        alpha = float(self.focus_config.get("alpha_credit", 0.1))
+        valid = focus.valid
+        entropy = -(carrier.detach() * carrier.detach().clamp_min(1e-8).log()).sum(-1)
+        stats = {
+            "focuss_credit_loss": credit_loss.detach(),
+            "focuss_alpha_credit": alpha,
+            "focuss_carrier_entropy": (
+                entropy[valid].mean().detach() if valid.any() else entropy.new_zeros(())
+            ),
+        }
+        return alpha * credit_loss, stats
+
+    def _focuss_route_weights(self, focus):
+        """Return the optional route-ablation weights; official align returns None."""
+
+        if focus is None:
+            return None
+        credit_level = str(self.focus_config.get("credit_level", "both")).lower()
+        mechanism = str(self.focus_config.get("credit_mechanism", "align")).lower()
+        if credit_level not in ("agent", "both") or mechanism not in ("route", "both"):
+            return None
+        from ray.rllib.agents.value_factorization.components import focus_agent_weights
+
+        return focus_agent_weights(
+            focus.rho,
+            self.n_agents,
+            float(self.focus_config.get("route_strength", self.focus_config.get("eta", 1.0))),
+            focus.confidence * focus.valid.to(focus.confidence.dtype),
+        )
 
     def _register_module(self, name, module):
         self._named_modules_for_weights[name] = module

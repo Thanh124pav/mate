@@ -287,8 +287,11 @@ class ConcaveQTorchPolicy(GroupedCTDEPolicy):
             + float(self.config.get("policy_critic_coefficient", 1.0))
             * policy_critic_loss
         )
+        focuss_credit_loss, focuss_credit_stats = self._focuss_agent_objective(
+            critic_policy_value, critic_soft_local, focus
+        )
         self.critic_optimizer.zero_grad()
-        critic_loss.backward()
+        (critic_loss + focuss_credit_loss).backward()
         critic_norm = torch.nn.utils.clip_grad_norm_(
             self.critic_parameters, float(self.config["grad_norm_clipping"])
         )
@@ -299,13 +302,8 @@ class ConcaveQTorchPolicy(GroupedCTDEPolicy):
         actor_soft_local = (
             policy * (current_q.detach() - alpha.detach() * log_policy)
         ).sum(dim=-1)
-        if focus is not None:
-            actor_weights = focus_agent_weights(
-                focus.rho,
-                self.n_agents,
-                float(self.focus_config.get("eta", 0.1)),
-                focus.confidence,
-            )
+        actor_weights = self._focuss_route_weights(focus)
+        if actor_weights is not None:
             actor_soft_local = forward_preserving_scale(
                 actor_soft_local, actor_weights
             )
@@ -382,6 +380,7 @@ class ConcaveQTorchPolicy(GroupedCTDEPolicy):
             )
             stats.update(self.focus_engine.last_belief_stats)
         stats.update(focuss_stats)
+        stats.update(focuss_credit_stats)
         return stats
 
     @override(GroupedCTDEPolicy)
