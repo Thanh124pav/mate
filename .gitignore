@@ -4,6 +4,10 @@
 /*.yml
 /*.json
 
+# Local experiment artifacts and import overlay
+/outputs/
+/.runtime_pythonpath/
+
 # RLlib results
 /results
 ray_results/
