@@ -23,10 +23,33 @@ NUM_CPUS_FOR_TRAINER = 1
 DEFAULT_NUM_WORKERS = 0 if DEBUG else min(8, max(0, NUM_NODE_CPUS - 2))
 
 
+def resolve_trainable(run):
+    """Resolve repo-local algorithms without mutating RLlib's global registry."""
+
+    from ray.rllib.agents.concaveq import ConcaveQFocusTrainer, ConcaveQTrainer
+    from ray.rllib.agents.facmac import FACMACFocusTrainer, FACMACTrainer
+    from ray.rllib.agents.qfree import QFreeFocusTrainer, QFreeTrainer
+    from ray.rllib.agents.resq import ResQFocusTrainer, ResQTrainer
+    from ray.rllib.agents.riskq import RiskQFocusTrainer, RiskQTrainer
+
+    return {
+        "FACMAC": FACMACTrainer,
+        "FACMAC_FOCUSS": FACMACFocusTrainer,
+        "RESQ": ResQTrainer,
+        "RESQ_FOCUSS": ResQFocusTrainer,
+        "RISKQ": RiskQTrainer,
+        "RISKQ_FOCUSS": RiskQFocusTrainer,
+        "QFREE": QFreeTrainer,
+        "QFREE_FOCUSS": QFreeFocusTrainer,
+        "CONCAVEQ": ConcaveQTrainer,
+        "CONCAVEQ_FOCUSS": ConcaveQFocusTrainer,
+    }.get(run, run)
+
+
 def make_experiment(name, run, config, local_dir):
     return tune.Experiment(
         name=name,
-        run=run,
+        run=resolve_trainable(run),
         config=copy.deepcopy(config),
         local_dir=Path(local_dir),
         stop={"timesteps_total": 100000},
@@ -79,6 +102,10 @@ def train(
             num_cpus=NUM_NODE_CPUS,
             num_gpus=NUM_NODE_GPUS,
             local_mode=DEBUG,
+            include_dashboard=False,
+            object_store_memory=int(
+                os.getenv("MATE_RAY_OBJECT_STORE_BYTES", str(4 * 1024**3))
+            ),
         )
     available_cpus = round(ray.cluster_resources()["CPU"])
     available_gpus = ray.cluster_resources().get("GPU", 0.0)

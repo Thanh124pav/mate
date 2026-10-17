@@ -3,12 +3,8 @@
 # Run the following command to show demos:
 #   python3 -m examples.<name>
 
-# isort: off
-
-# Rule-based agents
-from examples import random, naive, greedy, heuristic
-
-# Learning-based agents
-from examples import iql, ippo, maddpg, mappo, qmix, hrl, qplex, qplex_v2, a3c
-from examples import i2c, tarmac
-from examples import hitmac
+# Keep this package initializer intentionally lightweight.  Importing every
+# example here made a targeted launcher such as ``examples.facmac.camera``
+# depend on all optional RLlib agents (including unrelated A3C APIs).  Python
+# loads requested submodules on demand, so eager imports are unnecessary and
+# make the training entry points fragile across the supported Ray variants.

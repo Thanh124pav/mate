@@ -15,7 +15,6 @@ from ray.rllib.agents.qplex.model import _get_size
 from ray.rllib.env.multi_agent_env import ENV_STATE
 from ray.rllib.env.wrappers.group_agents_wrapper import GROUP_REWARDS
 from ray.rllib.models.modelv2 import _unpack_obs
-from ray.rllib.models.torch.torch_action_dist import TorchCategorical
 from ray.rllib.policy.policy import Policy
 from ray.rllib.policy.rnn_sequencing import chop_into_sequences
 from ray.rllib.policy.sample_batch import SampleBatch
@@ -345,14 +344,22 @@ class GroupedCTDEPolicy(Policy):
         """Select flattened decentralized actions from local policy scores."""
 
         flat = scores.reshape(-1, self.n_actions)
-        actions, _ = self.exploration.get_exploration_action(
-            action_distribution=TorchCategorical(flat),
-            timestep=timestep,
-            explore=bool(explore),
-        )
-        state = self.exploration.get_state()
-        if "cur_epsilon" in state:
-            self.cur_epsilon = float(np.asarray(state["cur_epsilon"]))
+        # Ray 1.12 creates EpsilonGreedy's Bernoulli selector on
+        # ``exploration.device``.  That device remains CPU for a local policy,
+        # even when its model and logits are on CUDA, so torch.where fails with
+        # a mixed-device error.  Keep the same epsilon-greedy semantics while
+        # creating every sampling tensor next to the policy scores.
+        self.exploration.last_timestep = timestep
+        epsilon = float(np.asarray(self.exploration.epsilon_schedule(timestep)))
+        self.cur_epsilon = epsilon
+        actions = flat.argmax(dim=-1)
+        if bool(explore):
+            valid = action_mask.reshape(-1, self.n_actions).to(
+                device=flat.device, dtype=torch.float32
+            )
+            random_actions = torch.multinomial(valid, 1).squeeze(1)
+            choose_random = torch.rand(flat.size(0), device=flat.device) < epsilon
+            actions = torch.where(choose_random, random_actions, actions)
         return actions.reshape(scores.shape[:-1])
 
     def _reshape_model_output(self, output):
