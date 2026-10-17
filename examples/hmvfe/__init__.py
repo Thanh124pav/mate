@@ -1,1 +1,0 @@
-"""HMVFE examples for MATE."""

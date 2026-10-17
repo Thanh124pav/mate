@@ -1,474 +1,166 @@
-# MATE: the Multi-Agent Tracking Environment
+# MATE: Multi-Agent Tracking Environment
 
-<!-- markdownlint-disable html -->
+MATE is a benchmark for cooperative and competitive multi-agent reinforcement
+learning in distributed target coverage control. It models an asymmetric,
+two-team, zero-sum stochastic game with partial observations and optional
+intra-team communication.
 
-This repo contains the source code of `MATE`, the _**M**ulti-**A**gent **T**racking **E**nvironment_. The full documentation can be found at <https://mate-gym.readthedocs.io>. The full list of implemented agents can be found in section [Implemented Algorithms](#implemented-algorithms). For detailed description, please checkout our paper ([PDF](https://openreview.net/pdf?id=SyoUVEyzJbE), [bibtex](#citation)).
-
-This is an **asymmetric two-team zero-sum stochastic game** with _partial observations_, and each team has multiple agents (multiplayer). Intra-team communications are allowed, but inter-team communications are prohibited. It is **cooperative** among teammates, but it is **competitive** among teams (opponents).
+- Documentation: <https://mate-gym.readthedocs.io>
+- Paper: <https://openreview.net/forum?id=SyoUVEyzJbE>
+- License: [MIT](LICENSE)
 
 ## Installation
-It is highly recommended to create a new isolated virtual environment for `MATE` using [`conda`](https://docs.conda.io/en/latest/miniconda.html)
-### Download Conda
+
+The tested learning stack uses Python 3.9, Gym 0.21, and Ray 1.12. Create an
+isolated environment from the repository root:
 
 ```bash
-wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
-bash Miniconda3-latest-Linux-x86_64.sh
-```
-
-### Create environment
-Easy:
-```bash
-conda env create -n mate --no-default-packages --file conda-recipes/full-gpu-torch.yaml  # or full-cpu.yaml to install RLlib
+conda create -n mate python=3.9.23 -y
 conda activate mate
+
+python -m pip install "pip==23.2.1" "setuptools==65.5.0" "wheel==0.38.4"
+python -m pip install -r requirements.txt
+python -m pip install -e . --no-deps
 ```
 
-Harder but faster:
+For GPU training, install the PyTorch build matching the host CUDA driver. The
+version in `requirements.txt` is the reproducible baseline and can be replaced
+with a compatible CUDA wheel when newer hardware requires it.
+
+This repository contains custom RLlib agents. Copy them into the Ray
+installation used by the active environment:
+
 ```bash
-pip install -r requirements.txt 
-conda install conda-forge::gym=0.21.0
+RAY_AGENTS="$(python -c 'import site; print(site.getsitepackages()[0])')/ray/rllib/agents"
+cp -a ray/rllib/agents/. "$RAY_AGENTS/"
 ```
 
-### Change the ray libraries
-To use modified method, like `qplex` or `qplex_v2`, you must change the ray libraries. You can changed this by directly mofify ray in site-packages or change the PYTHONPATH
-1. Modify ray in site-packages
-find the site-packages folder:
+The repository also vendors a partial `ray/` tree, so training entry points
+must use installed Ray without letting the repository root shadow it. Create a
+small runtime import overlay once:
+
 ```bash
-python -c "import sys; print('\n'.join(sys.path))"
+mkdir -p .runtime_pythonpath
+ln -sfn ../examples .runtime_pythonpath/examples
+ln -sfn ../mate .runtime_pythonpath/mate
 ```
-modified the ray libaries by the ray in mate folder:
-```bash
-cp -r ray/rllib/agents/ <site-packages folder>/ray/rllib/
-```
-2. Change PYTHONPATH 
-This will use the ray folder in this directory and ignore ray in site-packages
-```bash
-export PYTHONPATH="<Path to this folder>"
-```
-
-**NOTE:** 
-Python 3.7+ is required, and Python versions lower than 3.7 is not supported. \
-To hide some logging, you can try 
-```bash
-export RAY_BACKEND_LOG_LEVEL=error
-export RAY_LOG_TO_STDERR=0
-``` 
-Docker version is in experiment-time \
-There are some checkpoints in folder, you can test the model now:
-```bash
-python -m mate.evaluate --episodes 1 --render-communication \
-    --camera-agent examples.hrl.qplex_v2:HRLQPLEXV2CameraAgent \
-    --camera-kwargs '{ "checkpoint_path": "examples/hrl/qplex_v2/camera/ray_results/HRL-QPLEXV2/QPLEX_V2_mate-hrl.qplex_v2.camera_f1636_00000_0_2026-01-19_15-50-45/latest-checkpoint" }' \
-    --config "MATE-4v5-0.yaml"
-```
-
-### HMVFE Coordinator
-
-This repo includes a ray-free HMVFE coordinator integration in `hmvfe_mate_d/`,
-with the examples entry point under `examples/hmvfe/camera`. It uses the existing
-MATE camera-team wrappers with a discretized coordinator observation, an HMVFE FM
-+ Mixture-of-Experts policy, and A2C/GAE training.
-
-Install the extra dependencies when needed:
-
-```bash
-pip install -r hmvfe_mate_d/requirements.txt
-pip install -e . --no-deps
-```
-
-Run a smoke training job:
-
-```bash
-python -m examples.hmvfe.camera.train --total-env-steps 5000 --rollout-length 8 \
-    --eval-interval 5 --eval-episodes 2 --log-interval 1 --wandb-mode disabled
-```
-
-Or use the script wrapper:
-
-```bash
-scripts/camera.hmvfe.sh --env-config MATE-4v8-9.yaml --seed 0 \
-    --total-env-steps 10000000 --wandb-project mate-hmvfe
-```
-
-## Results
-
-#### 4v5-0
-
-|                           Metric | Greedy (4v5-0) | QPLEX_V2 (4v5-0) | QPLEX_WM2 (4v5-0) | QPLEX_SE (4v5-0) | 
-| -------------------------------: | -------------: | ---------------: | ----------------: | ---------------: |
-|                     Step / Cargo |           29.9 |         34.0     |      30.4         |       31.5       |
-|            Target Episode Reward |       +2317.80 |     +2258.00     |      +2575.80     |       +2522.20   |
-|              Mean Transport Rate |        28.973% |      28.225%     |      32.197%      |       31.527%    |
-|               Mean Coverage Rate |        75.021% |      74.065%     |      67.831%      |       70.347%    |
-| Normalized Target Episode Reward |       +0.28973 |     +0.28225     |      +0.32198     |       +0.31527   |
-
-#### 4v8-9
-
-| Algorithm | Step / Cargo | Target Episode Reward | Mean Transport Rate | Mean Coverage Rate | Normalized Target Episode Reward |
-| --- | --- | --- | --- | --- | --- |
-| Greedy (4v8-9) | 18.9 | +4499.60 | 35.153% | 64.468% | +0.35153 |
-| QPLEX_V2 (4v8-9) | 18.8 | +5694.60 | 44.489% | 52.661% | +0.44489 |
-| QPLEX_WM2 (4v8-9) | 19.4 | +5019.00 | 39.211% | 59.137% | +0.39211 |
-| QPLEX_WM3 (4v8-9) | 19.0 | +6592.60 | 51.505% | 45.708% | +0.51505 |
-| QPLEX_SE (4v8-9) | 18.3 | +5526.20 | 43.173% | 55.348% | +0.43173 |
-| QPLEX_WM2_SE | 18.8 | +5271.50 | 41.184% | 55.682% | +0.41184 |
-| QPLEX_FOCUS | 18.6 | +5059.10 | 39.524% | 57.824% | +0.39524 |  
-
-
-#### 4v8-9 World model 4 with GreedyTarget
-|                           Metric |         Mean |
-| -------------------------------: | -----------: |
-|                     Step / Cargo |         18.8 |
-|            Target Episode Reward |     +5402.80 |
-|              Mean Transport Rate |      42.209% |
-|               Mean Coverage Rate |      55.976% |
-| Normalized Target Episode Reward |     +0.42209 |
-
 
 ## Getting Started
 
-Make the ``MultiAgentTracking`` environment and play!
+Create the default environment and step both teams jointly:
 
 ```python
 import mate
 
-# Base environment for MultiAgentTracking
-env = mate.make('MultiAgentTracking-v0')
+env = mate.make("MultiAgentTracking-v0")
 env.seed(0)
+camera_obs, target_obs = env.reset()
 done = False
-camera_joint_observation, target_joint_observation = env.reset()
+
 while not done:
-    camera_joint_action, target_joint_action = env.action_space.sample()  # your agent here (this takes random actions)
-    (
-        (camera_joint_observation, target_joint_observation),
-        (camera_team_reward, target_team_reward),
-        done,
-        (camera_infos, target_infos)
-    ) = env.step((camera_joint_action, target_joint_action))
+    camera_action, target_action = env.action_space.sample()
+    (camera_obs, target_obs), rewards, done, infos = env.step(
+        (camera_action, target_action)
+    )
 ```
 
-Another example with a built-in single-team wrapper (see also [Built-in Wrappers](#built-in-wrappers)):
+MATE includes preset environments such as `MATE-4v2-9-v0`,
+`MATE-4v8-9-v0`, `MATE-8v8-9-v0`, and `MATE-Navigation-v0`. A YAML/JSON
+configuration can also be passed directly:
 
 ```python
-import mate
-
-env = mate.make('MultiAgentTracking-v0')
-env = mate.MultiTarget(env, camera_agent=mate.GreedyCameraAgent(seed=0))
-env.seed(0)
-done = False
-target_joint_observation = env.reset()
-while not done:
-    target_joint_action = env.action_space.sample()  # your agent here (this takes random actions)
-    target_joint_observation, target_team_reward, done, target_infos = env.step(target_joint_action)
+env = mate.make("MultiAgentTracking-v0", config="MATE-4v8-9.yaml")
 ```
 
-<p align="center">
-  <img src="https://user-images.githubusercontent.com/16078332/130274196-9d18563d-6d42-493d-8dac-326b1924d2e3.gif" alt="Screencast">
-  </br>
-  4 Cameras vs. 8 Targets (9 Obstacles)
-</p>
+Wrappers support discrete actions, enhanced observations, auxiliary rewards,
+single-team control, and communication constraints. See the
+[documentation](https://mate-gym.readthedocs.io) for the complete API.
 
-### Examples and Demos
+## Examples
 
-[`mate/evaluate.py`](mate/evaluate.py) contains the example evaluation code for the `MultiAgentTracking` environment. Try out the following demos:
+Run a built-in evaluation:
 
 ```bash
-# <MultiAgentTracking<MultiAgentTracking-v0>>(4 cameras, 2 targets, 9 obstacles)
-python3 -m mate.evaluate --episodes 1 --config MATE-4v2-9.yaml
+python -m mate.evaluate --episodes 1 --config MATE-4v8-9.yaml
 
-# <MultiAgentTracking<MultiAgentTracking-v0>>(4 cameras, 8 targets, 9 obstacles)
-python3 -m mate.evaluate --episodes 1 --config MATE-4v8-9.yaml
-
-# <MultiAgentTracking<MultiAgentTracking-v0>>(8 cameras, 8 targets, 9 obstacles)
-python3 -m mate.evaluate --episodes 1 --config MATE-8v8-9.yaml
-
-# <MultiAgentTracking<MultiAgentTracking-v0>>(4 cameras, 8 targets, 0 obstacle)
-python3 -m mate.evaluate --episodes 1 --config MATE-4v8-0.yaml
-
-# <MultiAgentTracking<MultiAgentTracking-v0>>(0 camera, 8 targets, 32 obstacles)
-python3 -m mate.evaluate --episodes 1 --config MATE-Navigation.yaml
+python -m mate.evaluate --episodes 1 --render-communication \
+  --camera-agent examples.greedy:GreedyCameraAgent \
+  --camera-kwargs '{"memory_period": 20}' \
+  --target-agent examples.greedy:GreedyTargetAgent \
+  --config MATE-4v8-9.yaml --seed 0
 ```
 
-<table style="margin-top: 15px; margin-bottom: 15px; table-layout: fixed; width: 100%;">
-  <tr align="center" valign="middle">
-    <td style="width:20%;">4 Cameras </br> vs. 2 Targets </br> (9 obstacles)</td>
-    <td style="width:20%;">4 Cameras </br> vs. 8 Targets </br> (9 obstacles)</td>
-    <td style="width:20%;">8 Cameras </br> vs. 8 Targets </br> (9 obstacles)</td>
-    <td style="width:20%;">4 Cameras </br> vs. 8 Targets </br> (no obstacles)</td>
-    <td style="width:20%;">8 Targets Navigation </br> (no cameras)</td>
-  </tr>
-  <tr align="center" valign="middle">
-    <td><img src="https://user-images.githubusercontent.com/16078332/130273683-cd0b8a30-ef8f-4d56-bb8a-ae508d51e0e7.gif"></td>
-    <td><img src="https://user-images.githubusercontent.com/16078332/130274196-9d18563d-6d42-493d-8dac-326b1924d2e3.gif"></td>
-    <td><img src="https://user-images.githubusercontent.com/16078332/130274314-c04d0be9-3af1-4cb9-a33d-0d99c0eec66b.gif"></td>
-    <td><img src="https://user-images.githubusercontent.com/16078332/130274049-7fc02965-f2bd-4d37-9d9f-0c6a8279056a.gif"></td>
-    <td><img src="https://user-images.githubusercontent.com/16078332/130274359-52b13fdd-189f-47e9-bc9b-feb924215b3a.gif"></td>
-  </tr>
-</table>
-
-You can specify the agent classes and arguments by:
+Run one value-factorization experiment from a directory that does not shadow
+the installed Ray package:
 
 ```bash
-python3 -m mate.evaluate --camera-agent module:class --camera-kwargs <JSON-STRING> --target-agent module:class --target-kwargs <JSON-STRING>
+REPO_ROOT="$PWD"
+cd /tmp
+PYTHONPATH="$REPO_ROOT/.runtime_pythonpath" \
+python -m examples.facmac_focuss.camera \
+  --env MATE-4v8-9.yaml \
+  --timesteps-total 2000000 \
+  --num-workers 4 \
+  --num-envs-per-worker 2 \
+  --num-gpus 0.5 \
+  --evaluation-interval 50
 ```
 
-You can find the example code for agents in [`examples`](examples). The full list of implemented agents can be found in section [Implemented Algorithms](#implemented-algorithms). For example:
+For a sequence of long-running experiments, use the priority queue supervisor:
 
 ```bash
-# Example demos in examples
-python3 -m examples.naive
-
-# Use the evaluation script
-python3 -m mate.evaluate --episodes 1 --render-communication \
-    --camera-agent examples.greedy:GreedyCameraAgent --camera-kwargs '{"memory_period": 20}' \
-    --target-agent examples.greedy:GreedyTargetAgent \
-    --config MATE-4v8-9.yaml \
-    --seed 0
-```
-
-<p align="center">
-  <img src="https://user-images.githubusercontent.com/16078332/131496988-0044c075-67a9-46cb-99a5-c8d290d0b3e4.gif" alt="Communication">
-</p>
-
-You can implement your own custom agents classes to play around. See [Make Your Own Agents](docs/source/getting-started.rst#make-your-own-agents) for more details.
-
-## Environment Configurations
-
-The `MultiAgentTracking` environment accepts a Python dictionary mapping or a configuration file in JSON or YAML format.
-If you want to use customized environment configurations, you can copy the default configuration file:
-
-```bash
-cp "$(python3 -m mate.assets)"/MATE-4v8-9.yaml MyEnvCfg.yaml
-```
-
-Then make some modifications for your own. Use the modified environment by:
-
-```python
-env = mate.make('MultiAgentTracking-v0', config='/path/to/your/cfg/file')
-```
-
-There are several preset configuration files in [`mate/assets`](mate/assets) directory.
-
-```python
-# <MultiAgentTracking<MultiAgentTracking-v0>>(4 camera, 2 targets, 9 obstacles)
-env = mate.make('MATE-4v2-9-v0')
-
-# <MultiAgentTracking<MultiAgentTracking-v0>>(4 camera, 8 targets, 9 obstacles)
-env = mate.make('MATE-4v8-9-v0')
-
-# <MultiAgentTracking<MultiAgentTracking-v0>>(8 camera, 8 targets, 9 obstacles)
-env = mate.make('MATE-8v8-9-v0')
-
-# <MultiAgentTracking<MultiAgentTracking-v0>>(4 camera, 8 targets, 0 obstacles)
-env = mate.make('MATE-4v8-0-v0')
-
-# <MultiAgentTracking<MultiAgentTracking-v0>>(0 camera, 8 targets, 32 obstacles)
-env = mate.make('MATE-Navigation-v0')
-```
-
-You can reinitialize the environment with a new configuration without creating a new instance:
-
-```python
->>> env = mate.make('MultiAgentTracking-v0', wrappers=[mate.MoreTrainingInformation])  # we support wrappers
->>> print(env)
-<MoreTrainingInformation<MultiAgentTracking<MultiAgentTracking-v0>>(4 cameras, 8 targets, 9 obstacles)>
-
->>> env.load_config('MATE-8v8-9.yaml')
->>> print(env)
-<MoreTrainingInformation<MultiAgentTracking<MultiAgentTracking-v0>>(8 cameras, 8 targets, 9 obstacles)>
-```
-
-Besides, we provide a script [`mate/assets/generator.py`](mate/assets/generator.py) to generate a configuration file with responsible camera placement:
-
-```bash
-python3 -m mate.assets.generator --path 24v48.yaml --num-cameras 24 --num-targets 48 --num-obstacles 20
-```
-
-See [Environment Customization](docs/source/getting-started.rst#environment-customization) for more details.
-
-## Built-in Wrappers
-
-MATE provides multiple wrappers for different settings. Such as _fully observability_, _discrete action spaces_, _single team multi-agent_, etc. See [Built-in Wrappers](docs/source/wrappers.rst#wrappers) for more details.
-
-<table class="docutils align-default">
-  <thead>
-    <tr class="row-odd">
-      <th class="head" colspan="2">Wrapper</th>
-      <th class="head">Description</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr class="row-even">
-      <td rowspan="5">observation</td>
-      <td><code>EnhancedObservation</code></td>
-      <td>
-        Enhance the agent’s observation, which sets all observation mask to <code>True</code>.
-      </td>
-    </tr>
-    <tr class="row-odd">
-      <td><code>SharedFieldOfView</code></td>
-      <td>
-        Share field of view among agents in the same team, which applies the <code>or</code> operator over the observation masks. The target agents share the empty status of warehouses.
-      </td>
-    </tr>
-    <tr class="row-even">
-      <td><code>MoreTrainingInformation</code></td>
-      <td>
-        Add more environment and agent information to the <code>info</code> field of <code>step()</code>, enabling full observability of the environment.
-      </td>
-    </tr>
-    <tr class="row-odd">
-      <td><code>RescaledObservation</code></td>
-      <td>
-        Rescale all entity states in the observation to <span class="math">[-1, +1]</span>.
-      </td>
-    </tr>
-    <tr class="row-even">
-      <td><code>RelativeCoordinates</code></td>
-      <td>
-        Convert all locations of other entities in the observation to relative coordinates.
-      </td>
-    </tr>
-    <tr class="row-odd">
-      <td rowspan="2">action</td>
-      <td><code>DiscreteCamera</code></td>
-      <td>
-        Allow cameras to use discrete actions.
-      </td>
-    </tr>
-    <tr class="row-even">
-      <td><code>DiscreteTarget</code></td>
-      <td>
-        Allow targets to use discrete actions.
-      </td>
-    </tr>
-    <tr class="row-odd">
-      <td rowspan="2">reward</td>
-      <td><code>AuxiliaryCameraRewards</code></td>
-      <td>
-        Add additional auxiliary rewards for each individual camera.
-      </td>
-    </tr>
-    <tr class="row-even">
-      <td><code>AuxiliaryTargetRewards</code></td>
-      <td>
-        Add additional auxiliary rewards for each individual target.
-      </td>
-    </tr>
-    <tr class="row-odd">
-      <td rowspan="4">single-team</td>
-      <td><code>MultiCamera</code>
-      <td rowspan="2">
-        Wrap into a single-team multi-agent environment.
-      </td>
-    </tr>
-    <tr class="row-even">
-      <td><code>MultiTarget</code></td>
-    </tr>
-    <tr class="row-odd">
-      <td><code>SingleCamera</code></td>
-      <td rowspan="2">
-        Wrap into a single-team single-agent environment.
-      </td>
-    </tr>
-    <tr class="row-even">
-      <td><code>SingleTarget</code></td>
-    </tr>
-    <tr class="row-odd">
-      <td rowspan="5">communication</td>
-      <td><code>MessageFilter</code></td>
-      <td>
-        Filter messages from agents of intra-team communications.
-      </td>
-    </tr>
-    <tr class="row-even">
-      <td><code>RandomMessageDropout</code></td>
-      <td>
-        Randomly drop messages in communication channels.
-      </td>
-    </tr>
-    <tr class="row-odd">
-      <td><code>RestrictedCommunicationRange</code></td>
-      <td>
-        Add a restricted communication range to channels.
-      </td>
-    </tr>
-    <tr class="row-even">
-      <td><code>NoCommunication</code></td>
-      <td>
-        Disable intra-team communications, i.e., filter out all messages.
-      </td>
-    </tr>
-    <tr class="row-odd">
-      <td><code>ExtraCommunicationDelays</code></td>
-      <td>
-        Add extra message delays to communication channels.
-      </td>
-    </tr>
-    <tr class="row-even">
-      <td>miscellaneous</td>
-      <td><code>RepeatedRewardIndividualDone</code></td>
-      <td>
-        Repeat the <code>reward</code> field and assign individual <code>done</code> field of <code>step()</code>, which is similar to <a href="https://github.com/openai/multiagent-particle-envs">MPE</a>.
-      </td>
-    </tr>
-  </tbody>
-</table>
-
-You can create an environment with multiple wrappers at once. For example:
-
-```python
-env = mate.make('MultiAgentTracking-v0',
-                wrappers=[
-                    mate.EnhancedObservation,
-                    mate.MoreTrainingInformation,
-                    mate.WrapperSpec(mate.DiscreteCamera, levels=5),
-                    mate.WrapperSpec(mate.MultiCamera, target_agent=mate.GreedyTargetAgent(seed=0)),
-                    mate.RepeatedRewardIndividualDone,
-                    mate.WrapperSpec(mate.AuxiliaryCameraRewards,
-                                     coefficients={'raw_reward': 1.0,
-                                                   'coverage_rate': 1.0,
-                                                   'soft_coverage_score': 1.0,
-                                                   'baseline': -2.0}),
-                ])
+python scripts/run_value_factorization_2m_priority_queue.py \
+  --output-dir outputs/value_factorization_2m \
+  --api-key-file /path/to/wandb-token.txt \
+  --algorithms facmac facmac_focuss resq resq_focuss \
+  --num-workers 4 --num-envs-per-worker 2 --num-gpus 0.5
 ```
 
 ## Implemented Algorithms
 
-The following algorithms are implemented in [`examples`](examples):
+The implementations and launchers live under [`examples/`](examples).
 
-- **Rule-based:**
+- Rule-based: Random, Naive, Greedy, and Heuristic.
+- Independent/on-policy: IQL, IPPO, MAPPO, A3C, and MADDPG.
+- Value factorization: QMIX, QPLEX, FACMAC, RESQ, RISKQ, QFREE, CONCAVEQ,
+  DUELMIX, and their repository variants.
+- FOCUSS variants: FACMAC_FOCUSS, RESQ_FOCUSS, RISKQ_FOCUSS, QFREE_FOCUSS,
+  CONCAVEQ_FOCUSS, QPLEX_FOCUS, QMIX_FOCUS, MAPPO_FOCUS, and TarMAC_FOCUS.
+- Communication: TarMAC and I2C.
+- Population-based learning: Self-Play, Fictitious Self-Play, and PSRO-Nash.
 
-  1. **Random** (source: [`mate/agents/random.py`](mate/agents/random.py))
-  1. **Naive** (source: [`mate/agents/naive.py`](mate/agents/naive.py))
-  1. **Greedy** (source: [`mate/agents/greedy.py`](mate/agents/greedy.py))
-  1. **Heuristic** (source: [`mate/agents/heuristic.py`](mate/agents/heuristic.py))
+Learning-based agents are built against the custom RLlib extensions in
+[`ray/rllib/agents`](ray/rllib/agents) and are tested with Ray 1.12.x.
 
-- **Multi-Agent Reinforcement Learning Algorithms:**
+## Results
 
-  1. **IQL** (<https://arxiv.org/abs/1511.08779>)
-  1. **QMIX** (<https://arxiv.org/abs/1803.11485>)
-  1. **MADDPG** (MA-TD3) (<https://arxiv.org/abs/1706.02275>)
-  1. **IPPO** (<https://arxiv.org/abs/2011.09533>)
-  1. **MAPPO** (<https://arxiv.org/abs/2103.01955>)
-  1. **HMVFE** (source: [`examples/hmvfe`](examples/hmvfe), core: [`hmvfe_mate_d`](hmvfe_mate_d))
+Representative deterministic evaluation results from the included MATE
+experiments are shown below. Metrics can vary with seed and checkpoint.
 
-- _Multi-Agent Reinforcement Learning Algorithms_ with **Multi-Agent Communication:**
+### MATE-4v5-0
 
-  1. **TarMAC** (base algorithm: IPPO) (<https://arxiv.org/abs/1810.11187>)
-  1. **TarMAC** (base algorithm: MAPPO)
-  1. **I2C** (base algorithm: MAPPO) (<https://arxiv.org/abs/2006.06455>)
+| Algorithm | Target episode reward | Mean transport rate | Mean coverage rate |
+| --- | ---: | ---: | ---: |
+| Greedy | +2317.80 | 28.973% | 75.021% |
+| QPLEX_V2 | +2258.00 | 28.225% | 74.065% |
+| QPLEX_WM2 | +2575.80 | 32.197% | 67.831% |
+| QPLEX_SE | +2522.20 | 31.527% | 70.347% |
 
-- **Population Based Adversarial Policy Learning**, available meta-solvers:
+### MATE-4v8-9
 
-  1. Self-Play (SP)
-  1. Fictitious Self-Play (FSP) (<https://proceedings.mlr.press/v37/heinrich15.html>)
-  1. PSRO-Nash (NE) (<https://arxiv.org/abs/1711.00832>)
-
-**NOTE:** all learning-based algorithms are tested with [Ray 1.12.0](https://github.com/ray-project/ray) on Ubuntu 20.04 LTS.
+| Algorithm | Target episode reward | Mean transport rate | Mean coverage rate |
+| --- | ---: | ---: | ---: |
+| Greedy | +4499.60 | 35.153% | 64.468% |
+| QPLEX_V2 | +5694.60 | 44.489% | 52.661% |
+| QPLEX_WM2 | +5019.00 | 39.211% | 59.137% |
+| QPLEX_WM3 | +6592.60 | 51.505% | 45.708% |
+| QPLEX_SE | +5526.20 | 43.173% | 55.348% |
+| QPLEX_WM2_SE | +5271.50 | 41.184% | 55.682% |
+| QPLEX_FOCUS | +5059.10 | 39.524% | 57.824% |
 
 ## Citation
 
-If you find MATE useful, please consider citing:
+If you use MATE in your work, please cite:
 
 ```bibtex
 @inproceedings{pan2022mate,
@@ -479,7 +171,3 @@ If you find MATE useful, please consider citing:
   url       = {https://openreview.net/forum?id=SyoUVEyzJbE}
 }
 ```
-
-## License
-
-MIT License
