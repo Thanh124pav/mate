@@ -271,24 +271,48 @@ class ConcaveQTorchPolicy(GroupedCTDEPolicy):
         policy = log_policy.exp()
         alpha = self.log_alpha.exp().view(1, 1, self.n_agents, 1)
 
-        # Critic/mixer part of L_pi (actor distribution held fixed), as in the
-        # paper's separate critic and policy update pseudocode.
-        critic_soft_local = (
-            policy.detach()
-            * (current_q - alpha.detach() * log_policy.detach())
-        ).sum(dim=-1)
+        # Eq. (19) identifies q^pi(s, E_pi[q_i]) with E_pi[Q_tot].  The
+        # one-layer policy mixer therefore needs a value-regression target;
+        # directly minimizing -q^pi with respect to the mixer's own weights
+        # makes its positive weights and unconstrained bias grow without
+        # bound.  That failure mode collapses policy entropy even though all
+        # tensors remain finite.
+        policy_local_values = (policy.detach() * current_q).sum(dim=-1)
         critic_policy_value = self.policy_value_mixer(
-            critic_soft_local, batch.state
+            policy_local_values, batch.state
         )
         policy_critic_loss = -masked_mean(critic_policy_value, batch.mask)
+        with torch.no_grad():
+            sample_count = int(self.config.get("policy_value_num_samples", 4))
+            if sample_count <= 0:
+                raise ValueError("policy_value_num_samples must be positive")
+            sampled_actions = torch.multinomial(
+                policy.detach().reshape(-1, self.n_actions),
+                num_samples=sample_count,
+                replacement=True,
+            ).view(*policy.shape[:-1], sample_count)
+            # [B, T, agent, sample] -> [B, T, sample, agent]
+            sampled_actions = sampled_actions.movedim(-1, -2)
+            policy_value_target = self._joint_value(
+                current_q.detach(),
+                batch.state,
+                sampled_actions,
+                self.concave_mixer,
+            ).mean(dim=-2)
+        fitted_policy_value = self.policy_value_mixer(
+            policy_local_values.detach(), batch.state
+        )
+        policy_value_loss = masked_mean(
+            (fitted_policy_value - policy_value_target).square(), batch.mask
+        )
         critic_loss = (
             unrestricted_loss
             + concave_loss
             + float(self.config.get("policy_critic_coefficient", 1.0))
-            * policy_critic_loss
+            * policy_value_loss
         )
         focuss_credit_loss, focuss_credit_stats = self._focuss_agent_objective(
-            critic_policy_value, critic_soft_local, focus
+            critic_policy_value, policy_local_values, focus
         )
         self.critic_optimizer.zero_grad()
         (critic_loss + focuss_credit_loss).backward()
@@ -356,6 +380,9 @@ class ConcaveQTorchPolicy(GroupedCTDEPolicy):
             "unrestricted_loss": unrestricted_loss.detach(),
             "concave_loss": concave_loss.detach(),
             "policy_critic_loss": policy_critic_loss.detach(),
+            "policy_value_loss": policy_value_loss.detach(),
+            "policy_value_mean": fitted_policy_value.mean().detach(),
+            "policy_value_target_mean": policy_value_target.mean().detach(),
             "actor_loss": actor_loss.detach(),
             "alpha_loss": alpha_loss.detach(),
             "alpha_mean": self.log_alpha.exp().mean().detach(),

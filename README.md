@@ -158,6 +158,34 @@ experiments are shown below. Metrics can vary with seed and checkpoint.
 | QPLEX_WM2_SE | +5271.50 | 41.184% | 55.682% |
 | QPLEX_FOCUS | +5059.10 | 39.524% | 57.824% |
 
+#### Provisional value-factorization sweep
+
+The following seed-0 snapshot was collected on `MATE-4v8-9` on October 18,
+2026. Runs were stopped at different budgets, so these numbers are useful for
+tracking experiments but are **not** a controlled final comparison. Train
+coverage is the last reported rolling mean; evaluation coverage is from the
+latest deterministic evaluation checkpoint.
+
+| Algorithm | Steps | Train coverage | Eval iteration | Eval coverage | Eval real coverage |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| FACMAC | 650,411 | 54.44% | 100 | 53.42% | 47.00% |
+| FACMAC_FOCUSS | 1,780,269 | 57.66% | 300 | 55.26% | 49.72% |
+| RESQ | 2,005,541 | 53.53% | 300 | 42.81% | 41.30% |
+| RESQ_FOCUSS | 1,712,494 | 60.39% | 250 | 59.29% | 56.09% |
+| RISKQ | 1,060,237 | 49.81% | 150 | 39.78% | 38.20% |
+| RISKQ_FOCUSS | 619,629 | 59.03% | 100 | 59.77% | 57.36% |
+| QFREE | 1,161,518 | 54.30% | 150 | 51.93% | 45.04% |
+| QFREE_FOCUSS | 835,089 | 58.87% | 100 | 62.18% | 56.31% |
+| CONCAVEQ (pre-fix) | 577,288 | 38.56% | 50 | 41.13% | 36.95% |
+| CONCAVEQ_FOCUSS (pre-fix) | 210,428 | 51.90% | - | - | - |
+
+The two ConcaveQ rows predate the policy-value-mixer objective fix in this
+revision and should not be used as final ConcaveQ results. Corrected runs
+reached only 28,729 and 23,414 steps before the allocated MIG device failed;
+their entropy remained stable, but the runs were too short for evaluation.
+Experiment histories are available in the
+[W&B project](https://wandb.ai/hust_edu_vn/mate-value-factorization-2m).
+
 ## Citation
 
 If you use MATE in your work, please cite:

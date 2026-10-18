@@ -41,7 +41,7 @@ def atomic_json(path, payload):
     temporary.replace(path)
 
 
-def latest_metrics(root):
+def latest_metrics(root, iteration_offset=0, timesteps_offset=0):
     paths = list(root.rglob("result.json"))
     if not paths:
         return {}
@@ -53,15 +53,62 @@ def latest_metrics(root):
         result = json.loads(lines[-1])
     except json.JSONDecodeError:
         return {"result_path": str(path)}
+    training_iteration = result.get("training_iteration")
+    timesteps_total = result.get("timesteps_total")
     return {
         "result_path": str(path),
-        "training_iteration": result.get("training_iteration"),
-        "timesteps_total": result.get("timesteps_total"),
+        "training_iteration": (
+            training_iteration + iteration_offset
+            if training_iteration is not None
+            else None
+        ),
+        "timesteps_total": (
+            timesteps_total + timesteps_offset
+            if timesteps_total is not None
+            else None
+        ),
         "episode_reward_mean": result.get("episode_reward_mean"),
         "coverage_rate_mean": result.get("custom_metrics", {}).get(
             "coverage_rate_mean"
         ),
     }
+
+
+def restore_progress(checkpoint_path):
+    """Return the Tune iteration and env steps captured by a checkpoint."""
+
+    try:
+        iteration = int(checkpoint_path.name.rsplit("_", 1)[-1])
+    except ValueError:
+        iteration = 0
+    result_path = checkpoint_path.parent / "result.json"
+    if not result_path.is_file():
+        return iteration, 0
+    timesteps = 0
+    for line in result_path.read_text(encoding="utf-8").splitlines():
+        try:
+            result = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if result.get("training_iteration") == iteration:
+            timesteps = int(result.get("timesteps_total") or 0)
+            break
+    return iteration, timesteps
+
+
+def restore_payload(checkpoint_path):
+    """Resolve a Tune checkpoint directory to its trainer payload file."""
+
+    payloads = [
+        path
+        for path in checkpoint_path.glob("checkpoint-*")
+        if not path.name.endswith(".tune_metadata") and path.is_file()
+    ]
+    if len(payloads) != 1:
+        raise ValueError(
+            f"expected one checkpoint payload in {checkpoint_path}, found {payloads}"
+        )
+    return payloads[0]
 
 
 def main():
@@ -78,9 +125,43 @@ def main():
     parser.add_argument("--group", default="4v8-9-2m-priority")
     parser.add_argument("--max-retries", type=int, default=1)
     parser.add_argument(
+        "--restore",
+        action="append",
+        default=[],
+        metavar="ALGORITHM=CHECKPOINT",
+        help="Restore an algorithm from a Tune checkpoint (repeatable).",
+    )
+    parser.add_argument(
         "--algorithms", nargs="+", choices=tuple(MODULES), default=list(MODULES)
     )
     args = parser.parse_args()
+    # Children run from /tmp so imports always come from the controlled
+    # PYTHONPATH overlay.  Resolve output paths before spawning them, otherwise
+    # a relative --local-dir silently writes trials under /tmp/outputs while
+    # the supervisor watches the repository path.
+    args.output_dir = args.output_dir.expanduser().resolve()
+
+    restore_paths = {}
+    for item in args.restore:
+        try:
+            name, checkpoint = item.split("=", 1)
+        except ValueError as error:
+            raise ValueError(
+                f"invalid --restore value {item!r}; expected ALGORITHM=CHECKPOINT"
+            ) from error
+        if name not in MODULES:
+            raise ValueError(f"unknown restore algorithm: {name}")
+        checkpoint_path = Path(checkpoint).expanduser().resolve()
+        if not checkpoint_path.is_dir():
+            raise FileNotFoundError(checkpoint_path)
+        restore_paths[name] = checkpoint_path
+
+    restore_offsets = {
+        name: restore_progress(checkpoint) for name, checkpoint in restore_paths.items()
+    }
+    restore_payloads = {
+        name: restore_payload(checkpoint) for name, checkpoint in restore_paths.items()
+    }
 
     repo = Path(__file__).resolve().parents[1]
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -155,6 +236,7 @@ def main():
             log = (args.output_dir / f"{name}.log").open(
                 "a", encoding="utf-8", buffering=1
             )
+            iteration_offset, timesteps_offset = restore_offsets.get(name, (0, 0))
             command = [
                 sys.executable,
                 "-m",
@@ -182,6 +264,9 @@ def main():
                 "--local-dir",
                 str(output),
             ]
+            restore_path = restore_paths.get(name)
+            if restore_path is not None:
+                command.extend(("--restore", str(restore_payloads[name])))
             child_env = environment.copy()
             child_env["RAY_TMPDIR"] = f"/tmp/mate_priority_{index}_{name}_{attempt}"
             log.write(f"START {utc_now()} {' '.join(command)}\n")
@@ -201,6 +286,11 @@ def main():
                 started_at=utc_now(),
                 updated_at=utc_now(),
             )
+            if restore_path is not None:
+                states[name]["restored_from"] = str(restore_path)
+                states[name]["restore_iteration"] = iteration_offset
+                states[name]["restore_timesteps"] = timesteps_offset
+                states[name]["restore_counters_preserved"] = True
             while process.poll() is None and not stopping:
                 states[name].update(latest_metrics(output))
                 states[name]["updated_at"] = utc_now()

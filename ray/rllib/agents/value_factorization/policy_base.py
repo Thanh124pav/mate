@@ -497,10 +497,18 @@ class GroupedCTDEPolicy(Policy):
         if self.focus_engine is not None:
             state["focus_runtime_state"] = self.focus_engine.get_runtime_state()
         state["optimizer_states"] = {
-            name: copy.deepcopy(optimizer.state_dict())
+            name: optimizer.state_dict()
             for name, optimizer in self._optimizers.items()
         }
-        return state
+        # The learner may be on CUDA while rollout workers are CPU-only.
+        # Broadcast/checkpoint state must therefore contain no CUDA tensors;
+        # set_state moves optimizer tensors back to the policy device below.
+        return tree.map_structure(
+            lambda value: value.detach().cpu()
+            if torch.is_tensor(value)
+            else copy.deepcopy(value),
+            state,
+        )
 
     @override(Policy)
     def set_state(self, state):

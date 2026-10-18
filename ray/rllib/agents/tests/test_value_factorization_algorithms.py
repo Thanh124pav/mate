@@ -495,3 +495,34 @@ def test_baseline_policy_one_update_is_finite_and_checkpoint_roundtrips(
     for name, values in policy.get_weights().items():
         for key, value in values.items():
             np.testing.assert_allclose(value, clone.get_weights()[name][key])
+
+
+def test_concaveq_policy_value_mixer_is_fitted_to_joint_value():
+    """Repeated updates must not maximize q^pi's parameters without a target."""
+
+    torch.manual_seed(0)
+    observations, actions = _spaces()
+    policy = ConcaveQTorchPolicy(
+        observations,
+        actions,
+        {
+            "num_gpus": 0,
+            "model": {"lstm_cell_size": 16, "max_seq_len": 64},
+            "focus": {"enabled": False},
+            "policy_value_num_samples": 4,
+        },
+    )
+    batch = _batch(policy)
+    losses = []
+    for _ in range(20):
+        stats = policy._learn_sequence_batch(batch)
+        losses.append(float(stats["policy_value_loss"]))
+        for key, value in stats.items():
+            if torch.is_tensor(value):
+                assert torch.isfinite(value).all(), key
+
+    # The old objective drove q^pi directly toward +infinity and made the
+    # total loss increasingly negative.  q^pi is now anchored to E_pi[Q_tot]
+    # by a non-negative finite regression loss.
+    assert min(losses) >= 0.0
+    assert max(losses) < 1e8

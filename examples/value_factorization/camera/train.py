@@ -4,6 +4,7 @@ import argparse
 import copy
 import os
 import sys
+import uuid
 from math import ceil
 from pathlib import Path
 
@@ -80,6 +81,7 @@ def train(
     belief_grid_label_std=None,
     belief_position_loss_coeff=None,
     restore=None,
+    resume_timesteps_offset=0,
     resume=False,
     env=None,
 ):
@@ -92,6 +94,11 @@ def train(
             WandbLoggerCallback(
                 project=project or ("mate-value-factorization" if not DEBUG else "mate-debug"),
                 group=group or experiment.name,
+                # Independent Ray sessions can generate identical trial IDs
+                # when launched simultaneously with the same seed.  Ray uses
+                # that ID as the W&B run ID, which makes concurrent lanes
+                # overwrite one another unless we add a process-unique token.
+                id=f"{experiment.name.lower()}-{os.getpid()}-{uuid.uuid4().hex[:8]}",
             )
         )
     if not ray.is_initialized():
@@ -138,6 +145,22 @@ def train(
         experiment.spec["config"]["focus"] = focus_config
     configure_target_agent(experiment.spec["config"], target_agent)
     configure_greedy_evaluation(experiment.spec["config"], evaluation_interval)
+    if restore is not None and resume_timesteps_offset:
+        # RLlib restores policy/model/optimizer state, but Ray 1.12 resets the
+        # Tune sampling counter used by the epsilon schedule.  Shift the
+        # remaining schedule so resumed training does not restart at epsilon=1.
+        exploration = copy.deepcopy(
+            experiment.spec["config"].get("exploration_config", {})
+        )
+        initial = float(exploration.get("initial_epsilon", 1.0))
+        final = float(exploration.get("final_epsilon", 0.05))
+        duration = max(1, int(exploration.get("epsilon_timesteps", 1)))
+        elapsed = min(max(0, int(resume_timesteps_offset)), duration)
+        exploration["initial_epsilon"] = initial + (final - initial) * (
+            elapsed / duration
+        )
+        exploration["epsilon_timesteps"] = max(1, duration - elapsed)
+        experiment.spec["config"]["exploration_config"] = exploration
     if seed is not None:
         experiment.spec["config"]["seed"] = (
             tune.grid_search(seed) if isinstance(seed, (list, tuple)) else seed
@@ -146,6 +169,11 @@ def train(
         experiment.spec["stop"]["timesteps_total"] = int(timesteps_total)
     if local_dir is not None:
         experiment.spec["local_dir"] = str(local_dir)
+    if restore is not None:
+        # ``tune.run`` ignores its ``restore=`` keyword when passed an already
+        # constructed Experiment in Ray 1.12.  The restore path must live in
+        # the Experiment spec so it reaches the generated Trial.
+        experiment.spec["restore"] = os.path.abspath(os.path.expanduser(restore))
     if env is not None:
         # Keep the registered RLlib env name unchanged; this selects the MATE
         # YAML consumed by ``make_env``.  Without this override every launcher
@@ -157,7 +185,6 @@ def train(
         mode="max",
         callbacks=callbacks,
         verbose=3,
-        restore=restore,
         resume=resume,
     )
 
@@ -196,6 +223,7 @@ def main_for(name, run, config, package, default_local_dir):
         parser.add_argument("--belief-grid-label-std", type=float, default=None)
         parser.add_argument("--belief-position-loss-coeff", type=float, default=None)
     parser.add_argument("--restore", default=None)
+    parser.add_argument("--resume-timesteps-offset", type=int, default=0)
     parser.add_argument("--resume", action="store_true")
     args = parser.parse_args()
     experiment = make_experiment(name, run, config, args.local_dir)

@@ -32,6 +32,11 @@ DEFAULT_CONFIG = with_common_config(
         "coordinate_candidate_chunk_size": 32,
         "overestimate_weight": 0.5,
         "policy_critic_coefficient": 1.0,
+        # Eq. (19) defines q^pi as E_pi[Q_tot].  Estimate that expectation
+        # with a few factorized-policy joint-action samples when fitting the
+        # one-layer policy value mixer.  This is intentionally small because
+        # the target is recomputed for every sequence element.
+        "policy_value_num_samples": 4,
         "strict_shared_reward": True,
         "exploration_config": {
             "type": "EpsilonGreedy",
