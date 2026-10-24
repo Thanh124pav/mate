@@ -22,6 +22,7 @@ METRICS = [
     "focuss_action_gradient_scale",
     "focuss_credit_loss",
     "focuss_action_loss",
+    "focus_rho_entropy",
 ]
 HISTORY_KEYS = [f"{HISTORY_PREFIX}{metric}" for metric in METRICS]
 SYSTEM_KEYS = ["_step", "_timestamp", "_runtime", "timesteps_total"]
@@ -160,6 +161,13 @@ def main() -> None:
             else:
                 record["relative_action_gradient_contribution_percent"] = math.nan
 
+            credit_loss = record["focuss_credit_loss"]
+            rho_entropy = record["focus_rho_entropy"]
+            if pd.notna(credit_loss) and pd.notna(rho_entropy):
+                record["credit_alignment_kl"] = credit_loss - rho_entropy
+            else:
+                record["credit_alignment_kl"] = math.nan
+
             records.append(record)
             logging_index += 1
 
@@ -177,6 +185,7 @@ def main() -> None:
         *METRICS,
         "prediction_error_reduction_percent",
         "relative_action_gradient_contribution_percent",
+        "credit_alignment_kl",
     ]
     frame = pd.DataFrame.from_records(records, columns=columns)
     frame.sort_values(["run_name", "run_id", "logging_index"], inplace=True)

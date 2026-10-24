@@ -158,6 +158,13 @@ def main() -> None:
         "FOCUSS Action Loss",
         action_path,
     )
+    alignment_path = args.output_dir / "credit_alignment_kl_vs_timesteps.png"
+    plot_loss_panels(
+        frame,
+        "credit_alignment_kl",
+        "Credit Alignment KL",
+        alignment_path,
+    )
 
     print(f"Summarized {len(frame)} rows from {frame['run_id'].nunique()} runs")
     print(ragc_table.to_string(index=False))
@@ -165,6 +172,7 @@ def main() -> None:
     print(ragc_path.resolve())
     print(credit_path.resolve())
     print(action_path.resolve())
+    print(alignment_path.resolve())
 
 
 if __name__ == "__main__":
