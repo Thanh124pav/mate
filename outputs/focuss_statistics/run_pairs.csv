@@ -1,0 +1,5 @@
+algorithm,backbone_run_id,focuss_run_id,seed,coverage_metric,aligned_points,min_timestep,max_timestep
+facmac_focuss,f04b7_00000,f052d_00000,0,custom_metrics/coverage_rate_mean,304,5777.0,1780269.0
+resq_focuss,cdbcf_00000,resq_focuss-1494505-8463bc34,0,custom_metrics/coverage_rate_mean,143,878818.0,1712494.0
+riskq_focuss,riskq-1494503-09472b1c,riskq_focuss-1630178-550d9a76,0,custom_metrics/coverage_rate_mean,106,5703.0,619629.0
+qfree_focuss,qfree-1630177-fd3edb95,qfree_focuss-1732233-bd21616e,0,custom_metrics/coverage_rate_mean,143,5706.0,835089.0
