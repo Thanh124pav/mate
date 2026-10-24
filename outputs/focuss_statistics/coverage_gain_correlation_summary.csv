@@ -1,0 +1,4 @@
+metric,n,pearson_r,pearson_circular_p,pearson_bh_q,spearman_rho,spearman_circular_p,spearman_bh_q,detrended_pearson_r,detrended_circular_p,detrended_bh_q
+focuss_credit_loss,696,-0.188833,0.0001,0.000214,-0.201526,0.0006,0.001800,-0.076760,0.0099,0.037125
+focuss_action_loss,696,-0.494876,0.0612,0.088227,-0.537473,0.0003,0.001125,-0.152945,0.5739,0.614893
+credit_alignment_kl,696,-0.715612,0.0001,0.000214,-0.576224,0.0002,0.001000,-0.607666,0.0003,0.001500
